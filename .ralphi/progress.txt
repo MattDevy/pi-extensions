@@ -110,6 +110,53 @@ Corrective Plan: N/A
   - `isAnalysisRunning()` from analyzer-runner is the re-entrancy source of truth; timer does not maintain its own running flag
 ---
 
+## 2026-03-26T17:03 - US-021
+Session: iter-ef5cedc1
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-loader.ts` with 3 exports: `filterInstincts`, `loadAndFilterInstincts`, `loadAndFilterFromConfig`
+- `filterInstincts(instincts, minConfidence, maxInstincts)`: pure function - filters `flagged_for_removal` and below-threshold, sorts confidence descending, slices to cap; does not mutate input
+- `loadAndFilterInstincts(options)`: loads project instincts (when `projectId` provided) + global instincts, combines, delegates to `filterInstincts`; defaults from `DEFAULT_CONFIG`
+- `loadAndFilterFromConfig(config, projectId?, baseDir?)`: convenience wrapper using `Config` object's `min_confidence` and `max_instincts`
+- `LoadInstinctsOptions` interface: `projectId?: string | null`, `minConfidence?`, `maxInstincts?`, `baseDir?`
+- 16 unit tests in `src/instinct-loader.test.ts`: pure filter tests (filtering, flagged exclusion, sort order, cap, empty cases, no-mutation), I/O tests (project/global loading, null/undefined projectId, minConfidence opt, maxInstincts cap, flagged exclusion), config wrapper tests
+- Fixed `exactOptionalPropertyTypes` issues: `makeInstinct` helper uses conditional property assignment; `loadAndFilterFromConfig` builds `opts` object imperatively before calling inner function
+- All 311 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-loader.ts, src/instinct-loader.test.ts
+- **Learnings for future iterations:**
+  - `exactOptionalPropertyTypes: true` in tsconfig means `Partial<T>` spreads need care: `{ optProp: undefined }` is NOT assignable to `{ optProp?: string }` - use conditional property assignment instead
+  - `filterInstincts` is pure (no I/O) - test it separately from the loader to get cleaner, faster tests
+  - `[...eligible].sort(...)` creates a new array (immutability), no need to clone before filter since `filter()` already creates a new array
+  - `loadAndFilterFromConfig` is the API US-022 (injector) should call with the config and current projectId
+---
+
+## 2026-03-26T17:11 - US-024
+Session: iter-221a4e50
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-status.ts` with `handleInstinctStatus`, `formatStatusOutput`, `groupByDomain`, `formatInstinct`, `getTrendArrow`, and `loadAllInstincts`
+- `getTrendArrow(instinct)`: returns ↑/↓/→ based on confirmed_count vs contradicted_count comparison
+- `formatInstinct(instinct)`: formats single instinct line as `[confidence] title trend (✓N ✗N ○N)`; appends `⚠ FLAGGED FOR REMOVAL` line when `flagged_for_removal` is true
+- `groupByDomain(instincts)`: groups instinct array into `Record<string, Instinct[]>` by domain; uses `"uncategorized"` for falsy/empty domain
+- `formatStatusOutput(instincts)`: produces full output string - header, domains sorted alphabetically, instinct lines, and total/flagged summary; returns `"No instincts found."` for empty input
+- `loadAllInstincts(projectId?, baseDir?)`: loads project + global instincts WITHOUT confidence filtering (status command shows all instincts including flagged ones)
+- `handleInstinctStatus(args, ctx, projectId?, baseDir?)`: async command handler - loads all, formats, calls `ctx.ui.notify(output, "info")`
+- `COMMAND_NAME = "instinct-status"` exported as constant for US-032 wiring
+- 19 unit tests in `src/instinct-status.test.ts`: getTrendArrow (4), formatInstinct (3), groupByDomain (4), formatStatusOutput (6), handleInstinctStatus integration (2)
+- All 347 tests pass (23 test files), lint clean, typecheck clean
+- Files changed: src/instinct-status.ts, src/instinct-status.test.ts
+- **Learnings for future iterations:**
+  - Status commands should load ALL instincts (no confidence filtering) - use `loadProjectInstincts`/`loadGlobalInstincts` directly rather than `loadAndFilterFromConfig` which excludes flagged/low-confidence ones
+  - `groupByDomain` returns a plain object; sort domain keys with `Object.keys(groups).sort()` for deterministic alphabetical output
+  - Command handlers receive `(args: string, ctx: ExtensionCommandContext)` - US-032 will pass the bound projectId/baseDir via closure when calling `pi.registerCommand`
+  - `COMMAND_NAME` constant exported from each command module - US-032 uses it for `registerCommand(COMMAND_NAME, ...)` so no string duplication
+  - For integration tests of command handlers: mock `ctx` as `{ ui: { notify: vi.fn() } } as unknown as ExtensionCommandContext` - only mock what the handler calls
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
@@ -484,4 +531,46 @@ Corrective Plan: N/A
   - Export `resetAnalyzerState()` for test isolation of module-level state (do not call in production)
   - `shutdownAnalyzer()` is the function for US-032 to wire to `session_shutdown` event handler
   - `isAnalysisRunning()` and `getLastRunTime()` are the accessors US-020 (timer management) will use to implement skip conditions
+---
+
+## 2026-03-26T17:07 - US-022
+Session: iter-9f0c7ead
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-injector.ts` with 3 exports: `buildInjectionBlock`, `injectInstincts`, `handleBeforeAgentStartInjection`
+- `buildInjectionBlock(instincts)`: formats instincts as `## Learned Behaviors (Instincts)` header + bullet list `- [0.xx] trigger: action`; returns null for empty list
+- `injectInstincts(systemPrompt, instincts)`: pure function that appends injection block to existing system prompt; returns null when no instincts
+- `handleBeforeAgentStartInjection(event, ctx, config, projectId?, baseDir?)`: loads instincts via `loadAndFilterFromConfig`, calls `injectInstincts`, returns `{ systemPrompt: modified }` or `undefined` when no-op
+- `InjectionResult` interface exported (subset of SDK's `BeforeAgentStartEventResult` - not exported by SDK)
+- `BeforeAgentStartEventResult` is not exported from `@mariozechner/pi-coding-agent` - defined a local `InjectionResult` interface `{ systemPrompt?: string }` instead
+- Used existing `BeforeAgentStartEvent` interface from `prompt-observer.ts` (already defined there for US-014)
+- 13 unit tests in `src/instinct-injector.test.ts`: buildInjectionBlock (6 tests), injectInstincts (3 tests), handleBeforeAgentStartInjection (4 tests)
+- All 324 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-injector.ts, src/instinct-injector.test.ts
+- **Learnings for future iterations:**
+  - `BeforeAgentStartEventResult` is NOT exported from `@mariozechner/pi-coding-agent` - define a local interface with `{ systemPrompt?: string }` shape
+  - The Pi SDK chains `before_agent_start` handlers: each extension's result.systemPrompt replaces the current prompt for the next handler; return undefined to pass through unchanged
+  - `toStartWith` is not a valid Chai/vitest matcher - use `result?.startsWith(str)` instead
+  - The injector (US-022) and observer (US-014) are separate handlers on `before_agent_start`: observer records the prompt text, injector modifies the system prompt
+  - `loadAndFilterFromConfig` is the right entry point for the injector - uses Config thresholds and handles project/global loading
+---
+
+## 2026-03-26T17:09 - US-023
+Session: iter-b9c5a994
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Modified `src/instinct-injector.ts` to import `setCurrentActiveInstincts` and `clearActiveInstincts` from `active-instincts.ts`
+- `handleBeforeAgentStartInjection`: after successful injection, calls `setCurrentActiveInstincts(instincts.map(i => i.id))`; when no instincts qualify, calls `setCurrentActiveInstincts([])` to clear stale state
+- Added `handleAgentEndClearInstincts(_event, _ctx)`: calls `clearActiveInstincts()` - registers on `agent_end` in US-032 wiring
+- Updated `src/instinct-injector.test.ts`: added `vi.mock("./instinct-loader.js")` at top level (hoisted), updated `handleBeforeAgentStartInjection` `beforeEach` to mock loader returning `[]`, added 4 new state bridge tests verifying set/clear lifecycle
+- All 328 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-injector.ts, src/instinct-injector.test.ts
+- **Learnings for future iterations:**
+  - `vi.mock(...)` at module level is hoisted to the top of the file and affects ALL describe blocks - must ensure earlier tests that relied on real implementation get default mock setup in their `beforeEach`
+  - When adding `vi.mock` to an existing test file, add `vi.mocked(fn).mockReturnValue(defaultValue)` in `beforeEach` of ALL existing describe blocks that call the mocked function
+  - `handleAgentEndClearInstincts` is a new export from `instinct-injector.ts` that US-032 will wire to the `agent_end` event alongside the existing `handleAgentEnd` from `prompt-observer.ts` (they serve different purposes: one records observation, other clears active instincts)
 ---

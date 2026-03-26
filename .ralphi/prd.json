@@ -473,8 +473,8 @@
       ],
       "notes": "",
       "startedAt": "2026-03-26T16:56:17.773Z",
-      "updatedAt": "2026-03-26T17:00:30.000Z",
-      "completedAt": "2026-03-26T17:00:30.000Z"
+      "updatedAt": "2026-03-26T17:01:11.725Z",
+      "completedAt": "2026-03-26T17:01:11.725Z"
     },
     {
       "id": "US-021",
@@ -490,12 +490,15 @@
         "Lint and typecheck pass"
       ],
       "priority": 21,
-      "status": "open",
+      "status": "done",
       "dependsOn": [
         "US-007",
         "US-008"
       ],
-      "notes": ""
+      "notes": "",
+      "startedAt": "2026-03-26T17:01:11.728Z",
+      "updatedAt": "2026-03-26T17:03:46.129Z",
+      "completedAt": "2026-03-26T17:03:46.129Z"
     },
     {
       "id": "US-022",
@@ -509,11 +512,14 @@
         "Lint and typecheck pass"
       ],
       "priority": 22,
-      "status": "open",
+      "status": "done",
       "dependsOn": [
         "US-021"
       ],
-      "notes": ""
+      "notes": "",
+      "startedAt": "2026-03-26T17:03:46.132Z",
+      "updatedAt": "2026-03-26T17:07:16.155Z",
+      "completedAt": "2026-03-26T17:07:16.155Z"
     },
     {
       "id": "US-023",
@@ -527,12 +533,15 @@
         "Lint and typecheck pass"
       ],
       "priority": 23,
-      "status": "open",
+      "status": "done",
       "dependsOn": [
         "US-011",
         "US-022"
       ],
-      "notes": ""
+      "notes": "",
+      "startedAt": "2026-03-26T17:07:16.158Z",
+      "updatedAt": "2026-03-26T17:09:37.598Z",
+      "completedAt": "2026-03-26T17:09:37.598Z"
     },
     {
       "id": "US-024",
@@ -548,11 +557,14 @@
         "Lint and typecheck pass"
       ],
       "priority": 24,
-      "status": "open",
+      "status": "done",
       "dependsOn": [
         "US-007"
       ],
-      "notes": ""
+      "notes": "",
+      "startedAt": "2026-03-26T17:09:37.600Z",
+      "updatedAt": "2026-03-26T17:11:50.000Z",
+      "completedAt": "2026-03-26T17:11:50.000Z"
     },
     {
       "id": "US-025",
