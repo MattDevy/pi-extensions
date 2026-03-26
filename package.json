@@ -1,0 +1,35 @@
+{
+  "name": "pi-continuous-learning",
+  "version": "0.1.0",
+  "description": "A Pi extension that observes coding sessions and distills patterns into reusable instincts.",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "vitest run && eslint src/ && tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.62.0",
+    "@mariozechner/pi-ai": "^0.62.0",
+    "@mariozechner/pi-tui": "^0.62.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

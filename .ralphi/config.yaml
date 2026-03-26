@@ -1,0 +1,30 @@
+# ralphi configuration
+# Auto-generated - edit as needed
+
+project:
+  name: "pi-continuous-learning"
+  language: "TypeScript"
+  framework: "Pi Extension (pi-package)"
+
+commands:
+  test: "npx vitest run"
+  lint: "npx eslint src/"
+  build: "npx tsc --noEmit"
+  typecheck: "npx tsc --noEmit"
+
+rules:
+  - "This is a Pi extension - use Pi SDK APIs (extension events, slash commands)"
+  - "Use vitest for testing"
+  - "Use strict TypeScript (strict: true)"
+  - "Keep files under 400 lines, functions under 50 lines"
+  - "Use TypeBox for runtime validation at boundaries (it is a peer dependency)"
+  - "No hardcoded values - use constants in config.ts"
+  - "Prefer immutability - create new objects, never mutate existing ones"
+
+boundaries:
+  never_touch:
+    - "*.lock"
+    - ".env*"
+
+engine: "pi"
+max_retries: 3

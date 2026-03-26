@@ -1,1 +1,7 @@
 tmp
+node_modules/
+dist/
+
+# ralphi
+.ralphi/*
+!.ralphi/config.yaml
