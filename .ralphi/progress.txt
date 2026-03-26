@@ -155,3 +155,28 @@ Corrective Plan: N/A
   - `splitFrontmatter()` uses regex `^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$` for robust CRLF handling
   - US-007 (CRUD operations) depends on this module for loadInstinct/saveInstinct
 ---
+
+## 2026-03-26T16:24 - US-007
+Session: iter-1ca7b7d9
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-store.ts` with 5 CRUD functions for instinct files
+- `loadInstinct(filePath)`: reads .md and delegates to parseInstinct
+- `saveInstinct(instinct, dir)`: validates ID, writes <dir>/<id>.md via serializeInstinct
+- `listInstincts(dir)`: reads all .md files, silently skips malformed ones, returns empty array for missing dirs
+- `loadProjectInstincts(projectId, baseDir?)`: loads from projects/<projectId>/instincts/personal/
+- `loadGlobalInstincts(baseDir?)`: loads from instincts/personal/
+- `assertNoPathTraversal()`: checks for `..`, `/`, `\` in instinct IDs before any file write
+- 13 unit tests in `src/instinct-store.test.ts` using real mkdtempSync temp dirs (no fs mocking)
+- Tests cover: load/save roundtrip, path traversal rejection (.. and /), list with malformed files, empty/missing dirs, project and global loaders
+- All 65 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-store.ts, src/instinct-store.test.ts
+- **Learnings for future iterations:**
+  - `listInstincts` silently skips malformed files - this is intentional so a bad instinct file doesn't break the session
+  - `assertNoPathTraversal()` is a belt-and-suspenders guard; kebab-case validation in parseInstinct already prevents ".."
+  - All path functions accept optional `baseDir` parameter for testability (no mocking needed)
+  - Use `readdirSync(dir).filter(f => f.endsWith('.md'))` to enumerate instinct files
+  - `existsSync(dir)` guard in `listInstincts` allows callers to call before storage layout is initialized
+---
