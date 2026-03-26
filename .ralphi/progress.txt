@@ -224,3 +224,24 @@ Corrective Plan: N/A
   - `pattern.lastIndex = 0` is required before each `replace()` when reusing global RegExp objects across calls
   - `scrubSecrets` is imported by US-013 (tool call observer) and US-014 (user prompt observer) - applied to input/output fields before writing
 ---
+
+## 2026-03-26T16:31 - US-010
+Session: iter-b0304039
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/observer-guard.ts` - shared state module for self-observation prevention
+- `isAnalyzerRunning()` / `setAnalyzerRunning(value)`: module-level boolean flag getter/setter
+- `shouldSkipPath(filePath)`: returns true for paths under `~/.pi/continuous-learning/` (exact match or prefix + separator check)
+- `shouldSkipObservation(filePath?)`: combined guard - returns true if analyzer running OR path is filtered
+- Fixed `startsWith` bug: used `path === BASE || path.startsWith(BASE + "/")` to prevent false matches on sibling dirs like `continuous-learning-other/`
+- 12 unit tests in `src/observer-guard.test.ts`: flag lifecycle, path filtering edge cases, combined guard behavior
+- All 130 tests pass, lint clean, typecheck clean
+- Files changed: src/observer-guard.ts, src/observer-guard.test.ts
+- **Learnings for future iterations:**
+  - `shouldSkipObservation()` is the primary API for US-013/014 (tool call and prompt observers) - call it before any observation write
+  - `setAnalyzerRunning(true)` must be called before analyzer subprocess starts and `setAnalyzerRunning(false)` after it completes (US-019)
+  - Path prefix check: always append "/" separator when checking `startsWith` to avoid false positives on directory siblings
+  - No TypeBox validation needed here - pure boolean/string state with no external input at type boundaries
+---
