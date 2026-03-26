@@ -288,3 +288,28 @@ Corrective Plan: N/A
   - Path prefix check: always append "/" separator when checking `startsWith` to avoid false positives on directory siblings
   - No TypeBox validation needed here - pure boolean/string state with no external input at type boundaries
 ---
+
+## 2026-03-26T16:40 - US-013
+Session: iter-d10957e7
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/tool-observer.ts` with `handleToolStart` and `handleToolEnd`
+- `handleToolStart(event, ctx, project, baseDir?)`: records tool_start observation with tool name, truncated/scrubbed input (max 5000 chars), active_instincts, session, project fields
+- `handleToolEnd(event, ctx, project, baseDir?)`: records tool_complete observation with tool name, truncated/scrubbed output (max 5000 chars), is_error, active_instincts
+- Self-observation guard checked via `shouldSkipObservation()` as first action in both handlers
+- `scrubSecrets()` applied to raw args/result before truncation
+- `getCurrentActiveInstincts()` tags observations; omitted (not written as empty) when no instincts active
+- Local `ToolExecutionStartEvent` and `ToolExecutionEndEvent` interfaces defined (local node_modules version of pi-coding-agent does not re-export these at top level - use local interfaces for portability)
+- `getSessionId(ctx)` via `ctx.sessionManager.getSessionId()` (ReadonlySessionManager method)
+- `lastObs()` helper in tests: reads observations and returns last one or throws - avoids TS18048 on `arr[arr.length - 1]` possibly-undefined
+- 15 unit tests using real temp dirs; all 160 tests pass, lint clean, typecheck clean
+- Files changed: src/tool-observer.ts, src/tool-observer.test.ts
+- **Learnings for future iterations:**
+  - Local `node_modules/@mariozechner/pi-coding-agent` top-level index.d.ts does NOT export `ToolExecutionStartEvent`/`ToolExecutionEndEvent` - import from `./dist/core/extensions/index.js` directly or define local interfaces
+  - `ctx.sessionManager.getSessionId()` from `ReadonlySessionManager` - use this for session field
+  - Spread `...buildActiveInstincts()` returns `{}` when empty - cleanly omits the field from the observation object
+  - String args check (`typeof event.args === "string"`) prevents double-JSON-stringify for string inputs
+  - `lastObs()` helper pattern: returns non-undefined or throws, avoids strict-mode TS array access errors
+---
