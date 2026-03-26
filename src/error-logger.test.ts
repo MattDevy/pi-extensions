@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { logError, logWarning, getLogPath } from "./error-logger.js";
+import { logError, logWarning, logInfo, getLogPath } from "./error-logger.js";
 
 function makeTmpDir(): string {
   const dir = join(tmpdir(), `pi-cl-error-logger-test-${Date.now()}-${Math.random()}`);
@@ -126,5 +126,53 @@ describe("logWarning", () => {
   it("does not throw on any condition", () => {
     expect(() => logWarning(null, "ctx", "msg")).not.toThrow();
     expect(() => logWarning("proj2", "ctx", "msg", "/nonexistent/root/path")).not.toThrow();
+  });
+});
+
+describe("logInfo", () => {
+  let baseDir: string;
+
+  beforeEach(() => {
+    baseDir = makeTmpDir();
+  });
+
+  it("writes info entry with Info: prefix", () => {
+    logInfo("proj1", "analyzer-runner", "Analysis started", baseDir);
+
+    const content = readFileSync(getLogPath("proj1", baseDir), "utf-8");
+    expect(content).toContain("Info: Analysis started");
+    expect(content).toContain("[analyzer-runner]");
+  });
+
+  it("includes timestamp in ISO format", () => {
+    logInfo("proj1", "ctx", "test message", baseDir);
+
+    const content = readFileSync(getLogPath("proj1", baseDir), "utf-8");
+    expect(content).toMatch(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+
+  it("appends multiple entries without overwriting", () => {
+    logInfo("proj1", "ctx", "first", baseDir);
+    logInfo("proj1", "ctx", "second", baseDir);
+
+    const content = readFileSync(getLogPath("proj1", baseDir), "utf-8");
+    expect(content).toContain("first");
+    expect(content).toContain("second");
+  });
+
+  it("creates log directory if it does not exist", () => {
+    const logPath = getLogPath("newproj", baseDir);
+    expect(existsSync(logPath)).toBe(false);
+
+    logInfo("newproj", "ctx", "hello", baseDir);
+    expect(existsSync(logPath)).toBe(true);
+  });
+
+  it("silently does nothing when projectId is null", () => {
+    expect(() => logInfo(null, "ctx", "msg")).not.toThrow();
+  });
+
+  it("does not throw on write failure", () => {
+    expect(() => logInfo("proj2", "ctx", "msg", "/nonexistent/root/path")).not.toThrow();
   });
 });

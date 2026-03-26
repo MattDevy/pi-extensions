@@ -122,30 +122,55 @@ Confidence comes from two sources:
 
 This means an instinct observed 20 times but consistently contradicted in practice will lose confidence. Frequency alone doesn't equal correctness.
 
+## Updating
+
+To update to the latest version:
+
+```bash
+pi install pi-continuous-learning
+```
+
+Or from a local clone:
+
+```bash
+cd pi-continuous-learning
+git pull
+pi install .
+```
+
+Your observations, instincts, and configuration are stored separately in `~/.pi/continuous-learning/` and are preserved across updates.
+
 ## Configuration
 
 Optional. Defaults work out of the box. Override at `~/.pi/continuous-learning/config.json`:
 
 ```json
 {
-  "version": "1.0",
-  "observer": {
-    "enabled": true,
-    "run_interval_minutes": 5,
-    "min_observations_to_analyze": 20
-  },
-  "injector": {
-    "enabled": true,
-    "min_confidence": 0.5,
-    "max_instincts": 20
-  },
-  "analyzer": {
-    "model": "claude-haiku-4-5",
-    "timeout_seconds": 120,
-    "max_observations_per_analysis": 500
-  }
+  "run_interval_minutes": 5,
+  "min_observations_to_analyze": 20,
+  "min_confidence": 0.5,
+  "max_instincts": 20,
+  "model": "claude-haiku-4-5",
+  "timeout_seconds": 120,
+  "active_hours_start": 8,
+  "active_hours_end": 23,
+  "max_idle_seconds": 1800
 }
 ```
+
+Only include the fields you want to change - missing fields use the defaults above.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `run_interval_minutes` | 5 | How often the background analyzer runs |
+| `min_observations_to_analyze` | 20 | Minimum observations before analysis triggers |
+| `min_confidence` | 0.5 | Instincts below this are not injected into prompts |
+| `max_instincts` | 20 | Maximum instincts injected per turn |
+| `model` | `claude-haiku-4-5` | Model for the analyzer subprocess |
+| `timeout_seconds` | 120 | Kill analyzer subprocess after this many seconds |
+| `active_hours_start` | 8 | Don't run analyzer before this hour (local time) |
+| `active_hours_end` | 23 | Don't run analyzer after this hour (local time) |
+| `max_idle_seconds` | 1800 | Skip analysis if no observation in this many seconds |
 
 ## Storage
 
@@ -160,7 +185,24 @@ All data stays local on your machine:
     observations.jsonl          # Current observations
     observations.archive/       # Archived (auto-purged after 30 days)
     instincts/personal/         # Project-scoped instincts
-    analyzer.log                # Background analyzer log
+    analyzer.log                # Analyzer lifecycle log (info, warnings, errors)
+```
+
+### Checking analyzer activity
+
+The `analyzer.log` file tracks every timer tick and analysis run. To see if the analyzer is working:
+
+```bash
+cat ~/.pi/continuous-learning/projects/<hash>/analyzer.log
+```
+
+You'll see entries like:
+
+```
+[2026-03-26T14:30:00.000Z] [analyzer-timer] Info: Tick skipped: not enough observations
+[2026-03-26T14:35:00.000Z] [analyzer-timer] Info: Tick fired: starting analysis
+[2026-03-26T14:35:01.000Z] [analyzer-runner] Info: Analysis started
+[2026-03-26T14:35:45.000Z] [analyzer-runner] Info: Analysis completed: 2 file(s) written
 ```
 
 ## Privacy & Security

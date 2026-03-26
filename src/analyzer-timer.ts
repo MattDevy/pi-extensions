@@ -8,6 +8,7 @@
 import * as fs from "node:fs";
 import { getObservationsPath } from "./storage.js";
 import { isAnalysisRunning } from "./analyzer-runner.js";
+import { logInfo } from "./error-logger.js";
 import type { Config } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -178,11 +179,20 @@ export function startAnalyzerTimer(
 ): void {
   stopAnalyzerTimer();
   const intervalMs = config.run_interval_minutes * MS_PER_MINUTE;
+  const skipReasonLabels: Record<TimerSkipReason, string> = {
+    in_progress: "analysis already in progress",
+    insufficient_observations: "not enough observations",
+    outside_active_hours: "outside active hours",
+    user_idle: "user idle",
+  };
+
   _intervalHandle = setInterval(() => {
     const skipReason = getSkipReason(config, projectId, baseDir);
     if (skipReason !== null) {
+      logInfo(projectId, "analyzer-timer", `Tick skipped: ${skipReasonLabels[skipReason]}`, baseDir);
       return;
     }
+    logInfo(projectId, "analyzer-timer", "Tick fired: starting analysis", baseDir);
     void onAnalyze();
   }, intervalMs);
 }

@@ -315,9 +315,28 @@ All values clamped to [0.1, 0.9]. If the pre-clamp value drops below 0.1, `flagg
 
 ---
 
-## Error Handling
+## Logging
 
-`error-logger.ts` writes structured entries to `projects/<id>/analyzer.log`:
+`error-logger.ts` writes structured entries to `projects/<id>/analyzer.log` at three levels:
+
+### Info (lifecycle tracking)
+
+```
+[2026-03-25T14:30:00.000Z] [analyzer-timer] Info: Tick skipped: not enough observations
+[2026-03-25T14:35:00.000Z] [analyzer-timer] Info: Tick fired: starting analysis
+[2026-03-25T14:35:01.000Z] [analyzer-runner] Info: Analysis started
+[2026-03-25T14:35:45.000Z] [analyzer-runner] Info: Analysis completed: 2 file(s) written
+```
+
+The analyzer timer logs every tick - either the skip reason (`not enough observations`, `analysis already in progress`, `outside active hours`, `user idle`) or that it fired. The runner logs when analysis starts, completes (with file count), or is skipped due to its own guards (re-entrancy, cooldown).
+
+### Warning (non-fatal issues)
+
+```
+[2026-03-25T14:35:45.000Z] [analyzer-runner] Warning: Subprocess failed. stderr: ...
+```
+
+### Error (failures with stack traces)
 
 ```
 [2026-03-25T14:30:00.000Z] [analyzer-runner:runAnalysis] Error: Subprocess timed out
@@ -325,9 +344,12 @@ Stack: Error: Subprocess timed out
     at ...
 ```
 
-- If `projectId` is null (project detection failed), falls back to `console.warn`.
+### Behavior
+
+- If `projectId` is null (project detection failed), errors and warnings fall back to `console.warn`. Info messages are silently dropped.
 - The logger itself never throws - all I/O failures are silently swallowed.
 - Every event handler in `index.ts` wraps its body in try/catch and routes errors through `logError()`.
+- To check if the analyzer has ever run, look for `analyzer.log` in the project directory and check for Info lines from `analyzer-runner`.
 
 ---
 

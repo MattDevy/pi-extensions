@@ -12,7 +12,7 @@ import { spawnAnalyzer } from "./analyzer-spawn.js";
 import { parseAnalyzerStream } from "./analyzer-stream.js";
 import type { AnalysisResult } from "./analyzer-stream.js";
 import { runDecayPass } from "./instinct-decay.js";
-import { logWarning, logError } from "./error-logger.js";
+import { logWarning, logError, logInfo } from "./error-logger.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -142,6 +142,7 @@ export async function runAnalysis(
 ): Promise<RunAnalysisResult> {
   // Re-entrancy guard
   if (_isRunning) {
+    logInfo(params.projectId ?? null, "analyzer-runner", "Skipped: analysis already in progress", params.baseDir);
     return { skipped: true, skipReason: "in_progress" };
   }
 
@@ -149,6 +150,7 @@ export async function runAnalysis(
   if (_lastRunTime !== null) {
     const elapsed = Date.now() - _lastRunTime;
     if (elapsed < ANALYSIS_COOLDOWN_MS) {
+      logInfo(params.projectId ?? null, "analyzer-runner", "Skipped: cooldown period active", params.baseDir);
       return { skipped: true, skipReason: "cooldown" };
     }
   }
@@ -160,6 +162,8 @@ export async function runAnalysis(
 
   const timeoutMs =
     (params.timeoutSeconds ?? DEFAULT_CONFIG.timeout_seconds) * 1000;
+
+  logInfo(params.projectId ?? null, "analyzer-runner", "Analysis started", params.baseDir);
 
   _isRunning = true;
   setAnalyzerRunning(true);
@@ -192,13 +196,24 @@ export async function runAnalysis(
       handle.process.stdout as import("node:stream").Readable
     );
 
-    if (!result.success && stderrOutput.trim()) {
-      logWarning(
-        params.projectId ?? null,
-        "analyzer-runner",
-        `Subprocess failed. stderr:\n${stderrOutput.trim()}`,
-        params.baseDir
-      );
+    if (result.success) {
+      const fileCount = result.filesWritten.length;
+      const errorCount = result.errors.length;
+      const parts = [`Analysis completed: ${fileCount} file(s) written`];
+      if (errorCount > 0) {
+        parts.push(`${errorCount} tool error(s)`);
+      }
+      logInfo(params.projectId ?? null, "analyzer-runner", parts.join(", "), params.baseDir);
+    } else {
+      logInfo(params.projectId ?? null, "analyzer-runner", "Analysis finished without clean completion (no agent_end event)", params.baseDir);
+      if (stderrOutput.trim()) {
+        logWarning(
+          params.projectId ?? null,
+          "analyzer-runner",
+          `Subprocess failed. stderr:\n${stderrOutput.trim()}`,
+          params.baseDir
+        );
+      }
     }
 
     _lastRunTime = Date.now();

@@ -100,3 +100,31 @@ export function logWarning(
     console.warn(`${PREFIX} ${context}: ${message}`);
   }
 }
+
+/**
+ * Logs an informational message to the analyzer log.
+ * Used for tracking analyzer lifecycle events (started, completed, skipped).
+ *
+ * Never throws - all I/O failures are silently swallowed.
+ */
+export function logInfo(
+  projectId: string | null,
+  context: string,
+  message: string,
+  baseDir?: string
+): void {
+  const timestamp = new Date().toISOString();
+  const line = `[${timestamp}] [${context}] Info: ${message}\n`;
+
+  if (projectId === null) {
+    return;
+  }
+
+  const logPath = getLogPath(projectId, baseDir);
+  try {
+    mkdirSync(dirname(logPath), { recursive: true });
+    appendFileSync(logPath, line, "utf-8");
+  } catch {
+    // silently swallow
+  }
+}
