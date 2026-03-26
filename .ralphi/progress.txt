@@ -574,3 +574,48 @@ Corrective Plan: N/A
   - When adding `vi.mock` to an existing test file, add `vi.mocked(fn).mockReturnValue(defaultValue)` in `beforeEach` of ALL existing describe blocks that call the mocked function
   - `handleAgentEndClearInstincts` is a new export from `instinct-injector.ts` that US-032 will wire to the `agent_end` event alongside the existing `handleAgentEnd` from `prompt-observer.ts` (they serve different purposes: one records observation, other clears active instincts)
 ---
+
+## 2026-03-26T17:14 - US-025
+Session: iter-af74c392
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-export.ts` with the /instinct-export command
+- `parseExportArgs(args)`: parses space-separated args; first token "project"/"global" is scope filter, remaining tokens join as domain filter
+- `filterInstinctsForExport(instincts, scope, domain)`: immutable filter returning new array filtered by scope and/or domain
+- `buildExportFilename(now?)`: generates `instincts-export-<YYYYMMDDTHHmmss>.json` (filesystem-safe, no colons)
+- `loadAllInstinctsForExport(projectId?, baseDir?)`: loads project + global instincts without confidence filtering
+- `handleInstinctExport(args, ctx, projectId?, baseDir?)`: orchestrates load→filter→write→notify; uses `ctx.cwd` as output directory
+- 25 unit tests in `src/instinct-export.test.ts`: COMMAND_NAME, arg parsing (9 cases), filter combinations, filename generation, integration tests (file content verification, scope filter, empty storage)
+- All 372 tests pass, lint clean, typecheck clean, build clean
+- Files changed: src/instinct-export.ts, src/instinct-export.test.ts
+- **Learnings for future iterations:**
+  - `ctx.cwd` is available on `ExtensionCommandContext` (inherited from `ExtensionContext`) - use it for "current directory" in command handlers
+  - `Date.toISOString()` yields `2026-03-26T17:12:20.000Z`; strip dashes/colons/ms/Z for compact filesystem-safe timestamp
+  - Export command does NOT apply confidence filtering - it exports everything (including flagged instincts), unlike injection
+  - `COMMAND_NAME` is exported for US-032 to wire `pi.registerCommand(COMMAND_NAME, { handler: handleInstinctExport, ... })`
+  - Pattern: `instinct-status.ts` and `instinct-export.ts` follow same structure: pure helpers exported for testing + handler function for integration
+
+## 2026-03-26T17:17 - US-026
+Session: iter-08ba1259
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-import.ts` with `handleInstinctImport`, `loadImportFile`, `validateImportObject`, `partitionByDuplicates`, `getTargetDir`
+- `validateImportObject(obj, index)`: checks for all 14 required Instinct fields + kebab-case id validation; returns `ValidationError | null`
+- `loadImportFile(filePath)`: reads file, parses JSON, must be an array; partitions into `valid` and `invalid` lists; returns `LoadResult`
+- `partitionByDuplicates(instincts, projectId, baseDir)`: checks existing IDs in both global inherited and project inherited dirs; returns `{ toImport, duplicates }`
+- `getTargetDir(instinct, projectId, baseDir)`: routes by `scope` - project-scoped -> project inherited dir, global-scoped (or no projectId) -> global inherited dir
+- `handleInstinctImport`: resolves absolute path, checks existence, loads, partitions, ensures dirs exist, saves, reports summary with import count + skipped duplicates + invalid entries
+- `COMMAND_NAME = "instinct-import"` exported for US-032 wiring
+- 27 unit tests in `src/instinct-import.test.ts`: COMMAND_NAME (1), validateImportObject (7), loadImportFile (5), partitionByDuplicates (4), getTargetDir (3), handleInstinctImport integration (7)
+- All 399 tests pass (25 test files), lint clean, typecheck clean
+- Files changed: src/instinct-import.ts, src/instinct-import.test.ts
+- **Learnings for future iterations:**
+  - Import commands use `inherited/` not `personal/` as the target directory - imported instincts are "inherited" from external sources
+  - `resolve(ctx.cwd, args.trim())` handles both absolute and relative paths from the user arg
+  - `mkdirSync({ recursive: true })` for target dirs before writing - import may run before `ensureStorageLayout` in fresh contexts
+  - `partitionByDuplicates` checks the INHERITED dirs (not personal) since that's where imports land - personal instincts created by the analyzer don't conflict
+---
