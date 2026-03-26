@@ -84,6 +84,32 @@ Corrective Plan: N/A
   - Malformed line test: use `vi.spyOn(console, "warn").mockImplementation(...)` + `mockRestore()` to avoid polluting other test output
 ---
 
+## 2026-03-26T17:00 - US-020
+Session: iter-be710f63
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/analyzer-timer.ts` with `startAnalyzerTimer`, `stopAnalyzerTimer`, `getSkipReason`, and supporting helpers
+- `startAnalyzerTimer(config, projectId, onAnalyze, baseDir?)`: clears any existing timer, sets `setInterval` at `run_interval_minutes * 60 * 1000` ms; each tick calls `getSkipReason` and only invokes `onAnalyze()` callback when null (no skip)
+- `stopAnalyzerTimer()`: clears interval handle; called on `session_shutdown` (US-032 wiring)
+- `getSkipReason(config, projectId, baseDir?)`: returns the first failing condition or null; check order: (1) `isAnalysisRunning()` -> in_progress, (2) `countObservations < min_observations_to_analyze` -> insufficient_observations, (3) `!isWithinActiveHours(...)` -> outside_active_hours, (4) idle > `max_idle_seconds` -> user_idle
+- `countObservations(projectId, baseDir?)`: reads observations.jsonl, counts non-empty lines; returns 0 for missing file
+- `getLastObservationTime(projectId, baseDir?)`: reads last line of observations.jsonl, parses `timestamp` field to epoch ms; returns null for missing file, empty file, or malformed JSON
+- `isWithinActiveHours(startHour, endHour)`: uses `new Date().getHours()` (LOCAL time); range is `[start, end)` - end hour is exclusive
+- `resetTimerState()` / `isTimerRunning()` exported for test isolation
+- `isAnalysisRunning()` from analyzer-runner is mocked with `vi.mock("./analyzer-runner.js")` - use `vi.resetAllMocks()` + explicit `mockReturnValue(false)` in beforeEach (NOT `vi.clearAllMocks()`) to prevent mock state bleed between tests
+- 27 unit tests in `src/analyzer-timer.test.ts` using `vi.useFakeTimers()` + `vi.setSystemTime()` for hour-based tests
+- All 295 tests pass, lint clean, typecheck clean
+- Files changed: src/analyzer-timer.ts, src/analyzer-timer.test.ts
+- **Learnings for future iterations:**
+  - `vi.clearAllMocks()` clears call counts but NOT mock implementations set via `mockReturnValue()` - use `vi.resetAllMocks()` + re-set defaults in `beforeEach` to prevent bleed between tests
+  - `vi.setSystemTime(new Date(year, month, day, hour))` uses LOCAL time constructor - correct approach for testing `getHours()` without timezone issues (avoids UTC string parsing)
+  - `active_hours_end: 24` effectively means "all day active" since `getHours()` returns 0-23, and `currentHour < 24` is always true
+  - `onAnalyze` callback pattern enables US-032 to inject the full analysis execution without timer module knowing about prompt construction details
+  - `isAnalysisRunning()` from analyzer-runner is the re-entrancy source of truth; timer does not maintain its own running flag
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
@@ -422,4 +448,40 @@ Corrective Plan: N/A
   - `completion` promise listens to 'close' event (not 'exit') - 'close' fires after stdio streams close, which is the right signal for "process fully done"
   - `buildAnalyzerArgs` is exported separately so US-018 and US-019 can reuse/test the arg construction independently
   - `ANALYZER_FLAGS as const` ensures the spread produces a readonly tuple - prevents accidental mutation of the flag list
+---
+
+## 2026-03-26T16:55 - US-019
+Session: iter-be214e8d
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/analyzer-runner.ts` - analyzer subprocess lifecycle management
+- `runAnalysis(params)`: spawns analyzer with timeout, re-entrancy guard, and cooldown
+  - Re-entrancy guard: `_isRunning` flag returns `{ skipped: true, skipReason: 'in_progress' }` on concurrent call
+  - Cooldown guard: `ANALYSIS_COOLDOWN_MS = 60_000` enforces 60-second minimum between runs
+  - Timeout: `setTimeout` arms after spawn; fires `child.kill('SIGTERM')` after `timeoutSeconds`
+  - Calls `setAnalyzerRunning(true/false)` to suppress self-observation during analysis
+  - `clearRunState()` helper resets all state in `finally` block (runs even on timeout)
+- `shutdownAnalyzer()`: kills current process with SIGTERM, clears timeout handle
+- `resetAnalyzerState()`: exported for test isolation only (resets all module-level state)
+- `isAnalysisRunning()` / `getLastRunTime()`: exported state accessors for US-020
+- `ANALYSIS_COOLDOWN_MS` exported for US-020 (timer management) to reference
+- 11 unit tests in `src/analyzer-runner.test.ts` using `vi.useFakeTimers()`:
+  - re-entrancy returns in_progress skip (process resolved via close event)
+  - allows new run after previous completes (with cooldown advance)
+  - cooldown blocks run within 60s, allows after 61s
+  - timeout at 5s fires kill, resolves run, resets running flag
+  - shutdown kills process immediately, does nothing when no process
+  - setAnalyzerRunning called with true on start, false on end
+  - isAnalysisRunning/getLastRunTime initial state and post-run values
+- Files changed: src/analyzer-runner.ts, src/analyzer-runner.test.ts
+- **Learnings for future iterations:**
+  - `vi.useFakeTimers()` + `vi.advanceTimersByTime(ms)` is the clean approach for timeout tests - no actual waiting
+  - `vi.mock("./module.js")` + `await import("./module.js")` pattern required for mocks to apply before module evaluation
+  - Test deadlock risk: "never-resolving" streams must still resolve when process is killed - use `proc.on("close", () => resolve(...))` inside the mock implementation
+  - `clearRunState()` in `finally` ensures cleanup even when stream parsing throws or process times out
+  - Export `resetAnalyzerState()` for test isolation of module-level state (do not call in production)
+  - `shutdownAnalyzer()` is the function for US-032 to wire to `session_shutdown` event handler
+  - `isAnalysisRunning()` and `getLastRunTime()` are the accessors US-020 (timer management) will use to implement skip conditions
 ---
