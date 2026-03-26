@@ -1,3 +1,25 @@
+## 2026-03-26T16:43 - US-014
+Session: iter-547e4870
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/prompt-observer.ts` with `handleBeforeAgentStart` and `handleAgentEnd`
+- `handleBeforeAgentStart(event, ctx, project, baseDir?)`: records `user_prompt` observation with scrubbed prompt text from `event.prompt`, session, project fields, active_instincts from shared state
+- `handleAgentEnd(event, ctx, project, baseDir?)`: records `agent_end` observation with session, project fields, active_instincts from shared state
+- Self-observation guard (`shouldSkipObservation()`) checked as first action in both handlers
+- `scrubSecrets()` applied to prompt text before writing
+- Local `BeforeAgentStartEvent` and `AgentEndEvent` interfaces defined (portability pattern from US-013)
+- 10 unit tests in `src/prompt-observer.test.ts`: prompt fields, scrubbing, active_instincts tagging, guard checks for both handlers
+- All 170 tests pass, lint clean, typecheck clean
+- Files changed: src/prompt-observer.ts, src/prompt-observer.test.ts
+- **Learnings for future iterations:**
+  - `handleBeforeAgentStart` returns void (observer only) - does not return `BeforeAgentStartEventResult`; US-022 (injector) is the handler that returns `{ systemPrompt: ... }`
+  - Secret scrubbing test: use `Authorization: Bearer <token>` pattern, not `sk-` short keys (scrubber requires 32+ chars after `sk-`)
+  - Pattern from US-013 applies here: spread `...buildActiveInstincts()` returns `{}` when empty, cleanly omitting the field
+  - `_event` prefix for unused `AgentEndEvent` param avoids `noUnusedParameters` lint error
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
