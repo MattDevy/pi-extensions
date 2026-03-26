@@ -1,4 +1,7 @@
 ## Codebase Patterns
+- **Storage layout**: `ensureStorageLayout(project, baseDir?)` in `src/storage.ts`; accepts optional `baseDir` for testability (defaults to `~/.pi/continuous-learning/`); path helpers all accept optional `baseDir` param; `mkdirSync({ recursive: true })` handles idempotency for directories; `existsSync` guard before `writeFileSync` for project.json (only-once write)
+- **Registry pattern**: `projects.json` is a `Record<string, ProjectEntry>` keyed by project ID; read with `JSON.parse(readFileSync(...))`, update with spread `{ ...existing, [id]: entry }`, write back atomically
+- **testable path functions**: Export helpers like `getProjectDir(id, baseDir?)` with optional baseDir; in tests pass a real `mkdtempSync` temp dir - no fs mocking needed; use `afterAll` with `rmSync(dir, { recursive: true, force: true })` for cleanup
 - **Project detection**: `detectProject(pi, cwd)` in `src/project.ts`; uses `pi.exec('git', ['remote', 'get-url', 'origin'], { cwd })` - passes `cwd` option so git runs in the correct directory; SHA256 hash via `node:crypto` `createHash('sha256').update(input).digest('hex').substring(0, 12)`; `GLOBAL_PROJECT_ID = 'global'` constant for non-git fallback
 - **pi.exec mocking in tests**: create minimal mock `{ exec: vi.fn(...) } as unknown as ExtensionAPI`; chain `.mockResolvedValueOnce()` for sequential call behaviors; ExecResult shape: `{ code, stdout, stderr, killed }`
 - **Config module**: `loadConfig()` in `src/config.ts`; imports `Config` type from `./types.js`; uses TypeBox `Type.Partial(Type.Object(...))` + `Value.Clean()` for runtime validation of partial overrides; `DEFAULT_CONFIG` and `CONFIG_PATH` are named exports
@@ -104,4 +107,51 @@ Corrective Plan: N/A
   - Mock `ExtensionAPI` as `{ exec: vi.fn() } as unknown as ExtensionAPI` - only mock the methods you call
   - Use `vi.fn().mockResolvedValueOnce()` chaining for multi-call sequential mock sequences
   - `node:crypto` `createHash` is available without any additional imports in Node
+---
+
+## 2026-03-26T14:14 - US-005
+Session: iter-57f4e9b0
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/storage.ts` with `ensureStorageLayout(project, baseDir?)` and 7 path helper exports
+- Creates global instincts/personal/ and instincts/inherited/ directories
+- Creates projects/<id>/instincts/personal/, projects/<id>/instincts/inherited/, projects/<id>/observations.archive/
+- Writes project.json only on first call (existsSync guard = idempotent)
+- Always updates projects.json registry with current project entry (supports last_seen updates)
+- All path helpers accept optional baseDir parameter for testability
+- 15 unit tests use real mkdtempSync temp directories (no fs mocking needed)
+- Tests cover: path helpers, directory creation, project.json no-overwrite, registry updates, multi-project registry, idempotency
+- All 38 tests pass, lint clean, typecheck clean
+- Files changed: src/storage.ts, src/storage.test.ts
+- **Learnings for future iterations:**
+  - `mkdirSync(dir, { recursive: true })` is naturally idempotent - no existsSync check needed for dirs
+  - Inject baseDir as optional parameter instead of mocking node:os - avoids hoisting complications with vi.mock
+  - TypeScript strict mode: `Record<string, T>` indexed access returns `T | undefined`; use non-null assertion `!` or add undefined check in tests
+  - `rmSync(dir, { recursive: true, force: true })` in afterAll cleanly removes temp trees
+---
+
+## 2026-03-26T14:18 - US-006
+Session: iter-4918b386
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-parser.ts` with `parseInstinct(content)` and `serializeInstinct(instinct)`
+- Format: YAML frontmatter delimited by `---` with markdown body as the `action` text
+- Used `yaml` package (transitive dep with built-in TS types) for parse/stringify
+- ID validated as kebab-case with `/^[a-z0-9]+(-[a-z0-9]+)*$/`; throws on invalid
+- Confidence clamped to 0.1-0.9 range in both parse and serialize (not thrown)
+- Throws on missing required fields and malformed frontmatter delimiters
+- Optional fields (project_id, project_name, evidence, flagged_for_removal) omitted when undefined
+- 14 unit tests in `src/instinct-parser.test.ts`: valid parse, global/optional fields, clamping, id validation, round-trip
+- All 52 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-parser.ts, src/instinct-parser.test.ts
+- **Learnings for future iterations:**
+  - `yaml` package (transitive dep) provides `parse()` and `stringify()` with built-in TypeScript types - no @types needed
+  - Regex `match[]` elements are `string | undefined` in TS even when match succeeds - use `?? ""` nullish coalescing
+  - Instinct file format: frontmatter has all metadata fields; body is the `action` text
+  - `splitFrontmatter()` uses regex `^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$` for robust CRLF handling
+  - US-007 (CRUD operations) depends on this module for loadInstinct/saveInstinct
 ---
