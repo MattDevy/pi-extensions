@@ -157,6 +157,32 @@ Corrective Plan: N/A
   - For integration tests of command handlers: mock `ctx` as `{ ui: { notify: vi.fn() } } as unknown as ExtensionCommandContext` - only mock what the handler calls
 ---
 
+## 2026-03-26T17:20 - US-027
+Session: iter-11d54284
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/instinct-promote.ts` with the /instinct-promote command
+- `toGlobalInstinct(instinct)`: pure transform - spreads instinct, sets scope to global, updates updated_at, deletes project_id and project_name; does not mutate input
+- `getKnownProjectIds(baseDir)`: reads projects.json registry, returns array of project IDs; returns [] when missing or malformed
+- `promoteById(id, projectId, baseDir)`: looks up instinct by ID in project personal/ dir, copies to global personal/ with toGlobalInstinct, returns promoted or null if not found
+- `findCrossProjectInstincts(projectIds, baseDir)`: iterates projects, loads personal instincts, maps by id to array of instances across projects
+- `autoPromoteInstincts(baseDir)`: uses getKnownProjectIds + findCrossProjectInstincts; skips instincts with < MIN_PROJECTS instances, confidence < 0.8, or already in global personal/; promotes the highest-confidence instance
+- `handleInstinctPromote(args, ctx, projectId?, baseDir?)`: if args has ID -> manual promotion; else -> auto-promotion
+- `AUTO_PROMOTE_MIN_CONFIDENCE = 0.8` and `AUTO_PROMOTE_MIN_PROJECTS = 2` exported as constants
+- 26 unit tests in `src/instinct-promote.test.ts`: COMMAND_NAME, toGlobalInstinct (5), getKnownProjectIds (2), promoteById (4), findCrossProjectInstincts (2), autoPromoteInstincts (5), handleInstinctPromote manual (3), auto (2), constants (2)
+- Fixed: `tmpdir` from `node:os` (not `node:path`); `vi` must be imported from vitest; removed unused `rmSync` and `afterAll`
+- All 425 tests pass, lint clean, typecheck clean
+- Files changed: src/instinct-promote.ts, src/instinct-promote.test.ts
+- **Learnings for future iterations:**
+  - `delete (obj as Partial<T>).field` pattern removes optional fields from spread objects - TypeScript requires the cast to allow deletion
+  - Auto-promotion selects the highest-confidence instance per ID using `[...instances].sort((a,b) => b.confidence - a.confidence)[0]`
+  - `findCrossProjectInstincts` uses `listInstincts(dir)` from instinct-store (not loadProjectInstincts which uses a fixed path) to allow flexible directory scanning
+  - Pattern: command module exports COMMAND_NAME constant + pure helpers + async handler(args, ctx, projectId?, baseDir?) - consistent with export/import commands
+  - `vi` must be imported explicitly from vitest even when not mocking - required for `vi.fn()` calls in test helpers
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
