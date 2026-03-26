@@ -59,6 +59,31 @@ Corrective Plan: N/A
   - `Array.slice(-n)` returns the last n elements naturally - no manual index math needed
 ---
 
+## 2026-03-26T16:52 - US-018
+Session: iter-9de3fffb
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/analyzer-stream.ts` with `parseAnalyzerStream(stdout)` and `parseEventLine(line)` (exported for unit testing)
+- `parseEventLine(line)`: trims whitespace, returns null for empty lines, catches JSON.parse errors with `console.warn`, returns `PiEvent | null`
+- `parseAnalyzerStream(stdout)`: uses `readline.createInterface` over the Readable to iterate NDJSON lines; supports both `event` and `type` keys for event type (Pi version robustness); sets `success=true` on `agent_end`; tracks write tool `tool_execution_end` events for `filesWritten`; collects string/boolean `error` and `is_error` fields into `errors`
+- `AnalysisResult` interface: `{ success: boolean; filesWritten: string[]; errors: string[] }`
+- `extractWrittenFile()`: checks `args.path`, `args.file_path`, `args.filename` in priority order
+- `isToolError()` / `buildErrorMessage()`: handles `error` (string or bool) and `is_error` (bool) variants
+- All constants named (EVENT_TOOL_END, EVENT_AGENT_END, WRITE_TOOL_NAME) - no hardcoding
+- 23 unit tests in `src/analyzer-stream.test.ts`: parseEventLine (4 tests), success detection (4), files written (7), error collection (5), malformed lines (2), combined result (1)
+- All 257 tests pass (18 test files), lint clean, typecheck clean
+- Files changed: src/analyzer-stream.ts, src/analyzer-stream.test.ts
+- **Learnings for future iterations:**
+  - `readline.createInterface({ input: stdout, crlfDelay: Infinity })` is the idiomatic way to iterate NDJSON from a stream - supports `for await` naturally
+  - Test NDJSON streams with `Readable.from(lines.join("\n"))` - no temp files needed
+  - `vi` must be explicitly imported from vitest when using `vi.spyOn` (not a global without vitest globals config)
+  - Pi JSON mode may use `event` or `type` as the event key - support both for robustness
+  - `parseEventLine` is exported separately to allow direct unit testing without stream setup overhead
+  - Malformed line test: use `vi.spyOn(console, "warn").mockImplementation(...)` + `mockRestore()` to avoid polluting other test output
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
