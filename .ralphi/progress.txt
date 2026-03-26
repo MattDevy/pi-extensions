@@ -38,6 +38,27 @@ Corrective Plan: N/A
   - US-016 (user prompt) lives in `src/prompts/analyzer-user.ts` (same directory); US-015 is the system prompt counterpart
 ---
 
+## 2026-03-26T16:47 - US-016
+Session: iter-6a14b85c
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/prompts/analyzer-user.ts` with `buildAnalyzerUserPrompt()` and `tailObservations()` helper
+- `tailObservations(observationsPath, maxEntries?)`: reads JSONL file, returns last `maxEntries` lines as string array (default 500); returns empty array if file does not exist; filters blank lines
+- `buildAnalyzerUserPrompt(observationsPath, instinctsDir, project)`: builds user prompt with observation file path, instinct directory path, project_id, project_name, tailed observation content, and step-by-step instructions for the Haiku analyzer
+- `MAX_TAIL_ENTRIES = 500` constant (no hardcoding)
+- 13 unit tests in `src/prompts/analyzer-user.test.ts`: tail behavior (empty/below limit/at limit/blank lines/500-cap), prompt path inclusion, project context, tailed content, missing-file placeholder
+- Fixed test import bug: `tmpdir` is from `node:os`, not `node:path` - caused TypeError that skipped all 13 tests
+- All 211 tests pass (16 test files), lint clean, typecheck clean
+- Files changed: src/prompts/analyzer-user.ts, src/prompts/analyzer-user.test.ts
+- **Learnings for future iterations:**
+  - `tmpdir` comes from `node:os`, not `node:path` - a common import confusion; always double-check
+  - `tailObservations` is designed to be called inside `buildAnalyzerUserPrompt` but exported separately for testability and potential reuse by US-020 (timer management)
+  - The prompt embeds observations inline so Haiku sees content in the user message (not just a file path to open), while also including the paths for reading/writing instinct files with the read/write tools
+  - `Array.slice(-n)` returns the last n elements naturally - no manual index math needed
+---
+
 ## Codebase Patterns
 - **Observation JSONL**: `appendObservation(obs, projectId, baseDir?)` in `src/observations.ts`; `appendFileSync` for atomic line appends; archival uses `renameSync` (atomic move); `cleanOldArchives(projectId, baseDir?)` uses `utimesSync`-testable `statSync().mtimeMs` for age check; archive filenames use ISO timestamp with `:` and `.` replaced by `-`
 - **Archive cleanup API**: `cleanOldArchives` is designed to be called once per `session_start` (US-032 wiring); uses `statSync().mtimeMs` for age comparison against `Date.now()`; safe to call on empty or missing dirs
