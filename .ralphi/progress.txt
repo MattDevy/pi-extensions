@@ -1,4 +1,6 @@
 ## Codebase Patterns
+- **Project detection**: `detectProject(pi, cwd)` in `src/project.ts`; uses `pi.exec('git', ['remote', 'get-url', 'origin'], { cwd })` - passes `cwd` option so git runs in the correct directory; SHA256 hash via `node:crypto` `createHash('sha256').update(input).digest('hex').substring(0, 12)`; `GLOBAL_PROJECT_ID = 'global'` constant for non-git fallback
+- **pi.exec mocking in tests**: create minimal mock `{ exec: vi.fn(...) } as unknown as ExtensionAPI`; chain `.mockResolvedValueOnce()` for sequential call behaviors; ExecResult shape: `{ code, stdout, stderr, killed }`
 - **Config module**: `loadConfig()` in `src/config.ts`; imports `Config` type from `./types.js`; uses TypeBox `Type.Partial(Type.Object(...))` + `Value.Clean()` for runtime validation of partial overrides; `DEFAULT_CONFIG` and `CONFIG_PATH` are named exports
 - **ESLint Node globals**: `eslint.config.js` imports `globals` from the `globals` package and spreads `globals.node` into `languageOptions.globals` to allow `console`, `Buffer`, `process`, etc.
 - **fs mock pattern**: In vitest, `vi.mock("node:fs")` + `vi.mocked(fs).existsSync.mockReturnValue(...)` + cast mock return as `unknown as ReturnType<typeof fs.readFileSync>` to satisfy TypeScript
@@ -82,4 +84,24 @@ Corrective Plan: N/A
   - `vi.mock("node:fs")` mocks the entire fs module; call `vi.resetAllMocks()` in beforeEach to avoid test bleed
   - `fs.readFileSync` overloads - cast mock return value as `unknown as ReturnType<typeof fs.readFileSync>` to avoid Buffer type errors
   - `globals` package (already a transitive ESLint dep) provides Node.js/browser globals for flat config
+---
+
+## 2026-03-26T14:11 - US-004
+Session: iter-897a907e
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Implemented `src/project.ts` with `detectProject(pi, cwd): Promise<ProjectEntry>`
+- Resolution order: (1) git remote get-url origin -> hash URL, (2) git rev-parse --show-toplevel -> hash path, (3) fallback "global"
+- Project ID = first 12 chars of SHA256 hash; project_name = basename(cwd)
+- `HASH_LENGTH` and `GLOBAL_PROJECT_ID` constants in module (no hardcoding)
+- 5 unit tests in `src/project.test.ts`: remote URL, no-remote path fallback, non-git global fallback, whitespace trimming for both paths
+- All 23 tests pass, lint clean, typecheck clean
+- Files changed: src/project.ts, src/project.test.ts
+- **Learnings for future iterations:**
+  - `pi.exec(cmd, args, options)` - must pass `{ cwd }` in options so git runs in the right directory
+  - Mock `ExtensionAPI` as `{ exec: vi.fn() } as unknown as ExtensionAPI` - only mock the methods you call
+  - Use `vi.fn().mockResolvedValueOnce()` chaining for multi-call sequential mock sequences
+  - `node:crypto` `createHash` is available without any additional imports in Node
 ---
