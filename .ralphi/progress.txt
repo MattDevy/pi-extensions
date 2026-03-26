@@ -1,0 +1,60 @@
+## Codebase Patterns
+- **Pi Extension structure**: Default export `function(_pi: ExtensionAPI): void` in `src/index.ts`; pi-package requires `keywords: ["pi-package"]` and `pi.extensions` in package.json
+- **Module resolution**: `"module": "NodeNext"` + `"moduleResolution": "NodeNext"` in tsconfig; use `.js` extension in relative imports (e.g., `import from "./index.js"`)
+- **Peer deps available**: All `@mariozechner/*` packages (pi-coding-agent, pi-ai, pi-tui) and `@sinclair/typebox` are installed as peer deps via npm auto-install
+- **ESLint flat config**: `eslint.config.js` imports `@eslint/js` and `@typescript-eslint/eslint-plugin` directly; `files: ["src/**/*.ts"]` pattern scopes TS rules
+- **Run checks directly**: `node_modules/.bin/vitest run`, `node_modules/.bin/eslint src/`, `node_modules/.bin/tsc --noEmit` for raw output (pi output filter wraps npm scripts)
+---
+
+## PRD Run Context
+PRD Branch: ralph/continuous-learning
+Started: 2026-03-26T14:00:28.554Z
+---
+
+## 2026-03-26T14:04 - US-001
+Session: iter-44885990
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Scaffolded full pi-package project structure
+- Created package.json with pi-package manifest, correct peerDependencies
+- Created tsconfig.json with strict: true, NodeNext module resolution
+- Created vitest.config.ts with node environment, 80% coverage thresholds
+- Created eslint.config.js with @typescript-eslint rules
+- Created src/index.ts as no-op default export accepting ExtensionAPI
+- Created src/index.test.ts with 3 unit tests (all passing)
+- Updated .gitignore to exclude node_modules/ and dist/
+- All checks pass: vitest (3/3), eslint (0 issues), tsc (0 errors)
+- Files changed: package.json, tsconfig.json, vitest.config.ts, eslint.config.js, src/index.ts, src/index.test.ts, .gitignore
+- **Learnings for future iterations:**
+  - Pi uses jiti to load extensions - NodeNext module resolution with .js imports required
+  - peerDependencies are auto-installed by npm (all @mariozechner/* available in node_modules)
+  - eslint.config.js flat config: import @eslint/js and @typescript-eslint explicitly
+  - vitest globals: true enables describe/it/expect without imports (but explicit imports preferred for type safety)
+  - pi output filter intercepts stdout/stderr - use node_modules/.bin/ direct calls to see raw output
+  - tsconfig: noUnusedParameters allows _prefixed params (used in index.ts: _pi)
+---
+
+## 2026-03-26T14:06 - US-002
+Session: iter-e616c616
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+- Defined all shared TypeScript interfaces in `src/types.ts`
+- `ObservationEvent` union type: tool_start | tool_complete | user_prompt | agent_end
+- `Observation` interface with all required fields (optional: tool, input, output, is_error, active_instincts)
+- `Instinct` interface with all frontmatter fields including flagged_for_removal (needed by US-008/031)
+- `InstinctScope` (project | global) and `InstinctSource` (personal | inherited) union types
+- `ProjectEntry` interface: id, name, root, remote, created_at, last_seen
+- `Config` interface with all spec defaults plus active_hours_start/end and max_idle_seconds (from US-030 spec)
+- `src/types.test.ts` with 9 unit tests verifying all type exports are accessible
+- All checks pass: vitest (12/12), eslint (0 issues), tsc (0 errors)
+- Files changed: src/types.ts, src/types.test.ts
+- **Learnings for future iterations:**
+  - All downstream stories import from `./types.js` (NodeNext module resolution requires .js extension)
+  - `flagged_for_removal` is optional on Instinct - set by confidence decay logic (US-008/031)
+  - Config includes `active_hours_start`, `active_hours_end`, `max_idle_seconds` for US-030 (session guardian)
+  - Type-only tests use `import type` - no runtime values needed, vitest still runs them fine
+---
