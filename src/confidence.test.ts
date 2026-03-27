@@ -3,6 +3,7 @@ import {
   initialConfidence,
   adjustConfidence,
   applyPassiveDecay,
+  confirmationDelta,
 } from "./confidence.js";
 
 // ---------------------------------------------------------------------------
@@ -47,11 +48,66 @@ describe("initialConfidence", () => {
 // adjustConfidence
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// confirmationDelta
+// ---------------------------------------------------------------------------
+
+describe("confirmationDelta", () => {
+  it("returns 0.05 for 0th confirmation (count=0)", () => {
+    expect(confirmationDelta(0)).toBe(0.05);
+  });
+
+  it("returns 0.05 for 2nd confirmation (count=2)", () => {
+    expect(confirmationDelta(2)).toBe(0.05);
+  });
+
+  it("returns 0.05 for 3rd confirmation (count=3)", () => {
+    expect(confirmationDelta(3)).toBe(0.05);
+  });
+
+  it("returns 0.03 for 4th confirmation (count=4)", () => {
+    expect(confirmationDelta(4)).toBe(0.03);
+  });
+
+  it("returns 0.03 for 6th confirmation (count=6)", () => {
+    expect(confirmationDelta(6)).toBe(0.03);
+  });
+
+  it("returns 0.01 for 7th+ confirmation (count=7)", () => {
+    expect(confirmationDelta(7)).toBe(0.01);
+  });
+
+  it("returns 0.01 for very high count (count=100)", () => {
+    expect(confirmationDelta(100)).toBe(0.01);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// adjustConfidence
+// ---------------------------------------------------------------------------
+
 describe("adjustConfidence", () => {
-  it("adds 0.05 for confirmed outcome", () => {
-    const result = adjustConfidence(0.5, "confirmed");
+  it("adds tier-1 delta (0.05) for first confirmation (confirmedCount=0)", () => {
+    const result = adjustConfidence(0.5, "confirmed", 0);
     expect(result.confidence).toBeCloseTo(0.55);
     expect(result.flaggedForRemoval).toBe(false);
+  });
+
+  it("adds tier-2 delta (0.03) for 4th confirmation (confirmedCount=4)", () => {
+    const result = adjustConfidence(0.5, "confirmed", 4);
+    expect(result.confidence).toBeCloseTo(0.53);
+    expect(result.flaggedForRemoval).toBe(false);
+  });
+
+  it("adds tier-3 delta (0.01) for 7th confirmation (confirmedCount=7)", () => {
+    const result = adjustConfidence(0.5, "confirmed", 7);
+    expect(result.confidence).toBeCloseTo(0.51);
+    expect(result.flaggedForRemoval).toBe(false);
+  });
+
+  it("defaults to tier-1 delta when confirmedCount is omitted", () => {
+    const result = adjustConfidence(0.5, "confirmed");
+    expect(result.confidence).toBeCloseTo(0.55);
   });
 
   it("subtracts 0.15 for contradicted outcome", () => {
@@ -67,7 +123,7 @@ describe("adjustConfidence", () => {
   });
 
   it("clamps at 0.9 maximum", () => {
-    const result = adjustConfidence(0.88, "confirmed");
+    const result = adjustConfidence(0.88, "confirmed", 0);
     expect(result.confidence).toBe(0.9);
     expect(result.flaggedForRemoval).toBe(false);
   });
@@ -93,7 +149,7 @@ describe("adjustConfidence", () => {
   });
 
   it("clamps at 0.9 for maximum boundary", () => {
-    const result = adjustConfidence(0.9, "confirmed");
+    const result = adjustConfidence(0.9, "confirmed", 0);
     expect(result.confidence).toBe(0.9);
     expect(result.flaggedForRemoval).toBe(false);
   });

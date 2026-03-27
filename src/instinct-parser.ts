@@ -132,6 +132,9 @@ export function parseInstinct(content: string): Instinct {
   if (fm["graduated_at"] !== undefined && fm["graduated_at"] !== null) {
     instinct.graduated_at = String(fm["graduated_at"]);
   }
+  if (fm["last_confirmed_session"] !== undefined && fm["last_confirmed_session"] !== null) {
+    instinct.last_confirmed_session = String(fm["last_confirmed_session"]);
+  }
 
   return instinct;
 }
@@ -176,6 +179,9 @@ export function serializeInstinct(instinct: Instinct): string {
   }
   if (instinct.graduated_at !== undefined) {
     frontmatter["graduated_at"] = instinct.graduated_at;
+  }
+  if (instinct.last_confirmed_session !== undefined) {
+    frontmatter["last_confirmed_session"] = instinct.last_confirmed_session;
   }
 
   const yamlStr = stringifyYaml(frontmatter);

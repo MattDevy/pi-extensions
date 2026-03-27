@@ -13,6 +13,7 @@ import { serializeInstinct } from "../instinct-parser.js";
 /** Chars-per-token heuristic for prompt size estimation. */
 const CHARS_PER_TOKEN = 4;
 import { validateInstinct, findSimilarInstinct } from "../instinct-validator.js";
+import { confirmationDelta } from "../confidence.js";
 
 export interface InstinctChangePayload {
   id: string;
@@ -27,6 +28,7 @@ export interface InstinctChangePayload {
   contradicted_count?: number;
   inactive_count?: number;
   evidence?: string[];
+  last_confirmed_session?: string;
 }
 
 export interface InstinctChange {
@@ -120,12 +122,57 @@ export function buildInstinctFromChange(
 
   const now = new Date().toISOString();
 
+  // For updates, recompute confidence client-side to enforce:
+  // 1. Per-session deduplication: only one confirmation per unique session_id
+  // 2. Diminishing returns: each additional confirmation yields a smaller delta
+  let resolvedConfidence: number;
+  let resolvedConfirmedCount = payload.confirmed_count ?? existing?.confirmed_count ?? 0;
+  let resolvedLastConfirmedSession = payload.last_confirmed_session ?? existing?.last_confirmed_session;
+
+  if (change.action === "update" && existing !== null) {
+    const prevConfirmedCount = existing.confirmed_count;
+    const newConfirmedCount = payload.confirmed_count ?? prevConfirmedCount;
+    const contradictionsAdded = Math.max(
+      0,
+      (payload.contradicted_count ?? 0) - existing.contradicted_count,
+    );
+
+    // Detect whether the LLM intends to add a confirmation
+    const wantsToConfirm = newConfirmedCount > prevConfirmedCount;
+
+    // Session dedup: reject the confirmation if the confirming session is the
+    // same as the one that last confirmed this instinct.
+    const sessionDuplicate =
+      wantsToConfirm &&
+      resolvedLastConfirmedSession !== undefined &&
+      payload.last_confirmed_session !== undefined &&
+      payload.last_confirmed_session === existing.last_confirmed_session;
+
+    if (sessionDuplicate) {
+      // Revert to existing count - this session already confirmed the instinct
+      resolvedConfirmedCount = prevConfirmedCount;
+    }
+
+    // Recompute confidence from existing + explicit deltas (don't trust LLM arithmetic)
+    resolvedConfidence = existing.confidence;
+    if (wantsToConfirm && !sessionDuplicate) {
+      resolvedConfidence += confirmationDelta(prevConfirmedCount);
+    }
+    if (contradictionsAdded > 0) {
+      resolvedConfidence -= 0.15 * contradictionsAdded;
+    }
+    resolvedConfidence = Math.max(0.1, Math.min(0.9, resolvedConfidence));
+  } else {
+    // For creates, trust the LLM's initial confidence (no prior state to base delta on)
+    resolvedConfidence = Math.max(0.1, Math.min(0.9, payload.confidence));
+  }
+
   return {
     id: payload.id,
     title: payload.title,
     trigger: payload.trigger,
     action: payload.action,
-    confidence: Math.max(0.1, Math.min(0.9, payload.confidence)),
+    confidence: resolvedConfidence,
     domain: payload.domain,
     scope: payload.scope,
     source: "personal",
@@ -133,10 +180,13 @@ export function buildInstinctFromChange(
     created_at: existing?.created_at ?? now,
     updated_at: now,
     observation_count: payload.observation_count ?? 1,
-    confirmed_count: payload.confirmed_count ?? 0,
+    confirmed_count: resolvedConfirmedCount,
     contradicted_count: payload.contradicted_count ?? 0,
     inactive_count: payload.inactive_count ?? 0,
     ...(payload.evidence !== undefined ? { evidence: payload.evidence } : {}),
+    ...(resolvedLastConfirmedSession !== undefined
+      ? { last_confirmed_session: resolvedLastConfirmedSession }
+      : {}),
   };
 }
 
@@ -168,6 +218,9 @@ export function formatInstinctsCompact(instincts: Instinct[]): string {
     contradicted: i.contradicted_count,
     inactive: i.inactive_count,
     age_days: daysSince(i.created_at),
+    ...(i.last_confirmed_session !== undefined
+      ? { last_confirmed_session: i.last_confirmed_session }
+      : {}),
   }));
   return JSON.stringify(summaries);
 }

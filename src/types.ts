@@ -69,6 +69,7 @@ export interface Instinct {
   flagged_for_removal?: boolean;
   graduated_to?: GraduationTarget;
   graduated_at?: string; // ISO 8601
+  last_confirmed_session?: string; // session ID that last provided a confirmation
 }
 
 export type GraduationTarget = "agents-md" | "skill" | "command";

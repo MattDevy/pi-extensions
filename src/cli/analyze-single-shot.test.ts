@@ -163,13 +163,157 @@ describe("buildInstinctFromChange", () => {
         confirmed_count: 3,
         contradicted_count: 0,
         inactive_count: 1,
+        last_confirmed_session: "session-new",
       },
     };
     const result = buildInstinctFromChange(change, existingInstinct, "proj-1");
-    expect(result?.confidence).toBe(0.85);
+    // confidence recomputed client-side: existing 0.8 + tier-1 delta 0.05 = 0.85
+    expect(result?.confidence).toBeCloseTo(0.85);
     expect(result?.observation_count).toBe(6);
     expect(result?.created_at).toBe(existingInstinct.created_at);
     expect(result?.updated_at).not.toBe(existingInstinct.updated_at);
+    expect(result?.last_confirmed_session).toBe("session-new");
+  });
+
+  it("applies diminishing returns: tier-2 delta for 4th-6th confirmation", () => {
+    const highCountInstinct: Instinct = {
+      ...existingInstinct,
+      confirmed_count: 4,
+      confidence: 0.7,
+      last_confirmed_session: "session-old",
+    };
+    const change: InstinctChange = {
+      action: "update",
+      instinct: {
+        id: "read-before-edit",
+        title: "Read files before editing",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
+        confidence: 0.9,
+        domain: "workflow",
+        scope: "global",
+        observation_count: 8,
+        confirmed_count: 5, // +1 from 4
+        contradicted_count: 0,
+        inactive_count: 1,
+        last_confirmed_session: "session-new",
+      },
+    };
+    const result = buildInstinctFromChange(change, highCountInstinct, "proj-1");
+    // tier-2 delta: 0.7 + 0.03 = 0.73
+    expect(result?.confidence).toBeCloseTo(0.73);
+  });
+
+  it("applies diminishing returns: tier-3 delta for 7th+ confirmation", () => {
+    const highCountInstinct: Instinct = {
+      ...existingInstinct,
+      confirmed_count: 7,
+      confidence: 0.8,
+      last_confirmed_session: "session-old",
+    };
+    const change: InstinctChange = {
+      action: "update",
+      instinct: {
+        id: "read-before-edit",
+        title: "Read files before editing",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
+        confidence: 0.9,
+        domain: "workflow",
+        scope: "global",
+        observation_count: 10,
+        confirmed_count: 8, // +1 from 7
+        contradicted_count: 0,
+        inactive_count: 1,
+        last_confirmed_session: "session-new",
+      },
+    };
+    const result = buildInstinctFromChange(change, highCountInstinct, "proj-1");
+    // tier-3 delta: 0.8 + 0.01 = 0.81
+    expect(result?.confidence).toBeCloseTo(0.81);
+  });
+
+  it("blocks per-session duplicate confirmation when session matches last_confirmed_session", () => {
+    const instinctWithSession: Instinct = {
+      ...existingInstinct,
+      confirmed_count: 2,
+      confidence: 0.8,
+      last_confirmed_session: "session-abc",
+    };
+    const change: InstinctChange = {
+      action: "update",
+      instinct: {
+        id: "read-before-edit",
+        title: "Read files before editing",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
+        confidence: 0.85,
+        domain: "workflow",
+        scope: "global",
+        observation_count: 6,
+        confirmed_count: 3, // LLM tried to increment
+        contradicted_count: 0,
+        inactive_count: 1,
+        last_confirmed_session: "session-abc", // same session - should be blocked
+      },
+    };
+    const result = buildInstinctFromChange(change, instinctWithSession, "proj-1");
+    // confirmed_count reverted; confidence unchanged at 0.8
+    expect(result?.confirmed_count).toBe(2);
+    expect(result?.confidence).toBeCloseTo(0.8);
+  });
+
+  it("allows confirmation when session differs from last_confirmed_session", () => {
+    const instinctWithSession: Instinct = {
+      ...existingInstinct,
+      confirmed_count: 2,
+      confidence: 0.8,
+      last_confirmed_session: "session-abc",
+    };
+    const change: InstinctChange = {
+      action: "update",
+      instinct: {
+        id: "read-before-edit",
+        title: "Read files before editing",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
+        confidence: 0.85,
+        domain: "workflow",
+        scope: "global",
+        observation_count: 6,
+        confirmed_count: 3, // +1 from different session
+        contradicted_count: 0,
+        inactive_count: 1,
+        last_confirmed_session: "session-xyz", // different session - should be allowed
+      },
+    };
+    const result = buildInstinctFromChange(change, instinctWithSession, "proj-1");
+    expect(result?.confirmed_count).toBe(3);
+    expect(result?.confidence).toBeCloseTo(0.85); // 0.8 + 0.05 (tier-1, count was 2)
+    expect(result?.last_confirmed_session).toBe("session-xyz");
+  });
+
+  it("allows confirmation when instinct has no last_confirmed_session", () => {
+    const change: InstinctChange = {
+      action: "update",
+      instinct: {
+        id: "read-before-edit",
+        title: "Read files before editing",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
+        confidence: 0.85,
+        domain: "workflow",
+        scope: "global",
+        observation_count: 6,
+        confirmed_count: 3,
+        contradicted_count: 0,
+        inactive_count: 1,
+        last_confirmed_session: "session-xyz",
+      },
+    };
+    const result = buildInstinctFromChange(change, existingInstinct, "proj-1");
+    expect(result?.confirmed_count).toBe(3);
+    expect(result?.last_confirmed_session).toBe("session-xyz");
   });
 
   it("returns null for delete action", () => {
@@ -301,6 +445,24 @@ describe("formatInstinctsCompact", () => {
     const result = formatInstinctsCompact([existingInstinct]);
     expect(result).not.toContain("---");
     expect(result).not.toContain("observation_count:");
+  });
+
+  it("includes last_confirmed_session when set on the instinct", () => {
+    const withSession: Instinct = {
+      ...existingInstinct,
+      last_confirmed_session: "session-abc",
+    };
+    const result = formatInstinctsCompact([withSession]);
+    const parsed = JSON.parse(result) as unknown[];
+    const entry = parsed[0] as Record<string, unknown>;
+    expect(entry["last_confirmed_session"]).toBe("session-abc");
+  });
+
+  it("omits last_confirmed_session when not set on the instinct", () => {
+    const result = formatInstinctsCompact([existingInstinct]);
+    const parsed = JSON.parse(result) as unknown[];
+    const entry = parsed[0] as Record<string, unknown>;
+    expect(entry["last_confirmed_session"]).toBeUndefined();
   });
 });
 

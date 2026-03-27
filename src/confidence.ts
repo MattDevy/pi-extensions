@@ -21,9 +21,15 @@ const OBS_BRACKET_MED_MAX = 5;
 const OBS_BRACKET_HIGH_MAX = 10;
 
 // adjustConfidence deltas
-const DELTA_CONFIRMED = 0.05;
+// Confirmation uses diminishing returns to prevent runaway confidence on trivially easy-to-confirm instincts.
+const DELTA_CONFIRMED_TIER1 = 0.05; // 1st–3rd confirmation
+const DELTA_CONFIRMED_TIER2 = 0.03; // 4th–6th confirmation
+const DELTA_CONFIRMED_TIER3 = 0.01; // 7th+ confirmation
 const DELTA_CONTRADICTED = -0.15;
 const DELTA_INACTIVE = 0;
+
+const CONFIRMED_TIER1_MAX = 3;
+const CONFIRMED_TIER2_MAX = 6;
 
 // applyPassiveDecay
 // Increased from 0.02 to 0.05: at 0.5 confidence, reaches 0.1 in ~8 weeks instead of 20.
@@ -35,6 +41,16 @@ const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 // ---------------------------------------------------------------------------
 
 export type FeedbackOutcome = "confirmed" | "contradicted" | "inactive";
+
+/**
+ * Returns the confirmation confidence delta using diminishing returns.
+ * Higher confirmed_count yields smaller increments to prevent runaway scores.
+ */
+export function confirmationDelta(confirmedCount: number): number {
+  if (confirmedCount <= CONFIRMED_TIER1_MAX) return DELTA_CONFIRMED_TIER1;
+  if (confirmedCount <= CONFIRMED_TIER2_MAX) return DELTA_CONFIRMED_TIER2;
+  return DELTA_CONFIRMED_TIER3;
+}
 
 export interface ConfidenceResult {
   confidence: number;
@@ -71,18 +87,28 @@ export function initialConfidence(observationCount: number): number {
 
 /**
  * Adjusts confidence based on a feedback outcome from the observer loop.
+ * For "confirmed" outcomes, applies diminishing returns based on how many
+ * times the instinct has already been confirmed (higher count = smaller delta).
  * Returns the clamped confidence and a flag indicating if removal is warranted.
+ *
+ * @param current       - Current confidence value
+ * @param outcome       - Feedback outcome type
+ * @param confirmedCount - Current confirmed_count (used for diminishing returns on confirmations)
  */
 export function adjustConfidence(
   current: number,
   outcome: FeedbackOutcome,
+  confirmedCount = 0,
 ): ConfidenceResult {
-  const deltas: Record<FeedbackOutcome, number> = {
-    confirmed: DELTA_CONFIRMED,
-    contradicted: DELTA_CONTRADICTED,
-    inactive: DELTA_INACTIVE,
-  };
-  const raw = current + deltas[outcome];
+  let delta: number;
+  if (outcome === "confirmed") {
+    delta = confirmationDelta(confirmedCount);
+  } else if (outcome === "contradicted") {
+    delta = DELTA_CONTRADICTED;
+  } else {
+    delta = DELTA_INACTIVE;
+  }
+  const raw = current + delta;
   return toResult(raw);
 }
 

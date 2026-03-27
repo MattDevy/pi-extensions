@@ -315,11 +315,32 @@ Pure functions in `confidence.ts`. No I/O.
 
 ### Feedback adjustments (existing instincts)
 
-| Outcome | Delta |
-|---|---|
-| Confirmed | +0.05 |
-| Contradicted | -0.15 |
-| Inactive | 0 |
+Confirmations use **diminishing returns** to prevent high-volume, easy-to-confirm instincts
+from reaching maximum confidence prematurely. The delta is based on `confirmed_count` at
+the time of the confirmation:
+
+| Outcome | Condition | Delta |
+|---|---|---|
+| Confirmed | confirmed_count 0-3 (1st-3rd confirmation) | +0.05 |
+| Confirmed | confirmed_count 4-6 (4th-6th confirmation) | +0.03 |
+| Confirmed | confirmed_count 7+ (7th+ confirmation) | +0.01 |
+| Contradicted | - | -0.15 |
+| Inactive | - | 0 |
+
+**Per-session deduplication**: An instinct may only be confirmed once per unique session_id.
+The `last_confirmed_session` field on each instinct tracks the session that last provided a
+confirmation. If the current analysis window only contains activity from that same session,
+`confirmed_count` is not incremented. This prevents the same session from providing
+multiple confirmation credits to the same instinct.
+
+**Baseline behavior filtering**: The analyzer prompt instructs the model not to mark generic
+agent behaviors (e.g., "read before edit", "run linter after change") as confirmed, since those
+would happen regardless of the instinct. Only behaviors that are non-obvious or project-specific
+should be counted as confirmed.
+
+The `adjustConfidence(current, outcome, confirmedCount)` function in `confidence.ts` computes
+the delta for a single adjustment. Client-side enforcement in `buildInstinctFromChange()` applies
+the diminishing returns and session deduplication independently of the LLM's arithmetic.
 
 ### Passive decay
 
@@ -410,7 +431,7 @@ The single-shot analyzer applies several strategies to reduce prompt token usage
 
 ### 1. Compact Instinct Format
 
-`formatInstinctsCompact()` in `cli/analyze-single-shot.ts` serializes instincts as a compact JSON array instead of full YAML frontmatter + markdown body. Each entry contains only the fields the model needs: `{id, trigger, action, confidence, domain, scope, confirmed, contradicted, inactive, age_days}`.
+`formatInstinctsCompact()` in `cli/analyze-single-shot.ts` serializes instincts as a compact JSON array instead of full YAML frontmatter + markdown body. Each entry contains only the fields the model needs: `{id, trigger, action, confidence, domain, scope, confirmed, contradicted, inactive, age_days, last_confirmed_session?}`. The `last_confirmed_session` field is included only when set, so the analyzer can enforce per-session confirmation deduplication.
 
 This reduces instinct context by ~70% vs. the legacy `formatInstinctsForPrompt()` (which is still exported but marked deprecated). The user prompt builder uses compact format by default.
 

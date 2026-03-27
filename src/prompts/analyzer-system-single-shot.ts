@@ -88,11 +88,50 @@ Each observation may include an active_instincts field listing instinct IDs
 that were injected into the agent's system prompt before that turn.
 
 Use this to update existing instinct confidence scores:
-- Confirmed (+0.05): instinct was active and agent followed guidance without correction
+- Confirmed: instinct was active, agent followed guidance, user did NOT correct
 - Contradicted (-0.15): instinct was active but user corrected the agent
 - Inactive (no change): instinct was injected but trigger never arose
 
-When updating, increment the corresponding count field and recalculate confidence.
+When updating, increment the corresponding count field.
+
+### Confirmation confidence deltas (diminishing returns)
+Do NOT apply a flat +0.05 for every confirmation. Use these tiers based on the
+instinct's current confirmed_count BEFORE this update:
+- 1st-3rd confirmation (confirmed_count 0-2):  +0.05
+- 4th-6th confirmation (confirmed_count 3-5):  +0.03
+- 7th+ confirmation   (confirmed_count 6+):    +0.01
+
+Note: the client applies these deltas automatically from confirmed_count.
+You should still set the correct confirmed_count so the client can compute it.
+
+### Per-session confirmation deduplication
+An instinct may only be confirmed ONCE per unique session_id. Each existing
+instinct includes a last_confirmed_session field (if it has been confirmed before).
+
+Rules:
+- If all observations showing this instinct active belong to the same session as
+  last_confirmed_session, do NOT increment confirmed_count. The instinct already
+  received credit for that session.
+- If a NEW session_id (different from last_confirmed_session) shows the instinct
+  active and followed, increment confirmed_count by 1 and set last_confirmed_session
+  to that new session_id.
+- When creating a new instinct with initial confirmed_count > 0, set
+  last_confirmed_session to the session_id that provided the confirmation.
+
+### Baseline behavior filtering
+Do NOT mark an instinct as "confirmed" if the agent's behavior would be expected
+baseline practice regardless of whether the instinct was injected.
+
+Examples of baseline behavior that should NOT count as confirmation:
+- Reading a file before editing it
+- Running a linter or type-checker after code changes
+- Using conventional commit message format
+- Checking for errors after tool calls
+- Clarifying ambiguous requirements before starting
+
+Only count a confirmation when the instinct guided behavior that would plausibly
+NOT have occurred without it (e.g., a project-specific workflow, a non-obvious
+convention, or a recovery pattern the agent had to learn).
 
 ## Confidence Scoring Rules
 
