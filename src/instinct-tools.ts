@@ -14,6 +14,7 @@ import {
   getProjectInstinctsDir,
   getGlobalInstinctsDir,
 } from "./storage.js";
+import { validateInstinct } from "./instinct-validator.js";
 
 function getInstinctsDir(
   scope: "project" | "global",
@@ -122,6 +123,14 @@ export function createInstinctWriteTool(
       _onUpdate: unknown,
       _ctx: unknown
     ) {
+      const validation = validateInstinct({
+        action: params.action,
+        trigger: params.trigger,
+      });
+      if (!validation.valid) {
+        throw new Error(`Invalid instinct: ${validation.reason}`);
+      }
+
       const dir = getInstinctsDir(params.scope, projectId, baseDir);
       if (!dir) {
         throw new Error("Cannot write project-scoped instinct: no project detected");

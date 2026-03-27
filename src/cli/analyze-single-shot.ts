@@ -9,6 +9,7 @@ import type { AssistantMessage, Context } from "@mariozechner/pi-ai";
 import { complete } from "@mariozechner/pi-ai";
 import type { Instinct } from "../types.js";
 import { serializeInstinct } from "../instinct-parser.js";
+import { validateInstinct } from "../instinct-validator.js";
 
 export interface InstinctChangePayload {
   id: string;
@@ -84,8 +85,17 @@ export function buildInstinctFromChange(
     return null;
   }
 
-  const now = new Date().toISOString();
   const payload = change.instinct;
+
+  const validation = validateInstinct({
+    action: payload.action,
+    trigger: payload.trigger,
+  });
+  if (!validation.valid) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
 
   return {
     id: payload.id,
