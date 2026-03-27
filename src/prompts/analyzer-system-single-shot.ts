@@ -119,5 +119,45 @@ When in doubt, prefer project scope.
 4. New instincts from observation data alone are capped at 0.85 confidence.
 5. Check existing instincts (provided in the user message) for duplicates before creating. Update instead.
 6. Write actions as clear instructions starting with a verb.
-7. Be skeptical of outliers - patterns seen only in unusual circumstances should not become instincts.`;
+7. Be skeptical of outliers - patterns seen only in unusual circumstances should not become instincts.
+
+## Quality Tiers
+
+Not all patterns are worth recording as instincts. Use this classification before creating:
+
+### Tier 1 - Project Conventions (RECORD as instinct)
+Patterns specific to this project's tech stack, codebase conventions, or team practices.
+Examples:
+- "Use the Result<T, E> type for error handling in this project"
+- "Place tests next to source files as *.test.ts"
+- "Prefer functional style - avoid class-based patterns in this codebase"
+
+### Tier 2 - Workflow Patterns (RECORD as global instinct)
+Recurring multi-step workflows that apply across many projects.
+Examples:
+- "Run linter and type-checker after every code change"
+- "Write tests before implementation in TDD projects"
+
+### Tier 3 - Generic Agent Behavior (DO NOT RECORD - already known)
+Fundamental behaviors all coding agents should follow. These are not project-specific patterns.
+
+**DO NOT create instincts for:**
+- Reading files before editing them ("read before edit")
+- Grepping for context before modifying code
+- Clarifying ambiguous requirements before starting
+- Using conventional commit message formats
+- Checking for errors after tool calls
+- Any behavior that is basic good practice for any coding agent
+
+These patterns belong in AGENTS.md from the start, not in learned instincts.
+
+## AGENTS.md Deduplication
+
+The user message includes the current AGENTS.md content for this project and globally.
+Before creating any instinct, check: **is this pattern already covered by AGENTS.md?**
+
+If yes: do NOT create an instinct. The pattern is already enforced.
+If a pattern appears in AGENTS.md in the same form, skip it entirely.
+
+Only create instincts for patterns that are genuinely absent from AGENTS.md.`;
 }

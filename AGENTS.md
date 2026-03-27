@@ -47,6 +47,7 @@ pi-continuous-learning/
     instinct-loader.ts      # Filter + sort + cap instincts for injection
     instinct-injector.ts    # System prompt injection
     instinct-tools.ts       # LLM tool definitions (list/read/write/delete/merge)
+    instinct-validator.ts   # Field validation + Jaccard similarity dedup
     instinct-decay.ts       # Passive confidence decay
     instinct-cleanup.ts     # Auto-cleanup rules (flagged, TTL, cap enforcement)
     confidence.ts           # Pure confidence math
@@ -64,12 +65,15 @@ pi-continuous-learning/
     skill-scaffold.ts       # Skill scaffolding from instinct clusters
     command-scaffold.ts     # Command scaffolding from instinct clusters
     prompts/
-      evolve-prompt.ts      # Prompt template for /instinct-evolve
-      analyzer-user.ts      # User prompt builder for background analyzer
+      evolve-prompt.ts                  # Prompt template for /instinct-evolve
+      analyzer-user.ts                  # User prompt builder (legacy agentic analyzer)
+      analyzer-system-single-shot.ts    # System prompt for single-shot analyzer
+      analyzer-user-single-shot.ts      # User prompt builder for single-shot analyzer
     cli/
       analyze.ts            # Standalone analyzer script (run via cron)
       analyze-logger.ts     # Structured JSON logger for analyzer runs
-      analyze-prompt.ts     # System prompt for background analyzer
+      analyze-prompt.ts     # System prompt (legacy agentic analyzer)
+      analyze-single-shot.ts  # Single-shot core: parseChanges, buildInstinctFromChange
   docs/
     internals.md            # Internal architecture reference
     specification.md        # Original design specification

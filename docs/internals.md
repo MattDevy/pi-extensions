@@ -220,9 +220,48 @@ active-instincts.ts  -- store injected IDs in module-level state for observer to
 
 ### 4. Analyzer Prompts
 
-**System prompt** (`cli/analyze-prompt.ts`): Contains pattern detection heuristics, feedback analysis instructions, confidence scoring rules, scope decision guide, and conservativeness rules. Instructs the LLM to use `instinct_read`/`instinct_write` tools.
+**System prompt** (`prompts/analyzer-system-single-shot.ts`): Contains pattern detection heuristics, feedback analysis instructions, confidence scoring rules, scope decision guide, conservativeness rules, and quality tier guidance. The quality tier section instructs the model to distinguish between:
+- **Tier 1 - Project Conventions**: Record as project-scoped instincts
+- **Tier 2 - Workflow Patterns**: Record as global-scoped instincts
+- **Tier 3 - Generic Agent Behavior**: Skip - these belong in AGENTS.md, not instincts
 
-**User prompt** (`prompts/analyzer-user.ts`): Built fresh each run. Contains project context (ID and name), file paths, and the last 500 observation lines inlined.
+The prompt includes negative examples ("Do NOT create instincts for read-before-edit, clarify-before-implement") and instructs the model to skip patterns already covered by AGENTS.md.
+
+**User prompt** (`prompts/analyzer-user-single-shot.ts`): Built fresh each run. Contains project context, all existing instincts inline, filtered observations, AGENTS.md content (project + global), and explicit dedup instructions to skip AGENTS.md-covered patterns.
+
+---
+
+## Instinct Quality Validation
+
+All instinct writes go through `validateInstinct()` in `instinct-validator.ts` before being persisted.
+
+### Validation Rules (rejection)
+
+| Rule | Details |
+|---|---|
+| Non-empty fields | `action` and `trigger` must not be `undefined`, `null`, `"undefined"`, `"null"`, `"none"`, or empty |
+| Minimum length | Both fields must be at least 10 characters (after trimming) |
+| Type check | Both fields must be strings |
+| Known domain | `domain`, if provided, must be in the known set (see `KNOWN_DOMAINS` in `instinct-validator.ts`). Use `"other"` as an escape hatch for patterns that don't fit. |
+
+### Validation Rules (warnings)
+
+| Rule | Details |
+|---|---|
+| Verb heuristic | `action` should start with an imperative verb from `KNOWN_VERBS`. A warning is returned but the instinct is not rejected. |
+
+### Semantic Deduplication
+
+Before a new instinct is persisted (via `instinct_write` tool or the analyzer), a Jaccard similarity check runs against all existing instincts.
+
+**Algorithm** (`findSimilarInstinct()` in `instinct-validator.ts`):
+1. Tokenize `trigger + action` for the candidate and each existing instinct (lowercase, strip stop words, deduplicate)
+2. Compute Jaccard similarity: `|intersection| / |union|`
+3. If any existing instinct scores >= 0.6, the write is blocked - the caller is told to update the existing instinct instead
+
+This prevents near-duplicate instincts from accumulating when patterns are detected multiple times with slightly different wording (e.g., "read-before-edit" and "verify-edit-context").
+
+The `skipId` parameter allows the similarity check to ignore the instinct being updated (self-updates are always allowed).
 
 ---
 

@@ -14,7 +14,7 @@ import {
   getProjectInstinctsDir,
   getGlobalInstinctsDir,
 } from "./storage.js";
-import { validateInstinct } from "./instinct-validator.js";
+import { validateInstinct, findSimilarInstinct } from "./instinct-validator.js";
 
 function getInstinctsDir(
   scope: "project" | "global",
@@ -126,6 +126,7 @@ export function createInstinctWriteTool(
       const validation = validateInstinct({
         action: params.action,
         trigger: params.trigger,
+        domain: params.domain,
       });
       if (!validation.valid) {
         throw new Error(`Invalid instinct: ${validation.reason}`);
@@ -134,6 +135,22 @@ export function createInstinctWriteTool(
       const dir = getInstinctsDir(params.scope, projectId, baseDir);
       if (!dir) {
         throw new Error("Cannot write project-scoped instinct: no project detected");
+      }
+
+      // Dedup check: reject if semantically similar to an existing instinct
+      const allInstincts = [
+        ...(projectId ? loadProjectInstincts(projectId, baseDir) : []),
+        ...loadGlobalInstincts(baseDir),
+      ];
+      const similar = findSimilarInstinct(
+        { trigger: params.trigger, action: params.action },
+        allInstincts,
+        params.id // skip self on updates
+      );
+      if (similar) {
+        throw new Error(
+          `Similar instinct already exists: "${similar.instinct.id}" (similarity: ${(similar.similarity * 100).toFixed(0)}%). Update that instinct instead of creating a duplicate.`
+        );
       }
 
       const now = new Date().toISOString();
