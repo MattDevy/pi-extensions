@@ -80,6 +80,12 @@ export function buildSingleShotUserPrompt(
     "3. Return a JSON change-set: create new instincts, update existing ones, or delete obsolete ones.",
     "4. Apply feedback analysis using the active_instincts field in each observation.",
     "5. Passive confidence decay has already been applied before this analysis.",
+    "6. Before creating any instinct, check the Existing Guidelines section above.",
+    "   If the pattern is already covered by AGENTS.md, do NOT create an instinct for it.",
+    "7. Apply the Quality Tier rules from the system prompt:",
+    "   - Generic agent behaviors (read-before-edit, clarify-before-implement) -> skip entirely",
+    "   - Project-specific patterns -> project-scoped instinct",
+    "   - Universal workflow patterns -> global-scoped instinct",
     "",
     "Return ONLY the JSON object. No prose, no markdown fences."
   );

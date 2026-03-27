@@ -262,7 +262,7 @@ async function analyzeProject(
       } else if (change.action === "create") {
         if (createsRemaining <= 0) continue; // rate limit reached
         const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id);
+        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
         if (!instinct) continue;
 
         const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
@@ -272,7 +272,7 @@ async function analyzeProject(
       } else {
         // update
         const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id);
+        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
         if (!instinct) continue;
 
         const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;

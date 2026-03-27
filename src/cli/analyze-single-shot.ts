@@ -9,7 +9,7 @@ import type { AssistantMessage, Context } from "@mariozechner/pi-ai";
 import { complete } from "@mariozechner/pi-ai";
 import type { Instinct } from "../types.js";
 import { serializeInstinct } from "../instinct-parser.js";
-import { validateInstinct } from "../instinct-validator.js";
+import { validateInstinct, findSimilarInstinct } from "../instinct-validator.js";
 
 export interface InstinctChangePayload {
   id: string;
@@ -74,12 +74,19 @@ export function parseChanges(raw: string): InstinctChange[] {
 
 /**
  * Builds a full Instinct from a create/update change.
- * Returns null for delete changes or changes with missing instinct data.
+ * Returns null for delete changes, changes with missing instinct data,
+ * invalid fields, or semantically duplicate actions.
+ *
+ * @param change        - The change to apply
+ * @param existing      - The existing instinct with this ID, if any
+ * @param projectId     - Project ID for scoping
+ * @param allInstincts  - All current instincts, used for dedup check on creates
  */
 export function buildInstinctFromChange(
   change: InstinctChange,
   existing: Instinct | null,
-  projectId: string
+  projectId: string,
+  allInstincts: Instinct[] = []
 ): Instinct | null {
   if (change.action === "delete" || !change.instinct) {
     return null;
@@ -90,9 +97,22 @@ export function buildInstinctFromChange(
   const validation = validateInstinct({
     action: payload.action,
     trigger: payload.trigger,
+    domain: payload.domain,
   });
   if (!validation.valid) {
     return null;
+  }
+
+  // On create, reject if semantically similar to an existing instinct (skip self on update)
+  if (change.action === "create") {
+    const similar = findSimilarInstinct(
+      { trigger: payload.trigger, action: payload.action },
+      allInstincts,
+      payload.id
+    );
+    if (similar) {
+      return null;
+    }
   }
 
   const now = new Date().toISOString();

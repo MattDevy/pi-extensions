@@ -256,6 +256,35 @@ graduated_at: "2026-03-27T12:00:00.000Z"
 ---
 ```
 
+## Instinct Quality Control
+
+Every instinct write (from the LLM tools or the background analyzer) is validated and deduplicated before being saved.
+
+### Content Validation
+
+| Rule | Details |
+|---|---|
+| Non-empty fields | `action` and `trigger` cannot be `undefined`, `null`, `"null"`, `"none"`, or empty |
+| Minimum length | Both fields must be >= 10 characters |
+| Known domain | `domain` must be in the known set: `git`, `testing`, `debugging`, `workflow`, `typescript`, `javascript`, `python`, `go`, `css`, `design`, `security`, `performance`, `documentation`, `react`, `node`, `database`, `api`, `devops`, `architecture`, or `other` |
+| Verb heuristic | `action` should start with an imperative verb - a warning is logged but the write is not rejected |
+
+### Semantic Deduplication
+
+Before a new instinct is created, a Jaccard similarity check runs against all existing instincts. Tokenize `trigger + action`, compute `|intersection| / |union|`, and block the write if any existing instinct scores >= 0.6.
+
+This prevents near-duplicate instincts from accumulating. When a similar instinct exists, the LLM is told to update the existing one instead.
+
+### Analyzer Quality Tiers
+
+The background analyzer is instructed to classify patterns before recording them:
+
+- **Project Conventions** (Tier 1): Project-specific patterns like "use Result<T,E> for errors in this codebase" → record as project-scoped instinct
+- **Workflow Patterns** (Tier 2): Universal multi-step workflows → record as global-scoped instinct
+- **Generic Agent Behavior** (Tier 3): Read-before-edit, clarify-before-implement, check-errors-after-tool-calls → **skip entirely**, these are fundamental behaviors not learned patterns
+
+The analyzer also checks AGENTS.md content before creating instincts - if a pattern is already covered by AGENTS.md, it is skipped.
+
 ## Confidence Scoring
 
 Confidence comes from two sources:
