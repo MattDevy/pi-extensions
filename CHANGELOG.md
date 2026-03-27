@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.6.0...pi-continuous-learning-v0.7.0) (2026-03-27)
+
+
+### Features
+
+* Add instinct graduation pipeline with AGENTS.md, skill, and command targets ([#26](https://github.com/MattDevy/pi-continuous-learning/issues/26)) ([9057fff](https://github.com/MattDevy/pi-continuous-learning/commit/9057fff9820e734ad6b000e18866ae4bd8e85d68))
+* Instinct quality validation, Jaccard dedup, and analyzer quality tiers ([#28](https://github.com/MattDevy/pi-continuous-learning/issues/28)) ([70acdda](https://github.com/MattDevy/pi-continuous-learning/commit/70acdda806b830ac3918ef52ce4f770b770827fd))
+* Instinct volume control - caps, auto-cleanup, and faster decay ([#27](https://github.com/MattDevy/pi-continuous-learning/issues/27)) ([8cdee28](https://github.com/MattDevy/pi-continuous-learning/commit/8cdee28669cc0ca7fc903629590a724630e8ccbe))
+
+
+### Bug Fixes
+
+* Reject instincts with undefined/empty/short action or trigger fields ([#24](https://github.com/MattDevy/pi-continuous-learning/issues/24)) ([6016a8c](https://github.com/MattDevy/pi-continuous-learning/commit/6016a8cb059576ed68c39d275bdaec1ea68d2788))
+
 ## [0.6.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.5.1...pi-continuous-learning-v0.6.0) (2026-03-27)
 
 
