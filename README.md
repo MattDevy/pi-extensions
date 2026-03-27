@@ -296,12 +296,16 @@ Only include the fields you want to change — missing fields use the defaults a
 
 | Field | Default | Description |
 |-------|---------|-------------|
+| `run_interval_minutes` | 5 | How often the analyzer is expected to run (informational, used for decay calculations) |
 | `min_observations_to_analyze` | 20 | Minimum observations before analysis triggers |
 | `min_confidence` | 0.5 | Instincts below this are not injected into prompts |
 | `max_instincts` | 20 | Maximum instincts injected per turn |
 | `max_injection_chars` | 4000 | Character budget for the injection block (~1000 tokens) |
 | `model` | `claude-haiku-4-5` | Model for the background analyzer (lightweight models recommended to minimize cost) |
 | `timeout_seconds` | 120 | Per-project timeout for the analyzer LLM session |
+| `active_hours_start` | 8 | Hour (0-23) at which the active observation window starts |
+| `active_hours_end` | 23 | Hour (0-23) at which the active observation window ends |
+| `max_idle_seconds` | 1800 | Seconds of inactivity before a session is considered idle |
 | `log_path` | `~/.pi/continuous-learning/analyzer.log` | Path to the analyzer log file |
 
 ## Storage
