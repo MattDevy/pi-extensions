@@ -72,6 +72,9 @@ const WriteParams = Type.Object({
 
 const DeleteParams = Type.Object({
   id: Type.String({ description: "Instinct ID to delete" }),
+  scope: Type.Optional(StringEnum(["project", "global"] as const, {
+    description: "Target scope. If omitted, falls back to priority order (project first, then global).",
+  })),
 });
 
 const MergeParams = Type.Object({
@@ -85,7 +88,14 @@ const MergeParams = Type.Object({
     scope: StringEnum(["project", "global"] as const),
     evidence: Type.Optional(Type.Array(Type.String())),
   }),
-  delete_ids: Type.Array(Type.String(), { description: "IDs of source instincts to remove after merge" }),
+  delete_ids: Type.Array(Type.String(), { description: "IDs of source instincts to remove after merge (uses priority lookup)" }),
+  delete_scoped_ids: Type.Optional(Type.Array(
+    Type.Object({
+      id: Type.String({ description: "Instinct ID" }),
+      scope: StringEnum(["project", "global"] as const, { description: "Scope of the copy to delete" }),
+    }),
+    { description: "Scope-aware deletions: [{id, scope}] to target a specific copy" }
+  )),
 });
 
 export type InstinctListInput = Static<typeof ListParams>;
@@ -247,6 +257,22 @@ export function createInstinctDeleteTool(
       _onUpdate: unknown,
       _ctx: unknown
     ) {
+      if (params.scope) {
+        const dir = getInstinctsDir(params.scope, projectId, baseDir);
+        if (!dir) {
+          throw new Error(`Cannot target project scope: no project detected`);
+        }
+        const path = join(dir, `${params.id}.md`);
+        if (!existsSync(path)) {
+          throw new Error(`Instinct not found: ${params.id} in ${params.scope} scope`);
+        }
+        unlinkSync(path);
+        return {
+          content: [{ type: "text" as const, text: `Deleted instinct: ${params.id} (${params.scope}-scoped)` }],
+          details: { id: params.id, scope: params.scope },
+        };
+      }
+
       const found = findInstinctFile(params.id, projectId, baseDir);
       if (!found) {
         throw new Error(`Instinct not found: ${params.id}`);
@@ -309,6 +335,21 @@ export function createInstinctMergeTool(
           unlinkSync(found.path);
           deleted.push(id);
         }
+      }
+
+      for (const { id, scope } of params.delete_scoped_ids ?? []) {
+        // Skip only when both ID and scope match the merged result (already written above)
+        if (id === merged.id && scope === merged.scope) continue;
+        const dir = getInstinctsDir(scope, projectId, baseDir);
+        if (!dir) {
+          throw new Error(`Cannot target project scope: no project detected`);
+        }
+        const path = join(dir, `${id}.md`);
+        if (!existsSync(path)) {
+          throw new Error(`Instinct not found: ${id} in ${scope} scope`);
+        }
+        unlinkSync(path);
+        deleted.push(`${id}(${scope})`);
       }
 
       return {
