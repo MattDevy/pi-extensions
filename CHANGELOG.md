@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.8.0...pi-continuous-learning-v0.9.0) (2026-03-27)
+
+
+### Features
+
+* Contradiction detection for instincts with opposing actions ([#37](https://github.com/MattDevy/pi-continuous-learning/issues/37)) ([4f8a4f6](https://github.com/MattDevy/pi-continuous-learning/commit/4f8a4f60867caff0d6abc4269a16d62f52add8fb))
+* Periodic holistic consolidation pass (instinct-dream) ([#39](https://github.com/MattDevy/pi-continuous-learning/issues/39)) ([fed1749](https://github.com/MattDevy/pi-continuous-learning/commit/fed1749d54884ab34f91e68774b64d8e0f5a630f))
+
 ## [0.8.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.7.0...pi-continuous-learning-v0.8.0) (2026-03-27)
 
 
