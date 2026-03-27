@@ -10,8 +10,8 @@ import type { Instinct } from "../types.js";
 const existingInstinct: Instinct = {
   id: "read-before-edit",
   title: "Read files before editing",
-  trigger: "Before making edits",
-  action: "Read the file first",
+  trigger: "Before making edits to an existing file",
+  action: "Read the file first to understand context and patterns",
   confidence: 0.8,
   domain: "workflow",
   scope: "global",
@@ -108,8 +108,8 @@ describe("buildInstinctFromChange", () => {
       instinct: {
         id: "global-one",
         title: "Global",
-        trigger: "Always",
-        action: "Do globally",
+        trigger: "When working on any project globally",
+        action: "Do this action globally across all projects",
         confidence: 0.5,
         domain: "workflow",
         scope: "global",
@@ -129,8 +129,8 @@ describe("buildInstinctFromChange", () => {
       instinct: {
         id: "clamped",
         title: "T",
-        trigger: "X",
-        action: "Y",
+        trigger: "When confidence needs clamping in tests",
+        action: "Clamp the confidence value to valid range",
         confidence: 1.5,
         domain: "workflow",
         scope: "project",
@@ -152,8 +152,8 @@ describe("buildInstinctFromChange", () => {
       instinct: {
         id: "read-before-edit",
         title: "Read files before editing",
-        trigger: "Before editing",
-        action: "Read first",
+        trigger: "Before editing any existing file in the project",
+        action: "Read the complete file first to understand context",
         confidence: 0.85,
         domain: "workflow",
         scope: "global",
@@ -177,6 +177,66 @@ describe("buildInstinctFromChange", () => {
 
   it("returns null for create with missing instinct field", () => {
     const change: InstinctChange = { action: "create" };
+    expect(buildInstinctFromChange(change, null, "proj-1")).toBeNull();
+  });
+
+  it("returns null when action is the literal string 'undefined'", () => {
+    const change: InstinctChange = {
+      action: "create",
+      instinct: {
+        id: "bad-action",
+        title: "Bad",
+        trigger: "When something happens in the project",
+        action: "undefined",
+        confidence: 0.5,
+        domain: "workflow",
+        scope: "project",
+        observation_count: 1,
+        confirmed_count: 0,
+        contradicted_count: 0,
+        inactive_count: 0,
+      },
+    };
+    expect(buildInstinctFromChange(change, null, "proj-1")).toBeNull();
+  });
+
+  it("returns null when trigger is too short", () => {
+    const change: InstinctChange = {
+      action: "create",
+      instinct: {
+        id: "bad-trigger",
+        title: "Bad",
+        trigger: "When X",
+        action: "Do something meaningful with the codebase",
+        confidence: 0.5,
+        domain: "workflow",
+        scope: "project",
+        observation_count: 1,
+        confirmed_count: 0,
+        contradicted_count: 0,
+        inactive_count: 0,
+      },
+    };
+    expect(buildInstinctFromChange(change, null, "proj-1")).toBeNull();
+  });
+
+  it("returns null when action is empty string", () => {
+    const change: InstinctChange = {
+      action: "create",
+      instinct: {
+        id: "empty-action",
+        title: "Empty",
+        trigger: "When something happens in the project",
+        action: "",
+        confidence: 0.5,
+        domain: "workflow",
+        scope: "project",
+        observation_count: 1,
+        confirmed_count: 0,
+        contradicted_count: 0,
+        inactive_count: 0,
+      },
+    };
     expect(buildInstinctFromChange(change, null, "proj-1")).toBeNull();
   });
 });
