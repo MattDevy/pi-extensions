@@ -6,10 +6,12 @@ import type { Instinct } from "./types.js";
 import {
   COMMAND_NAME,
   MERGE_SIMILARITY_THRESHOLD,
+  ACTION_SIMILARITY_THRESHOLD,
   PROMOTION_CONFIDENCE_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
-  tokenizeTrigger,
+  tokenizeText,
   triggerSimilarity,
+  actionSimilarity,
   findMergeCandidates,
   findCommandCandidates,
   findPromotionCandidates,
@@ -76,6 +78,11 @@ describe("constants", () => {
     expect(MERGE_SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
   });
 
+  it("ACTION_SIMILARITY_THRESHOLD is a positive number <= 1", () => {
+    expect(ACTION_SIMILARITY_THRESHOLD).toBeGreaterThan(0);
+    expect(ACTION_SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
+  });
+
   it("PROMOTION_CONFIDENCE_THRESHOLD is in [0, 1]", () => {
     expect(PROMOTION_CONFIDENCE_THRESHOLD).toBeGreaterThanOrEqual(0);
     expect(PROMOTION_CONFIDENCE_THRESHOLD).toBeLessThanOrEqual(1);
@@ -87,19 +94,19 @@ describe("constants", () => {
 });
 
 // ---------------------------------------------------------------------------
-// tokenizeTrigger
+// tokenizeText
 // ---------------------------------------------------------------------------
 
-describe("tokenizeTrigger", () => {
+describe("tokenizeText", () => {
   it("returns lowercase tokens from a trigger string", () => {
-    const tokens = tokenizeTrigger("Run the Tests Now");
+    const tokens = tokenizeText("Run the Tests Now");
     expect(tokens.has("run")).toBe(true);
     expect(tokens.has("tests")).toBe(true);
     expect(tokens.has("now")).toBe(true);
   });
 
   it("filters out stop words", () => {
-    const tokens = tokenizeTrigger("when the test is done");
+    const tokens = tokenizeText("when the test is done");
     expect(tokens.has("the")).toBe(false);
     expect(tokens.has("when")).toBe(false);
     expect(tokens.has("is")).toBe(false);
@@ -108,23 +115,30 @@ describe("tokenizeTrigger", () => {
   });
 
   it("filters out short words (length < 3)", () => {
-    const tokens = tokenizeTrigger("do it now");
+    const tokens = tokenizeText("do it now");
     expect(tokens.has("do")).toBe(false);
     expect(tokens.has("it")).toBe(false);
     expect(tokens.has("now")).toBe(true);
   });
 
   it("strips punctuation", () => {
-    const tokens = tokenizeTrigger("always: run tests!");
+    const tokens = tokenizeText("always: run tests!");
     expect(tokens.has("always")).toBe(true);
     expect(tokens.has("tests")).toBe(true);
     expect(tokens.has(":")).toBe(false);
     expect(tokens.has("!")).toBe(false);
   });
 
-  it("returns empty set for stop-word-only trigger", () => {
-    const tokens = tokenizeTrigger("when the is");
+  it("returns empty set for stop-word-only input", () => {
+    const tokens = tokenizeText("when the is");
     expect(tokens.size).toBe(0);
+  });
+
+  it("tokenizes action text (not just trigger text)", () => {
+    const tokens = tokenizeText("execute the linting pipeline");
+    expect(tokens.has("execute")).toBe(true);
+    expect(tokens.has("linting")).toBe(true);
+    expect(tokens.has("pipeline")).toBe(true);
   });
 });
 
@@ -162,6 +176,45 @@ describe("triggerSimilarity", () => {
 });
 
 // ---------------------------------------------------------------------------
+// actionSimilarity
+// ---------------------------------------------------------------------------
+
+describe("actionSimilarity", () => {
+  it("returns 1 for identical actions", () => {
+    const a = makeInstinct({ action: "run npx eslint and fix errors" });
+    const b = makeInstinct({ action: "run npx eslint and fix errors" });
+    expect(actionSimilarity(a, b)).toBe(1);
+  });
+
+  it("returns 0 for completely different actions", () => {
+    const a = makeInstinct({ action: "format python source code" });
+    const b = makeInstinct({ action: "check security vulnerabilities" });
+    expect(actionSimilarity(a, b)).toBe(0);
+  });
+
+  it("returns 0 when both actions tokenize to empty sets", () => {
+    const a = makeInstinct({ action: "do it" });
+    const b = makeInstinct({ action: "be the" });
+    expect(actionSimilarity(a, b)).toBe(0);
+  });
+
+  it("returns partial overlap value for shared action words", () => {
+    const a = makeInstinct({ action: "run the linting checks before commit" });
+    const b = makeInstinct({ action: "run the linting checks after changes" });
+    const sim = actionSimilarity(a, b);
+    expect(sim).toBeGreaterThan(0);
+    expect(sim).toBeLessThan(1);
+  });
+
+  it("uses tokenizeText on action field (not trigger)", () => {
+    const a = makeInstinct({ trigger: "totally different context", action: "execute linting pipeline" });
+    const b = makeInstinct({ trigger: "something else entirely", action: "execute linting pipeline" });
+    expect(actionSimilarity(a, b)).toBe(1);
+    expect(triggerSimilarity(a, b)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // findMergeCandidates
 // ---------------------------------------------------------------------------
 
@@ -171,15 +224,23 @@ describe("findMergeCandidates", () => {
     expect(findMergeCandidates(instincts)).toHaveLength(0);
   });
 
-  it("returns empty array when instincts have no trigger overlap", () => {
+  it("returns empty array when instincts have no trigger or action overlap", () => {
     const instincts = [
-      makeInstinct({ trigger: "formatting python source", domain: "testing" }),
-      makeInstinct({ trigger: "reviewing security vulnerabilities", domain: "testing" }),
+      makeInstinct({
+        trigger: "formatting python source",
+        action: "reformat file indentation",
+        domain: "testing",
+      }),
+      makeInstinct({
+        trigger: "reviewing security vulnerabilities",
+        action: "scan dependencies packages",
+        domain: "testing",
+      }),
     ];
     expect(findMergeCandidates(instincts)).toHaveLength(0);
   });
 
-  it("groups similar instincts in the same domain as merge candidates", () => {
+  it("groups similar-trigger instincts in the same domain as merge candidates", () => {
     const instincts = [
       makeInstinct({ id: "a", trigger: "run tests before commit", domain: "testing" }),
       makeInstinct({ id: "b", trigger: "run tests after changes", domain: "testing" }),
@@ -200,19 +261,95 @@ describe("findMergeCandidates", () => {
   });
 
   it("clusters three connected instincts into one group", () => {
-    // a-b similar, b-c similar -> a, b, c should be one cluster
     const instincts = [
       makeInstinct({ id: "a", trigger: "run tests commit deploy", domain: "workflow" }),
       makeInstinct({ id: "b", trigger: "run tests commit frequently", domain: "workflow" }),
       makeInstinct({ id: "c", trigger: "run tests frequently checks", domain: "workflow" }),
     ];
     const result = findMergeCandidates(instincts);
-    // All three share "run", "tests" - should form one cluster
     expect(result.length).toBeGreaterThanOrEqual(1);
     const ids = result.flatMap((s) => s.instincts.map((i) => i.id));
     expect(ids).toContain("a");
     expect(ids).toContain("b");
     expect(ids).toContain("c");
+  });
+
+  it("sets recommendation to 'merge' for trigger-similarity pairs", () => {
+    const instincts = [
+      makeInstinct({ id: "a", trigger: "run tests before commit", action: "check coverage report", domain: "testing" }),
+      makeInstinct({ id: "b", trigger: "run tests after changes", action: "validate all assertions", domain: "testing" }),
+    ];
+    const result = findMergeCandidates(instincts);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.recommendation).toBe("merge");
+  });
+
+  it("sets recommendation to 'delete-lower' for action-similarity pairs", () => {
+    // Different triggers but same action -> caught only by action pass
+    const instincts = [
+      makeInstinct({
+        id: "a",
+        trigger: "before shipping feature code",
+        action: "run linting checks pipeline",
+        domain: "style",
+      }),
+      makeInstinct({
+        id: "b",
+        trigger: "after merging pull request",
+        action: "run linting checks pipeline",
+        domain: "style",
+      }),
+    ];
+    const result = findMergeCandidates(instincts);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.recommendation).toBe("delete-lower");
+  });
+
+  it("does not duplicate pairs already caught by trigger pass in action pass", () => {
+    // Both trigger AND action are similar - should only appear once
+    const instincts = [
+      makeInstinct({
+        id: "a",
+        trigger: "run linting before commit",
+        action: "execute eslint checks",
+        domain: "style",
+      }),
+      makeInstinct({
+        id: "b",
+        trigger: "run linting after change",
+        action: "execute eslint checks",
+        domain: "style",
+      }),
+    ];
+    const result = findMergeCandidates(instincts);
+    // Should be exactly one suggestion, not two
+    expect(result).toHaveLength(1);
+    const ids = result.flatMap((s) => s.instincts.map((i) => i.id));
+    const aCount = ids.filter((id) => id === "a").length;
+    const bCount = ids.filter((id) => id === "b").length;
+    expect(aCount).toBe(1);
+    expect(bCount).toBe(1);
+  });
+
+  it("sets keepId to the higher-confidence instinct", () => {
+    const instincts = [
+      makeInstinct({ id: "low", trigger: "run tests before commit", confidence: 0.5, domain: "testing" }),
+      makeInstinct({ id: "high", trigger: "run tests after changes", confidence: 0.9, domain: "testing" }),
+    ];
+    const result = findMergeCandidates(instincts);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.keepId).toBe("high");
+  });
+
+  it("tie-breaks keepId alphabetically when confidence is equal", () => {
+    const instincts = [
+      makeInstinct({ id: "zebra", trigger: "run tests before commit", confidence: 0.7, domain: "testing" }),
+      makeInstinct({ id: "alpha", trigger: "run tests after changes", confidence: 0.7, domain: "testing" }),
+    ];
+    const result = findMergeCandidates(instincts);
+    expect(result).toHaveLength(1);
+    // "alpha" < "zebra" alphabetically, so "alpha" wins tie-break
+    expect(result[0]!.keepId).toBe("alpha");
   });
 });
 
@@ -365,6 +502,15 @@ describe("formatEvolveSuggestions", () => {
     const suggestions = findMergeCandidates([instinct1, instinct2]);
     const output = formatEvolveSuggestions(suggestions);
     expect(output).toContain("Merge Candidates");
+  });
+
+  it("includes recommendation and keepId in merge output", () => {
+    const instinct1 = makeInstinct({ id: "x1", trigger: "run tests before commit", confidence: 0.9, domain: "testing" });
+    const instinct2 = makeInstinct({ id: "x2", trigger: "run tests after changes", confidence: 0.5, domain: "testing" });
+    const suggestions = findMergeCandidates([instinct1, instinct2]);
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Recommendation:");
+    expect(output).toContain("keep: x1");
   });
 
   it("includes command section header when command suggestions exist", () => {
