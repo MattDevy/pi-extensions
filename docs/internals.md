@@ -290,6 +290,16 @@ While deduplication catches near-identical instincts, contradiction detection (`
 
 This is a lightweight, zero-cost approach (no LLM calls). It runs as part of the cleanup pipeline before cap enforcement.
 
+### LLM-Assisted Contradiction Resolution
+
+In addition to the deterministic heuristic, contradiction awareness is built into two LLM-powered flows:
+
+1. **Analyzer system prompt** (`prompts/analyzer-system-single-shot.ts`): Instructs the model to check for contradictions before creating new instincts, and to resolve existing contradictions by deleting the weaker instinct or merging both into a nuanced context-dependent one.
+
+2. **`/instinct-evolve` prompt** (`prompts/evolve-prompt.ts`): Contradiction detection is the first analysis task. The LLM can catch semantic contradictions that the verb-pair heuristic misses (e.g., "write comprehensive tests" vs "keep tests minimal and fast") and offer to resolve them interactively via the instinct tools.
+
+The deterministic pass catches obvious keyword-level contradictions at zero cost on every cleanup run. The LLM passes catch deeper semantic contradictions during analyzer runs and user-initiated evolve sessions.
+
 ---
 
 ## Instinct File Format

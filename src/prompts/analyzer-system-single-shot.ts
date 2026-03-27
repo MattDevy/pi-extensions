@@ -150,6 +150,21 @@ Use project scope when the pattern is specific to this project's tech stack or c
 Use global scope when the pattern applies universally to any coding session.
 When in doubt, prefer project scope.
 
+## Contradiction Detection
+
+Before creating or updating instincts, check existing instincts for contradictions:
+two instincts with similar triggers but semantically opposing actions.
+
+Examples of contradictory pairs:
+- "When designing APIs" -> "prefer interfaces" vs "avoid interfaces, use concrete types"
+- "When writing tests" -> "always mock dependencies" vs "never mock, use real implementations"
+- "When handling errors" -> "throw exceptions" vs "avoid exceptions, use Result types"
+
+When you detect a contradiction:
+1. **If observations clearly support one side**: Delete the contradicted instinct (emit a "delete" change) and optionally boost the confirmed instinct's confidence.
+2. **If evidence is ambiguous**: Delete BOTH and create a single nuanced instinct that captures the context-dependent guidance (e.g., "prefer interfaces for public APIs, concrete types for internal helpers").
+3. **Do not create a new instinct that contradicts an existing one** without resolving the conflict first.
+
 ## Conservativeness Rules
 
 1. Only create a new instinct with 3+ clear independent observations supporting the pattern.
@@ -159,6 +174,7 @@ When in doubt, prefer project scope.
 5. Check existing instincts (provided in the user message) for duplicates before creating. Update instead.
 6. Write actions as clear instructions starting with a verb.
 7. Be skeptical of outliers - patterns seen only in unusual circumstances should not become instincts.
+8. Before creating, verify the new instinct does not contradict any existing instinct (see Contradiction Detection above).
 
 ## Quality Tiers
 
