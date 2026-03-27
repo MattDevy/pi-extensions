@@ -71,6 +71,11 @@ export interface ProjectEntry {
 // Config
 // ---------------------------------------------------------------------------
 
+export interface InstalledSkill {
+  name: string;
+  description: string;
+}
+
 export interface Config {
   run_interval_minutes: number;
   min_observations_to_analyze: number;

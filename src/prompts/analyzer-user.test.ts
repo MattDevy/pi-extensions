@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildAnalyzerUserPrompt, tailObservations } from "./analyzer-user.js";
-import type { ProjectEntry } from "../types.js";
+import type { InstalledSkill, ProjectEntry } from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -141,5 +141,88 @@ describe("buildAnalyzerUserPrompt", () => {
   it("mentions the max tail entries limit", () => {
     const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT);
     expect(prompt).toContain("500");
+  });
+});
+
+describe("buildAnalyzerUserPrompt - optional parameters", () => {
+  beforeAll(() => {
+    writeFileSync(obsPath, OBSERVATION_LINE + "\n", "utf-8");
+  });
+
+  it("includes project AGENTS.md content under Existing Guidelines when provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      agentsMdProject: "# Project Rules\n\n- Use TypeScript strict mode\n",
+    });
+    expect(prompt).toContain("## Existing Guidelines");
+    expect(prompt).toContain("### Project AGENTS.md");
+    expect(prompt).toContain("Use TypeScript strict mode");
+  });
+
+  it("includes global AGENTS.md content under Existing Guidelines when provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      agentsMdGlobal: "# Global Rules\n\n- Atomic commits\n",
+    });
+    expect(prompt).toContain("## Existing Guidelines");
+    expect(prompt).toContain("### Global AGENTS.md");
+    expect(prompt).toContain("Atomic commits");
+  });
+
+  it("includes both project and global AGENTS.md when both are provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      agentsMdProject: "project content",
+      agentsMdGlobal: "global content",
+    });
+    expect(prompt).toContain("### Project AGENTS.md");
+    expect(prompt).toContain("project content");
+    expect(prompt).toContain("### Global AGENTS.md");
+    expect(prompt).toContain("global content");
+  });
+
+  it("omits Existing Guidelines section when both are null", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      agentsMdProject: null,
+      agentsMdGlobal: null,
+    });
+    expect(prompt).not.toContain("## Existing Guidelines");
+  });
+
+  it("omits Existing Guidelines section when options are not provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT);
+    expect(prompt).not.toContain("## Existing Guidelines");
+  });
+
+  it("includes installed skills under Installed Skills when non-empty", () => {
+    const skills: InstalledSkill[] = [
+      { name: "git-workflow", description: "Git workflow assistant" },
+      { name: "debug-helper", description: "Debug assistant for error analysis" },
+    ];
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      installedSkills: skills,
+    });
+    expect(prompt).toContain("## Installed Skills");
+    expect(prompt).toContain("git-workflow");
+    expect(prompt).toContain("Git workflow assistant");
+    expect(prompt).toContain("debug-helper");
+    expect(prompt).toContain("Debug assistant for error analysis");
+  });
+
+  it("omits Installed Skills section when list is empty", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      installedSkills: [],
+    });
+    expect(prompt).not.toContain("## Installed Skills");
+  });
+
+  it("omits Installed Skills section when not provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT);
+    expect(prompt).not.toContain("## Installed Skills");
+  });
+
+  it("still includes Instructions section when optional params are provided", () => {
+    const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
+      agentsMdProject: "some content",
+      installedSkills: [{ name: "skill-a", description: "desc" }],
+    });
+    expect(prompt).toContain("## Instructions");
   });
 });

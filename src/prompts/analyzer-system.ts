@@ -176,6 +176,35 @@ These rules are non-negotiable:
 // Public API
 // ---------------------------------------------------------------------------
 
+function buildAvoidDuplicatingGuidelinesSection(): string {
+  return `## Avoid Duplicating Guidelines
+
+The user prompt may include an '## Existing Guidelines' section containing
+the content of one or more AGENTS.md files (project-level and/or global).
+
+Before creating a new instinct, check whether the pattern is already covered
+by these guidelines:
+- If the proposed instinct's trigger and action are substantially addressed
+  by an existing AGENTS.md rule or guideline, **do not create the instinct**.
+- Updating confidence on existing instincts is still allowed even when
+  AGENTS.md coverage exists.
+- When in doubt, skip the instinct and let the human guidelines take precedence.`;
+}
+
+function buildAvoidDuplicatingSkillsSection(): string {
+  return `## Avoid Duplicating Installed Skills
+
+The user prompt may include an '## Installed Skills' section listing Pi skills
+already available to the agent (name and description).
+
+Before creating a new instinct, check whether the behavior is already provided
+by an installed skill:
+- If the proposed instinct's purpose is clearly handled by a named skill,
+  **do not create the instinct**. The skill is a more robust, maintained source.
+- Only create an instinct if it captures project-specific nuance or a workflow
+  detail not covered by any listed skill.`;
+}
+
 /**
  * Builds the full system prompt for the background Haiku analyzer.
  * Template construction only - no I/O.
@@ -196,6 +225,10 @@ export function buildAnalyzerSystemPrompt(): string {
     buildScopeDecisionSection(),
     "",
     buildConservativenessRulesSection(),
+    "",
+    buildAvoidDuplicatingGuidelinesSection(),
+    "",
+    buildAvoidDuplicatingSkillsSection(),
   ];
 
   return sections.join("\n");

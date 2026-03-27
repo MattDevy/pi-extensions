@@ -166,4 +166,32 @@ describe("buildAnalyzerSystemPrompt", () => {
   it("instructs to check for duplicate instincts before creating", () => {
     expect(prompt).toContain("No duplication");
   });
+
+  // Avoid Duplicating Guidelines section
+
+  it("includes avoid duplicating guidelines section header", () => {
+    expect(prompt).toContain("## Avoid Duplicating Guidelines");
+  });
+
+  it("references Existing Guidelines in the deduplication section", () => {
+    expect(prompt).toContain("Existing Guidelines");
+  });
+
+  it("instructs to skip instincts already covered by AGENTS.md", () => {
+    expect(prompt).toContain("do not create the instinct");
+  });
+
+  // Avoid Duplicating Installed Skills section
+
+  it("includes avoid duplicating installed skills section header", () => {
+    expect(prompt).toContain("## Avoid Duplicating Installed Skills");
+  });
+
+  it("references Installed Skills in the deduplication section", () => {
+    expect(prompt).toContain("Installed Skills");
+  });
+
+  it("instructs to skip instincts covered by named skills", () => {
+    expect(prompt).toContain("named skill");
+  });
 });

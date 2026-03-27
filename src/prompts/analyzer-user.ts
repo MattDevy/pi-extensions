@@ -5,7 +5,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import type { ProjectEntry } from "../types.js";
+import type { InstalledSkill, ProjectEntry } from "../types.js";
 
 /** Maximum number of observation lines to include in analysis. */
 const MAX_TAIL_ENTRIES = 500;
@@ -32,27 +32,38 @@ export function tailObservations(
   return lines.slice(-maxEntries);
 }
 
+export interface AnalyzerUserPromptOptions {
+  agentsMdProject?: string | null;
+  agentsMdGlobal?: string | null;
+  installedSkills?: InstalledSkill[];
+}
+
 /**
  * Builds the user prompt for the background Haiku analyzer.
  * Includes observation and instinct file paths plus project context.
+ * Optionally includes AGENTS.md content and installed skills for deduplication.
  * Template construction only - no subprocess I/O.
  *
  * @param observationsPath - Absolute path to the project's observations.jsonl
  * @param instinctsDir     - Absolute path to the project's instincts directory
  * @param project          - ProjectEntry with id and name
+ * @param options          - Optional AGENTS.md content and installed skills
  */
 export function buildAnalyzerUserPrompt(
   observationsPath: string,
   instinctsDir: string,
-  project: ProjectEntry
+  project: ProjectEntry,
+  options: AnalyzerUserPromptOptions = {}
 ): string {
+  const { agentsMdProject = null, agentsMdGlobal = null, installedSkills = [] } = options;
+
   const tailedLines = tailObservations(observationsPath);
   const observationBlock =
     tailedLines.length > 0
       ? tailedLines.join("\n")
       : "(no observations recorded yet)";
 
-  return [
+  const parts: string[] = [
     "## Analysis Task",
     "",
     "Analyze the following session observations and update the instinct files accordingly.",
@@ -72,6 +83,27 @@ export function buildAnalyzerUserPrompt(
     "```",
     observationBlock,
     "```",
+  ];
+
+  if (agentsMdProject != null || agentsMdGlobal != null) {
+    parts.push("", "## Existing Guidelines", "");
+    if (agentsMdProject != null) {
+      parts.push("### Project AGENTS.md", "", agentsMdProject, "");
+    }
+    if (agentsMdGlobal != null) {
+      parts.push("### Global AGENTS.md", "", agentsMdGlobal, "");
+    }
+  }
+
+  if (installedSkills.length > 0) {
+    parts.push("", "## Installed Skills", "");
+    for (const skill of installedSkills) {
+      parts.push(`- **${skill.name}**: ${skill.description}`);
+    }
+    parts.push("");
+  }
+
+  parts.push(
     "",
     "## Instructions",
     "",
@@ -80,6 +112,8 @@ export function buildAnalyzerUserPrompt(
     "3. Create new instinct files or update existing ones in the instincts directory.",
     "4. Apply feedback analysis using the active_instincts field in each observation.",
     "5. Apply passive confidence decay to existing instincts before updating.",
-    "6. Do not delete any instinct files - only create or update.",
-  ].join("\n");
+    "6. Do not delete any instinct files - only create or update."
+  );
+
+  return parts.join("\n");
 }

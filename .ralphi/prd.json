@@ -23,8 +23,8 @@
       "dependsOn": [],
       "notes": "This story also performs the module split described in the PRD technical considerations section. Do the split first, then add the new logic.",
       "startedAt": "2026-03-27T10:14:57.562Z",
-      "updatedAt": "2026-03-27T10:20:34.398Z",
-      "completedAt": "2026-03-27T10:20:34.397Z"
+      "updatedAt": "2026-03-27T10:21:10.789Z",
+      "completedAt": "2026-03-27T10:21:10.789Z"
     },
     {
       "id": "US-002",
@@ -42,9 +42,12 @@
         "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 2,
-      "status": "open",
+      "status": "in_progress",
       "dependsOn": [],
-      "notes": "InstalledSkill type added here (FR-10) since it is also needed by US-005 and US-001. No changes to index.ts or instinct-evolve in this story."
+      "notes": "InstalledSkill type added here (FR-10) since it is also needed by US-005 and US-001. No changes to index.ts or instinct-evolve in this story.",
+      "startedAt": "2026-03-27T10:21:10.801Z",
+      "updatedAt": "2026-03-27T10:21:10.801Z",
+      "completedAt": null
     },
     {
       "id": "US-003",
