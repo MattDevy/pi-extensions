@@ -64,6 +64,7 @@ pi-continuous-learning/
     graduation.ts           # Pure graduation logic (maturity, TTL, candidates)
     skill-scaffold.ts       # Skill scaffolding from instinct clusters
     command-scaffold.ts     # Command scaffolding from instinct clusters
+    observation-signal.ts   # Low-signal batch scoring (early exit for analyzer)
     prompts/
       evolve-prompt.ts                  # Prompt template for /instinct-evolve
       analyzer-user.ts                  # User prompt builder (legacy agentic analyzer)
@@ -73,7 +74,7 @@ pi-continuous-learning/
       analyze.ts            # Standalone analyzer script (run via cron)
       analyze-logger.ts     # Structured JSON logger for analyzer runs
       analyze-prompt.ts     # System prompt (legacy agentic analyzer)
-      analyze-single-shot.ts  # Single-shot core: parseChanges, buildInstinctFromChange
+      analyze-single-shot.ts  # Single-shot core: parseChanges, buildInstinctFromChange, formatInstinctsCompact, estimateTokens
   docs/
     internals.md            # Internal architecture reference
     specification.md        # Original design specification

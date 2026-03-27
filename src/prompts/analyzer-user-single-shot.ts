@@ -3,7 +3,7 @@
  * Includes current instincts inline (no tool calls needed) and filtered observations.
  */
 import type { InstalledSkill, Instinct, ProjectEntry } from "../types.js";
-import { formatInstinctsForPrompt } from "../cli/analyze-single-shot.js";
+import { formatInstinctsCompact } from "../cli/analyze-single-shot.js";
 
 export interface SingleShotPromptOptions {
   agentsMdProject?: string | null;
@@ -34,7 +34,10 @@ export function buildSingleShotUserPrompt(
       ? observationLines.join("\n")
       : "(no observations recorded yet)";
 
-  const instinctBlock = formatInstinctsForPrompt(existingInstincts);
+  const instinctBlock =
+    existingInstincts.length > 0
+      ? formatInstinctsCompact(existingInstincts)
+      : "(no existing instincts)";
 
   const parts: string[] = [
     "## Project Context",

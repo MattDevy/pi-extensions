@@ -3,6 +3,8 @@ import {
   parseChanges,
   buildInstinctFromChange,
   formatInstinctsForPrompt,
+  formatInstinctsCompact,
+  estimateTokens,
 } from "./analyze-single-shot.js";
 import type { InstinctChange } from "./analyze-single-shot.js";
 import type { Instinct } from "../types.js";
@@ -254,5 +256,70 @@ describe("formatInstinctsForPrompt", () => {
   it("separates multiple instincts with ---", () => {
     const result = formatInstinctsForPrompt([existingInstinct, existingInstinct]);
     expect(result).toContain("---");
+  });
+});
+
+describe("formatInstinctsCompact", () => {
+  it("returns empty JSON array when no instincts", () => {
+    expect(formatInstinctsCompact([])).toBe("[]");
+  });
+
+  it("includes required fields for each instinct", () => {
+    const result = formatInstinctsCompact([existingInstinct]);
+    const parsed = JSON.parse(result) as unknown[];
+    expect(parsed).toHaveLength(1);
+    const entry = parsed[0] as Record<string, unknown>;
+    expect(entry["id"]).toBe("read-before-edit");
+    expect(entry["trigger"]).toBeDefined();
+    expect(entry["action"]).toBeDefined();
+    expect(entry["confidence"]).toBe(0.8);
+    expect(entry["domain"]).toBe("workflow");
+    expect(entry["scope"]).toBe("global");
+    expect(entry["confirmed"]).toBe(2);
+    expect(entry["contradicted"]).toBe(0);
+    expect(entry["inactive"]).toBe(1);
+    expect(typeof entry["age_days"]).toBe("number");
+  });
+
+  it("is significantly shorter than formatInstinctsForPrompt for large inputs", () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({
+      ...existingInstinct,
+      id: `instinct-${i}`,
+    }));
+    const compact = formatInstinctsCompact(many);
+    const full = formatInstinctsForPrompt(many);
+    expect(compact.length).toBeLessThan(full.length);
+  });
+
+  it("produces valid JSON parseable output", () => {
+    const result = formatInstinctsCompact([existingInstinct, existingInstinct]);
+    expect(() => JSON.parse(result)).not.toThrow();
+    expect(JSON.parse(result)).toHaveLength(2);
+  });
+
+  it("does not include full YAML frontmatter", () => {
+    const result = formatInstinctsCompact([existingInstinct]);
+    expect(result).not.toContain("---");
+    expect(result).not.toContain("observation_count:");
+  });
+});
+
+describe("estimateTokens", () => {
+  it("returns 0 for empty string", () => {
+    expect(estimateTokens("")).toBe(0);
+  });
+
+  it("estimates 1 token for 4 chars", () => {
+    expect(estimateTokens("abcd")).toBe(1);
+  });
+
+  it("rounds up for partial chunks", () => {
+    expect(estimateTokens("abc")).toBe(1);
+    expect(estimateTokens("abcde")).toBe(2);
+  });
+
+  it("scales linearly with text length", () => {
+    const text = "a".repeat(400);
+    expect(estimateTokens(text)).toBe(100);
   });
 });

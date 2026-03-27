@@ -6,6 +6,7 @@ import {
   writeFileSync,
   unlinkSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
 import { getModel } from "@mariozechner/pi-ai";
@@ -29,7 +30,9 @@ import { buildSingleShotUserPrompt } from "../prompts/analyzer-user-single-shot.
 import {
   runSingleShot,
   buildInstinctFromChange,
+  estimateTokens,
 } from "./analyze-single-shot.js";
+import { isLowSignalBatch } from "../observation-signal.js";
 import {
   loadProjectInstincts,
   loadGlobalInstincts,
@@ -107,9 +110,31 @@ function startGlobalTimeout(timeoutMs: number, logger: AnalyzeLogger): void {
 // Per-project analysis
 // ---------------------------------------------------------------------------
 
+/** Max estimated tokens before fallback strategies are applied. */
+const PROMPT_TOKEN_BUDGET = 40_000;
+
 interface ProjectMeta {
   last_analyzed_at?: string;
   last_observation_line_count?: number;
+  /** SHA-256 hash of the last AGENTS.md content sent for this project (project-level file). */
+  agents_md_project_hash?: string;
+  /** SHA-256 hash of the last AGENTS.md content sent (global file). */
+  agents_md_global_hash?: string;
+}
+
+function hashContent(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Truncates AGENTS.md content to section headers only (lines starting with #).
+ * Used as a fallback when the prompt is over the token budget.
+ */
+function truncateAgentsMdToHeaders(content: string): string {
+  return content
+    .split("\n")
+    .filter((line) => line.startsWith("#"))
+    .join("\n");
 }
 
 function loadProjectsRegistry(baseDir: string): Record<string, ProjectEntry> {
@@ -179,6 +204,10 @@ async function analyzeProject(
     return { ran: false, skippedReason: "no new observation lines after preprocessing" };
   }
 
+  if (isLowSignalBatch(newObsLines)) {
+    return { ran: false, skippedReason: "low-signal batch (no errors, corrections, or user redirections)" };
+  }
+
   const obsCount = countObservations(project.id, baseDir);
   if (obsCount < config.min_observations_to_analyze) {
     return { ran: false, skippedReason: `below threshold (${obsCount}/${config.min_observations_to_analyze})` };
@@ -195,8 +224,21 @@ async function analyzeProject(
   const globalInstincts = loadGlobalInstincts(baseDir);
   const allInstincts = [...projectInstincts, ...globalInstincts];
 
-  const agentsMdProject = readAgentsMd(join(project.root, "AGENTS.md"));
-  const agentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+  // Load AGENTS.md, skipping if content hash is unchanged since last run.
+  const rawAgentsMdProject = readAgentsMd(join(project.root, "AGENTS.md"));
+  const rawAgentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+
+  const projectMdHash = rawAgentsMdProject ? hashContent(rawAgentsMdProject) : null;
+  const globalMdHash = rawAgentsMdGlobal ? hashContent(rawAgentsMdGlobal) : null;
+
+  const agentsMdProject =
+    rawAgentsMdProject && projectMdHash !== meta.agents_md_project_hash
+      ? rawAgentsMdProject
+      : null;
+  const agentsMdGlobal =
+    rawAgentsMdGlobal && globalMdHash !== meta.agents_md_global_hash
+      ? rawAgentsMdGlobal
+      : null;
 
   let installedSkills: InstalledSkill[] = [];
   try {
@@ -210,9 +252,51 @@ async function analyzeProject(
     // Skills loading is best-effort - continue without them
   }
 
-  const userPrompt = buildSingleShotUserPrompt(project, allInstincts, newObsLines, {
-    agentsMdProject,
-    agentsMdGlobal,
+  let promptObsLines = newObsLines;
+  let promptAgentsMdProject = agentsMdProject;
+  let promptAgentsMdGlobal = agentsMdGlobal;
+
+  const userPrompt = buildSingleShotUserPrompt(project, allInstincts, promptObsLines, {
+    agentsMdProject: promptAgentsMdProject,
+    agentsMdGlobal: promptAgentsMdGlobal,
+    installedSkills,
+  });
+
+  // Estimate token budget and apply fallbacks if over limit.
+  const systemPromptTokens = estimateTokens(buildSingleShotSystemPrompt());
+  let estimatedTotal = systemPromptTokens + estimateTokens(userPrompt);
+
+  if (estimatedTotal > PROMPT_TOKEN_BUDGET) {
+    logger.warn(
+      `Prompt over budget (${estimatedTotal} est. tokens > ${PROMPT_TOKEN_BUDGET}). Applying fallbacks.`
+    );
+
+    // Fallback 1: truncate AGENTS.md to headers only.
+    if (promptAgentsMdProject) {
+      promptAgentsMdProject = truncateAgentsMdToHeaders(promptAgentsMdProject);
+    }
+    if (promptAgentsMdGlobal) {
+      promptAgentsMdGlobal = truncateAgentsMdToHeaders(promptAgentsMdGlobal);
+    }
+
+    // Fallback 2: reduce observation lines to fit budget.
+    // Use binary-search-like reduction: keep halving until under budget.
+    while (promptObsLines.length > 1) {
+      const trimmedPrompt = buildSingleShotUserPrompt(
+        project,
+        allInstincts,
+        promptObsLines,
+        { agentsMdProject: promptAgentsMdProject, agentsMdGlobal: promptAgentsMdGlobal, installedSkills }
+      );
+      estimatedTotal = systemPromptTokens + estimateTokens(trimmedPrompt);
+      if (estimatedTotal <= PROMPT_TOKEN_BUDGET) break;
+      promptObsLines = promptObsLines.slice(Math.floor(promptObsLines.length / 2));
+    }
+  }
+
+  const finalUserPrompt = buildSingleShotUserPrompt(project, allInstincts, promptObsLines, {
+    agentsMdProject: promptAgentsMdProject,
+    agentsMdGlobal: promptAgentsMdGlobal,
     installedSkills,
   });
 
@@ -228,7 +312,7 @@ async function analyzeProject(
   const context = {
     systemPrompt: buildSingleShotSystemPrompt(),
     messages: [
-      { role: "user" as const, content: userPrompt, timestamp: Date.now() },
+      { role: "user" as const, content: finalUserPrompt, timestamp: Date.now() },
     ],
   };
 
@@ -309,7 +393,14 @@ async function analyzeProject(
 
   saveProjectMeta(
     project.id,
-    { ...meta, last_analyzed_at: new Date().toISOString(), last_observation_line_count: totalLineCount },
+    {
+      ...meta,
+      last_analyzed_at: new Date().toISOString(),
+      last_observation_line_count: totalLineCount,
+      // Update AGENTS.md hashes only when the content was actually sent.
+      ...(agentsMdProject && projectMdHash ? { agents_md_project_hash: projectMdHash } : {}),
+      ...(agentsMdGlobal && globalMdHash ? { agents_md_global_hash: globalMdHash } : {}),
+    },
     baseDir
   );
 

@@ -50,6 +50,14 @@ describe("buildSingleShotUserPrompt", () => {
     expect(prompt).toContain("no existing instincts");
   });
 
+  it("uses compact JSON format for instincts, not full YAML", () => {
+    const prompt = buildSingleShotUserPrompt(project, [instinct], []);
+    // Compact format: JSON array, no YAML frontmatter separators
+    expect(prompt).not.toContain("observation_count:");
+    // Should contain JSON array bracket
+    expect(prompt).toContain("[{");
+  });
+
   it("includes the observations block", () => {
     const obs = JSON.stringify({ event: "user_bash", command: "git status" });
     const prompt = buildSingleShotUserPrompt(project, [], [obs]);

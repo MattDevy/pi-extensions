@@ -56,7 +56,7 @@ All data lives under `~/.pi/continuous-learning/`. The extension creates this st
 |---|---|---|---|
 | `config.json` | User (manual) | JSON | User creates/edits manually |
 | `projects.json` | `ensureStorageLayout()` | JSON | Every `session_start` |
-| `project.json` | `ensureStorageLayout()` / analyzer | JSON | First time a project is seen; updated with `last_analyzed_at` by analyzer |
+| `project.json` | `ensureStorageLayout()` / analyzer | JSON | First time a project is seen; updated with `last_analyzed_at`, `last_observation_line_count`, `agents_md_project_hash`, and `agents_md_global_hash` by analyzer |
 | `observations.jsonl` | `appendObservation()` | JSONL (one JSON object per line) | Every tool call, prompt, and agent end |
 | `*.jsonl` in archive | `appendObservation()` | JSONL | When `observations.jsonl` hits 10 MB |
 | `<id>.md` in instincts dirs | Standalone analyzer (via `instinct_write` tool) | YAML frontmatter + Markdown | Every analysis run |
@@ -227,7 +227,7 @@ active-instincts.ts  -- store injected IDs in module-level state for observer to
 
 The prompt includes negative examples ("Do NOT create instincts for read-before-edit, clarify-before-implement") and instructs the model to skip patterns already covered by AGENTS.md.
 
-**User prompt** (`prompts/analyzer-user-single-shot.ts`): Built fresh each run. Contains project context, all existing instincts inline, filtered observations, AGENTS.md content (project + global), and explicit dedup instructions to skip AGENTS.md-covered patterns.
+**User prompt** (`prompts/analyzer-user-single-shot.ts`): Built fresh each run. Contains project context, all existing instincts in compact JSON format, filtered observations, AGENTS.md content (project + global, only when changed), and explicit dedup instructions to skip AGENTS.md-covered patterns.
 
 ---
 
@@ -386,17 +386,60 @@ index.ts (entry point)
 
 ```
 cli/analyze.ts (entry point, run via cron)
-  |-- config.ts              -- load config
-  |-- storage.ts             -- path helpers
-  |-- observations.ts        -- countObservations
-  |-- instinct-cleanup.ts    -- auto-cleanup rules (flagged, TTL, cap enforcement)
-  |-- instinct-decay.ts      -- passive confidence decay
-  |   |-- confidence.ts      -- pure confidence math
-  |-- instinct-tools.ts      -- createInstinctListTool, createInstinctReadTool, etc.
-  |   |-- instinct-store.ts  -- CRUD for instinct files
-  |-- cli/analyze-prompt.ts  -- analyzer system prompt
-  |-- prompts/analyzer-user.ts  -- per-run user prompt with observations
+  |-- config.ts                          -- load config
+  |-- storage.ts                         -- path helpers
+  |-- observations.ts                    -- countObservations
+  |-- observation-signal.ts              -- low-signal batch scoring + early exit
+  |-- instinct-cleanup.ts                -- auto-cleanup rules (flagged, TTL, cap enforcement)
+  |-- instinct-decay.ts                  -- passive confidence decay
+  |   |-- confidence.ts                  -- pure confidence math
+  |-- instinct-store.ts                  -- CRUD for instinct files
+  |-- agents-md.ts                       -- AGENTS.md reader
+  |-- cli/analyze-single-shot.ts         -- single-shot core: parseChanges, buildInstinctFromChange,
+  |                                         formatInstinctsCompact, estimateTokens
+  |-- prompts/analyzer-system-single-shot.ts  -- system prompt
+  |-- prompts/analyzer-user-single-shot.ts    -- user prompt builder (compact instinct format)
+  |-- cli/analyze-logger.ts              -- structured JSON logger
 ```
+
+---
+
+## Analyzer Cost Optimizations
+
+The single-shot analyzer applies several strategies to reduce prompt token usage:
+
+### 1. Compact Instinct Format
+
+`formatInstinctsCompact()` in `cli/analyze-single-shot.ts` serializes instincts as a compact JSON array instead of full YAML frontmatter + markdown body. Each entry contains only the fields the model needs: `{id, trigger, action, confidence, domain, scope, confirmed, contradicted, inactive, age_days}`.
+
+This reduces instinct context by ~70% vs. the legacy `formatInstinctsForPrompt()` (which is still exported but marked deprecated). The user prompt builder uses compact format by default.
+
+### 2. AGENTS.md Content Caching
+
+Before including AGENTS.md in the prompt, the analyzer computes a SHA-256 hash of the file content and compares it against `agents_md_project_hash` / `agents_md_global_hash` stored in `project.json`. If the hash is unchanged since the last run, the file is omitted (passed as `null` to the prompt builder). The hash is updated in `project.json` only after content has been successfully sent.
+
+This means AGENTS.md (which changes rarely) is only included when it actually changes.
+
+### 3. Prompt Token Budget
+
+`estimateTokens(text)` uses a `chars / 4` heuristic. Before calling the model, the analyzer estimates total prompt tokens (system + user). If the estimate exceeds `PROMPT_TOKEN_BUDGET` (40,000 tokens), it applies fallbacks in order:
+
+1. **Truncate AGENTS.md** to section headers only (`truncateAgentsMdToHeaders()`).
+2. **Reduce observation lines** by halving repeatedly until the estimate fits.
+
+A warning is logged when budget enforcement triggers.
+
+### 4. Low-Signal Early Exit
+
+`observation-signal.ts` scores each batch before analysis runs:
+
+| Signal event | Points |
+|---|---|
+| Error observation (`is_error: true`) | +2 |
+| `user_prompt` immediately after an error (correction) | +3 |
+| Any other `user_prompt` | +1 |
+
+If the total score is below `LOW_SIGNAL_THRESHOLD` (3), analysis is skipped entirely with a log entry of `"low-signal batch"`. This avoids burning tokens on batches containing only routine successful tool calls.
 
 ---
 
