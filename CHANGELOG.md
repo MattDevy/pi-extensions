@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.7.0...pi-continuous-learning-v0.8.0) (2026-03-27)
+
+
+### Features
+
+* Add analysis event log and user notification on instinct changes ([#32](https://github.com/MattDevy/pi-continuous-learning/issues/32)) ([04228d3](https://github.com/MattDevy/pi-continuous-learning/commit/04228d3ed9f575dbd4417e4910adddc18c591cff))
+* Reduce analyzer prompt cost ([#21](https://github.com/MattDevy/pi-continuous-learning/issues/21)) ([#29](https://github.com/MattDevy/pi-continuous-learning/issues/29)) ([42048d8](https://github.com/MattDevy/pi-continuous-learning/commit/42048d8b8aea0923aad75b59e077564bd321d769))
+
+
+### Bug Fixes
+
+* Reduce confirmation bias with session dedup, baseline filtering, and diminishing returns ([#31](https://github.com/MattDevy/pi-continuous-learning/issues/31)) ([c75aeff](https://github.com/MattDevy/pi-continuous-learning/commit/c75aeffd370801fb7d44ed6923fe0eedcf5a54a6))
+
 ## [0.7.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.6.0...pi-continuous-learning-v0.7.0) (2026-03-27)
 
 
