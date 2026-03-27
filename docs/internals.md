@@ -405,6 +405,59 @@ All registered in `index.ts` via `pi.registerCommand()`.
 
 ---
 
+## Manual Testing
+
+A helper script at `scripts/run-analyzer.sh` lets you trigger the analyzer manually outside of a Pi session. This is useful for verifying the observation-to-instinct pipeline works end-to-end.
+
+### Prerequisites
+
+- `pi` CLI installed and authenticated (`~/.pi/agent/auth.json`)
+- `jq` installed (`brew install jq`)
+- At least one project with observations recorded (the extension must have run at least once)
+
+### Usage
+
+```bash
+# List known projects
+./scripts/run-analyzer.sh --list
+
+# Interactive project picker (if multiple projects exist)
+./scripts/run-analyzer.sh
+
+# Run for a specific project
+./scripts/run-analyzer.sh <project-id>
+
+# Preview the command without executing
+./scripts/run-analyzer.sh --dry-run [project-id]
+```
+
+### What it does
+
+The script replicates the exact subprocess invocation the extension uses:
+
+1. Reads `~/.pi/continuous-learning/projects.json` to find the project
+2. Generates the static system prompt (same content as `src/prompts/analyzer-system.ts`)
+3. Tails the last 500 observations from the project's `observations.jsonl`
+4. Spawns `pi` with the same flags: `--mode json -p --no-session --tools read,write --no-extensions --no-skills --no-prompt-templates --no-themes`
+
+### Configuration
+
+Set `PI_CL_MODEL` to override the model (default: `claude-haiku-4-5`):
+
+```bash
+PI_CL_MODEL=claude-sonnet-4-20250514 ./scripts/run-analyzer.sh
+```
+
+### Checking results
+
+After a successful run, look for new or updated instinct files:
+
+```bash
+ls ~/.pi/continuous-learning/projects/<project-id>/instincts/personal/
+```
+
+---
+
 ## Session Lifecycle
 
 1. **`session_start`**: Load config, detect project, create storage dirs, clean old archives, write analyzer system prompt to temp file, start analyzer timer.

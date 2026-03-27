@@ -11,14 +11,23 @@ function makeStream(lines: string[]): Readable {
   return Readable.from(lines.join("\n"));
 }
 
+/** Real Pi JSON-mode event format helpers. */
+function startEvent(toolCallId: string, toolName: string, args: Record<string, unknown>): string {
+  return JSON.stringify({ type: "tool_execution_start", toolCallId, toolName, args });
+}
+
+function endEvent(toolCallId: string, toolName: string, isError = false): string {
+  return JSON.stringify({ type: "tool_execution_end", toolCallId, toolName, isError });
+}
+
 // ---------------------------------------------------------------------------
 // parseEventLine
 // ---------------------------------------------------------------------------
 
 describe("parseEventLine", () => {
   it("parses a valid JSON line", () => {
-    const result = parseEventLine('{"event":"agent_end"}');
-    expect(result).toEqual({ event: "agent_end" });
+    const result = parseEventLine('{"type":"agent_end"}');
+    expect(result).toEqual({ type: "agent_end" });
   });
 
   it("returns null for an empty line", () => {
@@ -39,8 +48,8 @@ describe("parseEventLine", () => {
   });
 
   it("trims whitespace before parsing", () => {
-    const result = parseEventLine('  {"event":"agent_end"}  ');
-    expect(result).toEqual({ event: "agent_end" });
+    const result = parseEventLine('  {"type":"agent_end"}  ');
+    expect(result).toEqual({ type: "agent_end" });
   });
 });
 
@@ -49,20 +58,23 @@ describe("parseEventLine", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseAnalyzerStream - success detection", () => {
-  it("sets success=true when agent_end event is present", async () => {
-    const stream = makeStream(['{"event":"agent_end"}']);
+  it("sets success=true when type:agent_end event is present", async () => {
+    const stream = makeStream(['{"type":"agent_end"}']);
     const result = await parseAnalyzerStream(stream);
     expect(result.success).toBe(true);
   });
 
   it("sets success=false when no agent_end event is present", async () => {
-    const stream = makeStream(['{"event":"tool_execution_end","tool":"write","args":{"path":"/a.md"}}']);
+    const stream = makeStream([
+      startEvent("id-1", "write", { path: "/a.md" }),
+      endEvent("id-1", "write"),
+    ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.success).toBe(false);
   });
 
-  it("supports type key as alternative to event key for agent_end", async () => {
-    const stream = makeStream(['{"type":"agent_end"}']);
+  it("supports legacy event key as alternative to type key for agent_end", async () => {
+    const stream = makeStream(['{"event":"agent_end"}']);
     const result = await parseAnalyzerStream(stream);
     expect(result.success).toBe(true);
   });
@@ -77,41 +89,75 @@ describe("parseAnalyzerStream - success detection", () => {
 });
 
 // ---------------------------------------------------------------------------
-// parseAnalyzerStream - files written detection
+// parseAnalyzerStream - files written detection (real Pi format)
 // ---------------------------------------------------------------------------
 
-describe("parseAnalyzerStream - files written", () => {
-  it("records file path from a write tool_execution_end event", async () => {
+describe("parseAnalyzerStream - files written (real Pi format)", () => {
+  it("records file path by correlating start args with end toolCallId", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{"path":"/tmp/instinct.md"}}',
+      startEvent("call-1", "write", { path: "/tmp/instinct.md" }),
+      endEvent("call-1", "write"),
+      '{"type":"agent_end"}',
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual(["/tmp/instinct.md"]);
+    expect(result.success).toBe(true);
   });
 
-  it("records multiple files from multiple write events", async () => {
+  it("records multiple files from multiple write pairs", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{"path":"/a.md"}}',
-      '{"event":"tool_execution_end","tool":"write","args":{"path":"/b.md"}}',
-      '{"event":"agent_end"}',
+      startEvent("call-1", "write", { path: "/a.md" }),
+      endEvent("call-1", "write"),
+      startEvent("call-2", "write", { path: "/b.md" }),
+      endEvent("call-2", "write"),
+      '{"type":"agent_end"}',
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual(["/a.md", "/b.md"]);
     expect(result.success).toBe(true);
   });
 
-  it("ignores non-write tool_execution_end events for file tracking", async () => {
+  it("ignores read tool calls for file tracking", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"read","args":{"path":"/obs.jsonl"}}',
-      '{"event":"agent_end"}',
+      startEvent("call-1", "read", { path: "/obs.jsonl" }),
+      endEvent("call-1", "read"),
+      '{"type":"agent_end"}',
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual([]);
   });
 
+  it("does not record write when end event signals error", async () => {
+    const stream = makeStream([
+      startEvent("call-1", "write", { path: "/a.md" }),
+      endEvent("call-1", "write", true),
+      '{"type":"agent_end"}',
+    ]);
+    const result = await parseAnalyzerStream(stream);
+    expect(result.filesWritten).toEqual([]);
+    expect(result.errors).toHaveLength(1);
+  });
+
+  it("handles interleaved read and write calls correctly", async () => {
+    const stream = makeStream([
+      startEvent("r-1", "read", { path: "/obs.jsonl" }),
+      startEvent("w-1", "write", { path: "/instinct-a.md" }),
+      endEvent("r-1", "read"),
+      endEvent("w-1", "write"),
+      startEvent("w-2", "write", { path: "/instinct-b.md" }),
+      endEvent("w-2", "write"),
+      '{"type":"agent_end"}',
+    ]);
+    const result = await parseAnalyzerStream(stream);
+    expect(result.filesWritten).toEqual(["/instinct-a.md", "/instinct-b.md"]);
+    expect(result.errors).toEqual([]);
+    expect(result.success).toBe(true);
+  });
+
   it("falls back to file_path arg key", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{"file_path":"/alt/path.md"}}',
+      startEvent("call-1", "write", { file_path: "/alt/path.md" }),
+      endEvent("call-1", "write"),
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual(["/alt/path.md"]);
@@ -119,26 +165,44 @@ describe("parseAnalyzerStream - files written", () => {
 
   it("falls back to filename arg key", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{"filename":"/alt/fname.md"}}',
+      startEvent("call-1", "write", { filename: "/alt/fname.md" }),
+      endEvent("call-1", "write"),
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual(["/alt/fname.md"]);
   });
 
-  it("ignores write event with no path in args", async () => {
+  it("ignores write start event with no path in args", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{}}',
+      startEvent("call-1", "write", {}),
+      endEvent("call-1", "write"),
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.filesWritten).toEqual([]);
   });
+});
 
-  it("ignores write event with missing args", async () => {
+// ---------------------------------------------------------------------------
+// parseAnalyzerStream - files written (legacy format fallback)
+// ---------------------------------------------------------------------------
+
+describe("parseAnalyzerStream - files written (legacy format)", () => {
+  it("falls back to args on end event when no start event was seen", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write"}',
+      '{"type":"tool_execution_end","tool":"write","args":{"path":"/legacy.md"}}',
     ]);
     const result = await parseAnalyzerStream(stream);
-    expect(result.filesWritten).toEqual([]);
+    expect(result.filesWritten).toEqual(["/legacy.md"]);
+  });
+
+  it("supports legacy tool field on end event", async () => {
+    const stream = makeStream([
+      '{"type":"tool_execution_end","tool":"write","args":{"path":"/old.md"}}',
+      '{"type":"agent_end"}',
+    ]);
+    const result = await parseAnalyzerStream(stream);
+    expect(result.filesWritten).toEqual(["/old.md"]);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -147,47 +211,51 @@ describe("parseAnalyzerStream - files written", () => {
 // ---------------------------------------------------------------------------
 
 describe("parseAnalyzerStream - error collection", () => {
-  it("collects string error from tool event with error field", async () => {
+  it("collects error when isError=true (real Pi format)", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","error":"Permission denied"}',
-    ]);
-    const result = await parseAnalyzerStream(stream);
-    expect(result.errors).toEqual(["Permission denied"]);
-  });
-
-  it("collects generic error message when error=true", async () => {
-    const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","error":true}',
+      startEvent("call-1", "write", { path: "/a.md" }),
+      endEvent("call-1", "write", true),
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("write");
   });
 
-  it("collects error when is_error=true", async () => {
-    const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"read","is_error":true}',
-    ]);
-    const result = await parseAnalyzerStream(stream);
-    expect(result.errors).toHaveLength(1);
-  });
-
   it("collects multiple errors across events", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","error":"Disk full"}',
-      '{"event":"tool_execution_end","tool":"read","error":"Not found"}',
+      startEvent("call-1", "write", { path: "/a.md" }),
+      endEvent("call-1", "write", true),
+      startEvent("call-2", "read", { path: "/b.md" }),
+      endEvent("call-2", "read", true),
     ]);
     const result = await parseAnalyzerStream(stream);
-    expect(result.errors).toEqual(["Disk full", "Not found"]);
+    expect(result.errors).toHaveLength(2);
   });
 
-  it("does not collect error when error field is absent", async () => {
+  it("does not collect error when isError=false", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_end","tool":"write","args":{"path":"/ok.md"}}',
-      '{"event":"agent_end"}',
+      startEvent("call-1", "write", { path: "/ok.md" }),
+      endEvent("call-1", "write", false),
+      '{"type":"agent_end"}',
     ]);
     const result = await parseAnalyzerStream(stream);
     expect(result.errors).toEqual([]);
+  });
+
+  it("collects string error from legacy error field", async () => {
+    const stream = makeStream([
+      '{"type":"tool_execution_end","tool":"write","error":"Permission denied"}',
+    ]);
+    const result = await parseAnalyzerStream(stream);
+    expect(result.errors).toEqual(["Permission denied"]);
+  });
+
+  it("collects error from legacy is_error=true field", async () => {
+    const stream = makeStream([
+      '{"type":"tool_execution_end","tool":"read","is_error":true}',
+    ]);
+    const result = await parseAnalyzerStream(stream);
+    expect(result.errors).toHaveLength(1);
   });
 });
 
@@ -203,7 +271,7 @@ describe("parseAnalyzerStream - malformed lines", () => {
 
     const stream = makeStream([
       "{broken json",
-      '{"event":"agent_end"}',
+      '{"type":"agent_end"}',
       "another bad line !!!",
     ]);
     const result = await parseAnalyzerStream(stream);
@@ -218,7 +286,7 @@ describe("parseAnalyzerStream - malformed lines", () => {
       .spyOn(console, "warn")
       .mockImplementation(() => undefined);
 
-    const stream = makeStream(["", "   ", '{"event":"agent_end"}', ""]);
+    const stream = makeStream(["", "   ", '{"type":"agent_end"}', ""]);
     const result = await parseAnalyzerStream(stream);
 
     expect(result.success).toBe(true);
@@ -234,18 +302,19 @@ describe("parseAnalyzerStream - malformed lines", () => {
 describe("parseAnalyzerStream - combined result", () => {
   it("returns complete AnalysisResult with all fields populated", async () => {
     const stream = makeStream([
-      '{"event":"tool_execution_start","tool":"read","args":{"path":"/obs.jsonl"}}',
-      '{"event":"tool_execution_end","tool":"read","args":{"path":"/obs.jsonl"}}',
-      '{"event":"tool_execution_start","tool":"write","args":{"path":"/inst/new-pattern.md"}}',
-      '{"event":"tool_execution_end","tool":"write","args":{"path":"/inst/new-pattern.md"}}',
-      '{"event":"tool_execution_start","tool":"write","args":{"path":"/inst/old-pattern.md"}}',
-      '{"event":"tool_execution_end","tool":"write","error":"Read-only filesystem"}',
-      '{"event":"agent_end"}',
+      startEvent("r-1", "read", { path: "/obs.jsonl" }),
+      endEvent("r-1", "read"),
+      startEvent("w-1", "write", { path: "/inst/new-pattern.md" }),
+      endEvent("w-1", "write"),
+      startEvent("w-2", "write", { path: "/inst/old-pattern.md" }),
+      endEvent("w-2", "write", true),
+      '{"type":"agent_end"}',
     ]);
     const result = await parseAnalyzerStream(stream);
 
     expect(result.success).toBe(true);
     expect(result.filesWritten).toEqual(["/inst/new-pattern.md"]);
-    expect(result.errors).toEqual(["Read-only filesystem"]);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("write");
   });
 });
