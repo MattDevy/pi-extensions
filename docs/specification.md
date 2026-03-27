@@ -457,8 +457,8 @@ Once an instinct exists and is being injected into sessions, the analyzer cross-
 | **Inactive** | Instinct was active but turn wasn't relevant to its trigger | No change |
 
 Additional adjustments:
-- -0.02 per week without any observation (passive decay)
-- Cap: 0.9 maximum, 0.1 minimum (below 0.1 -> flagged for removal)
+- -0.05 per week without any observation (passive decay; reaches 0.1 from 0.5 in ~8 weeks)
+- Cap: 0.9 maximum, 0.1 minimum (below 0.1 -> flagged for removal, auto-deleted after 7 days)
 
 The key difference from the Claude Code version: discovery confidence is just the starting point. An instinct that was "observed 11 times" (0.85 initial) but gets contradicted in 3 subsequent sessions where it was actually injected will drop to ~0.4. Conversely, a tentative instinct (0.3) that keeps getting confirmed will climb faster because the confirmations come from real outcome data, not just "we saw something similar again."
 

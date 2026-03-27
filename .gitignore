@@ -5,3 +5,5 @@ dist/
 # ralphi
 .ralphi/*
 !.ralphi/config.yaml
+
+!AGENTS.md

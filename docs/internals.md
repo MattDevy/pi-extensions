@@ -72,15 +72,21 @@ Defined in `config.ts`. The extension reads `~/.pi/continuous-learning/config.js
 
 ```typescript
 {
-  run_interval_minutes: 5,           // Suggested cron interval
-  min_observations_to_analyze: 20,   // Minimum observations before analysis triggers
-  min_confidence: 0.5,               // Instincts below this are not injected
-  max_instincts: 20,                 // Cap on instincts injected per turn
-  model: "claude-haiku-4-5",         // Model for the analyzer
-  timeout_seconds: 120,              // Per-project timeout for analyzer LLM session
-  active_hours_start: 8,             // (legacy, unused by standalone analyzer)
-  active_hours_end: 23,              // (legacy, unused by standalone analyzer)
-  max_idle_seconds: 1800,            // (legacy, unused by standalone analyzer)
+  run_interval_minutes: 5,                // Suggested cron interval
+  min_observations_to_analyze: 20,        // Minimum observations before analysis triggers
+  min_confidence: 0.5,                    // Instincts below this are not injected
+  max_instincts: 20,                      // Cap on instincts injected per turn
+  model: "claude-haiku-4-5",              // Model for the analyzer
+  timeout_seconds: 120,                   // Per-project timeout for analyzer LLM session
+  active_hours_start: 8,                  // (legacy, unused by standalone analyzer)
+  active_hours_end: 23,                   // (legacy, unused by standalone analyzer)
+  max_idle_seconds: 1800,                 // (legacy, unused by standalone analyzer)
+  // Volume control
+  max_total_instincts_per_project: 30,    // Hard cap per project (auto-deletes lowest-confidence)
+  max_total_instincts_global: 20,         // Hard cap for global instincts (auto-deletes lowest-confidence)
+  max_new_instincts_per_run: 3,           // Max new instincts created by the analyzer per run
+  flagged_cleanup_days: 7,               // Auto-delete flagged_for_removal instincts after N days
+  instinct_ttl_days: 28,                 // Auto-delete zero-confirmation instincts after N days
 }
 ```
 
@@ -148,7 +154,10 @@ For each project in projects.json:
   ├── Check observation count >= min_observations_to_analyze      -- skip if not
   |
   v
-instinct-decay.ts  -- apply passive confidence decay (-0.02/week) before analysis
+instinct-cleanup.ts -- auto-cleanup: delete flagged/TTL/over-cap instincts
+  |
+  v
+instinct-decay.ts  -- apply passive confidence decay (-0.05/week) after cleanup
   |
   v
 Create AgentSession (Pi SDK) with:
@@ -174,7 +183,9 @@ Release lockfile
 
 **Global timeout**: The process exits with code 2 after 5 minutes regardless of progress.
 
-**Passive decay** (`instinct-decay.ts`): Before each project's analysis, `runDecayPass()` walks all personal instinct files (project + global), applies -0.02 per week since `updated_at`, and saves any that changed by more than 0.001 confidence. Instincts that drop below 0.1 get `flagged_for_removal: true`.
+**Auto-cleanup** (`instinct-cleanup.ts`): Before decay, `runCleanupPass()` enforces three rules: (1) deletes `flagged_for_removal` instincts whose `updated_at` is older than `flagged_cleanup_days`; (2) deletes instincts with `confirmed_count === 0` older than `instinct_ttl_days`; (3) deletes the lowest-confidence instincts when the total count exceeds `max_total_instincts_per_project` or `max_total_instincts_global`.
+
+**Passive decay** (`instinct-decay.ts`): After cleanup, `runDecayPass()` walks all remaining personal instinct files (project + global), applies -0.05 per week since `updated_at`, and saves any that changed by more than 0.001 confidence. Instincts that drop below 0.1 get `flagged_for_removal: true`.
 
 ### 3. System Prompt Injection (Pi Extension)
 
@@ -273,11 +284,11 @@ Pure functions in `confidence.ts`. No I/O.
 
 ### Passive decay
 
--0.02 per week since `updated_at`. Applied by `runDecayPass()` before each analysis run.
+-0.05 per week since `updated_at`. Applied by `runDecayPass()` after cleanup, before each analysis run. At 0.5 confidence, an instinct reaches the removal threshold in ~8 weeks.
 
 ### Clamping and removal
 
-All values clamped to [0.1, 0.9]. If the pre-clamp value drops below 0.1, `flagged_for_removal` is set to `true`. Flagged instincts are excluded from injection but not deleted — users can review them via `/instinct-status`.
+All values clamped to [0.1, 0.9]. If the pre-clamp value drops below 0.1, `flagged_for_removal` is set to `true`. Flagged instincts are excluded from injection. They are automatically deleted after `flagged_cleanup_days` (default: 7) by the cleanup pass — users can review them before that window via `/instinct-status`.
 
 ---
 
@@ -339,6 +350,7 @@ cli/analyze.ts (entry point, run via cron)
   |-- config.ts              -- load config
   |-- storage.ts             -- path helpers
   |-- observations.ts        -- countObservations
+  |-- instinct-cleanup.ts    -- auto-cleanup rules (flagged, TTL, cap enforcement)
   |-- instinct-decay.ts      -- passive confidence decay
   |   |-- confidence.ts      -- pure confidence math
   |-- instinct-tools.ts      -- createInstinctListTool, createInstinctReadTool, etc.
