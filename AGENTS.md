@@ -47,6 +47,7 @@ pi-continuous-learning/
     instinct-loader.ts      # Filter + sort + cap instincts for injection
     instinct-injector.ts    # System prompt injection
     instinct-tools.ts       # LLM tool definitions (list/read/write/delete/merge)
+    instinct-contradiction.ts # Contradiction detection (opposing actions)
     instinct-validator.ts   # Field validation + Jaccard similarity dedup
     instinct-decay.ts       # Passive confidence decay
     instinct-cleanup.ts     # Auto-cleanup rules (flagged, TTL, cap enforcement)

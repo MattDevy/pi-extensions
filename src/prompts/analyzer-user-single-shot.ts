@@ -89,6 +89,8 @@ export function buildSingleShotUserPrompt(
     "   - Generic agent behaviors (read-before-edit, clarify-before-implement) -> skip entirely",
     "   - Project-specific patterns -> project-scoped instinct",
     "   - Universal workflow patterns -> global-scoped instinct",
+    "8. Check existing instincts for contradictions (similar triggers, opposing actions).",
+    "   Resolve by deleting the weaker instinct or merging into a nuanced one.",
     "",
     "Return ONLY the JSON object. No prose, no markdown fences."
   );

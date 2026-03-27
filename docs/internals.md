@@ -188,7 +188,7 @@ Release lockfile
 
 **Global timeout**: The process exits with code 2 after 5 minutes regardless of progress.
 
-**Auto-cleanup** (`instinct-cleanup.ts`): Before decay, `runCleanupPass()` enforces three rules: (1) deletes `flagged_for_removal` instincts whose `updated_at` is older than `flagged_cleanup_days`; (2) deletes instincts with `confirmed_count === 0` older than `instinct_ttl_days`; (3) deletes the lowest-confidence instincts when the total count exceeds `max_total_instincts_per_project` or `max_total_instincts_global`.
+**Auto-cleanup** (`instinct-cleanup.ts`): Before decay, `runCleanupPass()` enforces four rules: (1) deletes `flagged_for_removal` instincts whose `updated_at` is older than `flagged_cleanup_days`; (2) deletes instincts with `confirmed_count === 0` older than `instinct_ttl_days`; (3) detects contradictory instincts (similar triggers with opposing actions) and flags the lower-confidence one for removal (or both when confidence is equal); (4) deletes the lowest-confidence instincts when the total count exceeds `max_total_instincts_per_project` or `max_total_instincts_global`.
 
 **Passive decay** (`instinct-decay.ts`): After cleanup, `runDecayPass()` walks all remaining personal instinct files (project + global), applies -0.05 per week since `updated_at`, and saves any that changed by more than 0.001 confidence. Instincts that drop below 0.1 get `flagged_for_removal: true`.
 
@@ -267,6 +267,38 @@ Before a new instinct is persisted (via `instinct_write` tool or the analyzer), 
 This prevents near-duplicate instincts from accumulating when patterns are detected multiple times with slightly different wording (e.g., "read-before-edit" and "verify-edit-context").
 
 The `skipId` parameter allows the similarity check to ignore the instinct being updated (self-updates are always allowed).
+
+### Contradiction Detection
+
+While deduplication catches near-identical instincts, contradiction detection (`instinct-contradiction.ts`) catches instincts with similar triggers but *semantically opposing* actions. For example:
+
+- "When designing APIs" -> "Prefer interfaces for dependency injection"
+- "When designing APIs" -> "Avoid interfaces, prefer concrete types"
+
+**Algorithm** (`findContradictions()` in `instinct-contradiction.ts`):
+1. Filter out already-flagged instincts
+2. Pre-compute trigger tokens for all active instincts
+3. For each unique pair, check trigger similarity (Jaccard >= 0.4 threshold)
+4. For pairs with similar triggers, check action opposition via two heuristics:
+   - **Verb pair matching**: Detects opposing verbs across the two actions (e.g., "prefer" vs "avoid", "always" vs "never", "use" vs "avoid"). See `OPPOSING_VERB_PAIRS` for the full list.
+   - **Negation pattern matching**: Detects "do not X" / "don't X" in one action where X appears affirmatively in the other.
+
+**Resolution** (`cleanupContradictions()` in `instinct-cleanup.ts`):
+- The lower-confidence instinct is flagged with `flagged_for_removal: true`
+- When both have equal confidence, both are flagged for user review
+- Flagged instincts remain visible in `/instinct-status` until the flagged cleanup window expires
+
+This is a lightweight, zero-cost approach (no LLM calls). It runs as part of the cleanup pipeline before cap enforcement.
+
+### LLM-Assisted Contradiction Resolution
+
+In addition to the deterministic heuristic, contradiction awareness is built into two LLM-powered flows:
+
+1. **Analyzer system prompt** (`prompts/analyzer-system-single-shot.ts`): Instructs the model to check for contradictions before creating new instincts, and to resolve existing contradictions by deleting the weaker instinct or merging both into a nuanced context-dependent one.
+
+2. **`/instinct-evolve` prompt** (`prompts/evolve-prompt.ts`): Contradiction detection is the first analysis task. The LLM can catch semantic contradictions that the verb-pair heuristic misses (e.g., "write comprehensive tests" vs "keep tests minimal and fast") and offer to resolve them interactively via the instinct tools.
+
+The deterministic pass catches obvious keyword-level contradictions at zero cost on every cleanup run. The LLM passes catch deeper semantic contradictions during analyzer runs and user-initiated evolve sessions.
 
 ---
 

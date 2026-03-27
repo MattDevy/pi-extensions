@@ -11,12 +11,13 @@
 import { unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Instinct, Config } from "./types.js";
-import { listInstincts, invalidateCache } from "./instinct-store.js";
+import { listInstincts, saveInstinct, invalidateCache } from "./instinct-store.js";
 import {
   getBaseDir,
   getProjectInstinctsDir,
   getGlobalInstinctsDir,
 } from "./storage.js";
+import { findContradictions } from "./instinct-contradiction.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -124,9 +125,58 @@ export function enforceInstinctCap(dir: string, maxCount: number): number {
 // Result type
 // ---------------------------------------------------------------------------
 
+/**
+ * Flags the lower-confidence instinct in each contradictory pair.
+ * When confidence is equal, both are flagged.
+ * Already-flagged instincts are excluded from contradiction detection.
+ *
+ * @returns Number of instincts newly flagged.
+ */
+export function cleanupContradictions(dir: string): number {
+  const instincts = listInstincts(dir);
+  const matches = findContradictions(instincts);
+  if (matches.length === 0) return 0;
+
+  const toFlag = new Set<string>();
+
+  for (const match of matches) {
+    const { instinctA, instinctB } = match;
+    if (instinctA.confidence > instinctB.confidence) {
+      toFlag.add(instinctB.id);
+    } else if (instinctB.confidence > instinctA.confidence) {
+      toFlag.add(instinctA.id);
+    } else {
+      // Equal confidence - flag both for user review
+      toFlag.add(instinctA.id);
+      toFlag.add(instinctB.id);
+    }
+  }
+
+  let flagged = 0;
+  for (const instinct of instincts) {
+    if (toFlag.has(instinct.id)) {
+      const updated: Instinct = {
+        ...instinct,
+        flagged_for_removal: true,
+        updated_at: new Date().toISOString(),
+      };
+      saveInstinct(updated, dir);
+      flagged++;
+    }
+  }
+
+  if (flagged > 0) invalidateCache(dir);
+  return flagged;
+}
+
+// ---------------------------------------------------------------------------
+// Result type
+// ---------------------------------------------------------------------------
+
 export interface CleanupResult {
   flaggedDeleted: number;
   zeroConfirmedDeleted: number;
+  contradictionsFlagged: number;
   capDeleted: number;
   total: number;
 }
@@ -140,6 +190,11 @@ export interface CleanupResult {
  * Order: flagged → zero-confirmed → cap enforcement (cap runs last so it
  * accounts for deletions made by the earlier rules).
  */
+/**
+ * Runs all cleanup rules against a single directory.
+ * Order: flagged → zero-confirmed → contradictions → cap enforcement
+ * (cap runs last so it accounts for deletions/flags from earlier rules).
+ */
 export function cleanupDir(
   dir: string,
   config: Config,
@@ -150,9 +205,10 @@ export function cleanupDir(
     dir,
     config.instinct_ttl_days
   );
+  const contradictionsFlagged = cleanupContradictions(dir);
   const capDeleted = enforceInstinctCap(dir, maxCount);
-  const total = flaggedDeleted + zeroConfirmedDeleted + capDeleted;
-  return { flaggedDeleted, zeroConfirmedDeleted, capDeleted, total };
+  const total = flaggedDeleted + zeroConfirmedDeleted + contradictionsFlagged + capDeleted;
+  return { flaggedDeleted, zeroConfirmedDeleted, contradictionsFlagged, capDeleted, total };
 }
 
 /**
@@ -172,6 +228,7 @@ export function runCleanupPass(
   const result: CleanupResult = {
     flaggedDeleted: 0,
     zeroConfirmedDeleted: 0,
+    contradictionsFlagged: 0,
     capDeleted: 0,
     total: 0,
   };
@@ -185,6 +242,7 @@ export function runCleanupPass(
     );
     result.flaggedDeleted += projectResult.flaggedDeleted;
     result.zeroConfirmedDeleted += projectResult.zeroConfirmedDeleted;
+    result.contradictionsFlagged += projectResult.contradictionsFlagged;
     result.capDeleted += projectResult.capDeleted;
     result.total += projectResult.total;
   }
@@ -197,6 +255,7 @@ export function runCleanupPass(
   );
   result.flaggedDeleted += globalResult.flaggedDeleted;
   result.zeroConfirmedDeleted += globalResult.zeroConfirmedDeleted;
+  result.contradictionsFlagged += globalResult.contradictionsFlagged;
   result.capDeleted += globalResult.capDeleted;
   result.total += globalResult.total;
 

@@ -11,6 +11,7 @@ import {
   cleanupFlaggedInstincts,
   cleanupZeroConfirmedInstincts,
   enforceInstinctCap,
+  cleanupContradictions,
   runCleanupPass,
 } from "./instinct-cleanup.js";
 import { saveInstinct, listInstincts } from "./instinct-store.js";
@@ -289,6 +290,104 @@ describe("enforceInstinctCap", () => {
 });
 
 // ---------------------------------------------------------------------------
+// cleanupContradictions
+// ---------------------------------------------------------------------------
+
+describe("cleanupContradictions", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "cleanup-contradictions-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns 0 for empty directory", () => {
+    expect(cleanupContradictions(tmpDir)).toBe(0);
+  });
+
+  it("returns 0 when no contradictions exist", () => {
+    saveInstinct(
+      makeInstinct({ trigger: "When writing Python code", action: "Use type hints for parameters" }),
+      tmpDir
+    );
+    saveInstinct(
+      makeInstinct({ trigger: "When deploying to production", action: "Run smoke tests first" }),
+      tmpDir
+    );
+    expect(cleanupContradictions(tmpDir)).toBe(0);
+    expect(listInstincts(tmpDir)).toHaveLength(2);
+  });
+
+  it("flags the lower-confidence instinct in a contradictory pair", () => {
+    const high = makeInstinct({
+      trigger: "When designing APIs",
+      action: "Prefer interfaces for dependency injection",
+      confidence: 0.8,
+    });
+    const low = makeInstinct({
+      trigger: "When designing APIs",
+      action: "Avoid interfaces, prefer concrete types for simplicity",
+      confidence: 0.5,
+    });
+    saveInstinct(high, tmpDir);
+    saveInstinct(low, tmpDir);
+
+    const flagged = cleanupContradictions(tmpDir);
+    expect(flagged).toBe(1);
+
+    const remaining = listInstincts(tmpDir);
+    expect(remaining).toHaveLength(2);
+    const lowAfter = remaining.find((i) => i.id === low.id);
+    expect(lowAfter?.flagged_for_removal).toBe(true);
+    const highAfter = remaining.find((i) => i.id === high.id);
+    expect(highAfter?.flagged_for_removal).toBeFalsy();
+  });
+
+  it("flags both when confidence is equal", () => {
+    const a = makeInstinct({
+      trigger: "When writing tests",
+      action: "Always mock external dependencies",
+      confidence: 0.6,
+    });
+    const b = makeInstinct({
+      trigger: "When writing tests",
+      action: "Never mock external dependencies, use real implementations",
+      confidence: 0.6,
+    });
+    saveInstinct(a, tmpDir);
+    saveInstinct(b, tmpDir);
+
+    const flagged = cleanupContradictions(tmpDir);
+    expect(flagged).toBe(2);
+
+    const remaining = listInstincts(tmpDir);
+    expect(remaining.every((i) => i.flagged_for_removal)).toBe(true);
+  });
+
+  it("does not flag instincts already flagged_for_removal", () => {
+    const a = makeInstinct({
+      trigger: "When designing APIs",
+      action: "Prefer interfaces for dependency injection",
+      confidence: 0.8,
+      flagged_for_removal: true,
+    });
+    const b = makeInstinct({
+      trigger: "When designing APIs",
+      action: "Avoid interfaces, prefer concrete types",
+      confidence: 0.5,
+    });
+    saveInstinct(a, tmpDir);
+    saveInstinct(b, tmpDir);
+
+    // a is already flagged, so the pair should be skipped
+    expect(cleanupContradictions(tmpDir)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // runCleanupPass
 // ---------------------------------------------------------------------------
 
@@ -315,7 +414,7 @@ describe("runCleanupPass", () => {
 
   it("returns zero result when both dirs are empty", () => {
     const result = runCleanupPass(projectId, config, baseDir);
-    expect(result).toEqual({ flaggedDeleted: 0, zeroConfirmedDeleted: 0, capDeleted: 0, total: 0 });
+    expect(result).toEqual({ flaggedDeleted: 0, zeroConfirmedDeleted: 0, contradictionsFlagged: 0, capDeleted: 0, total: 0 });
   });
 
   it("cleans up flagged instincts in project dir", () => {
@@ -419,5 +518,28 @@ describe("runCleanupPass", () => {
     expect(result.flaggedDeleted).toBe(1);
     expect(result.zeroConfirmedDeleted).toBe(1);
     expect(result.total).toBe(2);
+  });
+
+  it("flags contradictory instincts in project dir", () => {
+    saveInstinct(
+      makeInstinct({
+        trigger: "When designing APIs",
+        action: "Prefer interfaces for dependency injection",
+        confidence: 0.8,
+      }),
+      projectPersonalDir
+    );
+    saveInstinct(
+      makeInstinct({
+        trigger: "When designing APIs",
+        action: "Avoid interfaces, prefer concrete types",
+        confidence: 0.5,
+      }),
+      projectPersonalDir
+    );
+
+    const result = runCleanupPass(projectId, config, baseDir);
+    expect(result.contradictionsFlagged).toBe(1);
+    expect(result.total).toBeGreaterThanOrEqual(1);
   });
 });
