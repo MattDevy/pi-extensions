@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.5.0...pi-continuous-learning-v0.5.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* Scope-aware delete and merge for instinct_delete and instinct_merge ([#12](https://github.com/MattDevy/pi-continuous-learning/issues/12)) ([57137a8](https://github.com/MattDevy/pi-continuous-learning/commit/57137a864a2865e5e5ed58f461858e90d9bfbbe4))
+
 ## [0.5.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.4.0...pi-continuous-learning-v0.5.0) (2026-03-27)
 
 
