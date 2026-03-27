@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.5.1...pi-continuous-learning-v0.6.0) (2026-03-27)
+
+
+### Features
+
+* Add observation preprocessor to strip low-signal events ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+* Add single-shot analyzer core (parseChanges, buildInstinctFromChange, runSingleShot) ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+* Add single-shot analyzer system prompt with JSON output format ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+* Add single-shot user prompt builder with inline instinct context ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+* Preprocess observations in tailObservationsSince (strip low-signal events before analysis) ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+* Replace agentic analyzer with single-shot + observation preprocessing (-88% cost) ([#14](https://github.com/MattDevy/pi-continuous-learning/issues/14)) ([19ed1e5](https://github.com/MattDevy/pi-continuous-learning/commit/19ed1e513b754958d303e6ba5d6697726f54a676))
+
 ## [0.5.1](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.5.0...pi-continuous-learning-v0.5.1) (2026-03-27)
 
 
