@@ -11,7 +11,12 @@ export type ObservationEvent =
   | "tool_start"
   | "tool_complete"
   | "user_prompt"
-  | "agent_end";
+  | "agent_end"
+  | "turn_start"
+  | "turn_end"
+  | "user_bash"
+  | "session_compact"
+  | "model_select";
 
 export interface Observation {
   timestamp: string; // ISO 8601 UTC
@@ -24,6 +29,16 @@ export interface Observation {
   output?: string;
   is_error?: boolean;
   active_instincts?: string[];
+  turn_index?: number;
+  tool_count?: number;
+  error_count?: number;
+  tokens_used?: number;
+  command?: string;
+  cwd?: string;
+  from_extension?: boolean;
+  model?: string;
+  previous_model?: string;
+  model_change_source?: string;
 }
 
 // ---------------------------------------------------------------------------

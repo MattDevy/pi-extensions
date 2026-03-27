@@ -30,6 +30,26 @@ Analyze observations for these categories:
 - Actions that consistently lead to errors or user corrections
 - Trigger: the bad pattern situation; Action: what to do instead
 
+### Turn Structure
+- turn_start/turn_end events group tool calls into LLM response cycles
+- Look for recurring tool sequences within turns (e.g. grep→read→edit)
+- tool_count and error_count on turn_end summarize the turn
+- High error_count turns suggest inefficient approaches
+
+### Context Pressure
+- session_compact events signal context window pressure
+- Frequent compaction correlated with specific tool patterns may indicate waste
+- tokens_used on turn_end and agent_end tracks token consumption
+
+### User Shell Commands
+- user_bash events capture manual shell commands the user runs
+- Repeated commands after agent actions reveal verification patterns
+- These are behaviors the agent should learn to do proactively
+
+### Model Preferences
+- model_select events track when users switch models
+- Patterns in model switching reveal task-complexity preferences
+
 ## Feedback Analysis
 
 Each observation may include an active_instincts field listing instinct IDs

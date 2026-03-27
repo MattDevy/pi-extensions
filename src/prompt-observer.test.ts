@@ -21,6 +21,7 @@ function makeCtx(sessionId = "test-session-014") {
     sessionManager: {
       getSessionId: () => sessionId,
     },
+    getContextUsage: () => ({ tokens: 1000, contextWindow: 200000, percent: 0.5 }),
   } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
 }
 

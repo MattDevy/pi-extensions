@@ -76,12 +76,16 @@ export function handleAgentEnd(
   try {
     if (shouldSkipObservation()) return;
 
+    const contextUsage = ctx.getContextUsage();
+    const tokensUsed = contextUsage?.tokens ?? undefined;
+
     const observation: Observation = {
       timestamp: new Date().toISOString(),
       event: "agent_end",
       session: getSessionId(ctx),
       project_id: project.id,
       project_name: project.name,
+      ...(tokensUsed != null ? { tokens_used: tokensUsed } : {}),
       ...buildActiveInstincts(),
     };
 

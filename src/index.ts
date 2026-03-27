@@ -16,6 +16,13 @@ import { cleanOldArchives } from "./observations.js";
 import { handleToolStart, handleToolEnd } from "./tool-observer.js";
 import { handleBeforeAgentStart, handleAgentEnd } from "./prompt-observer.js";
 import {
+  handleTurnStart,
+  handleTurnEnd,
+  handleUserBash,
+  handleSessionCompact,
+  handleModelSelect,
+} from "./session-observer.js";
+import {
   handleBeforeAgentStartInjection,
   handleAgentEndClearInstincts,
 } from "./instinct-injector.js";
@@ -95,6 +102,51 @@ export default function (pi: ExtensionAPI): void {
       handleToolEnd(event, ctx, project);
     } catch (err) {
       logError(project?.id ?? null, "tool_execution_end", err);
+    }
+  });
+
+  pi.on("turn_start", (event, ctx) => {
+    try {
+      if (!project) return;
+      handleTurnStart(event, ctx, project);
+    } catch (err) {
+      logError(project?.id ?? null, "turn_start", err);
+    }
+  });
+
+  pi.on("turn_end", (event, ctx) => {
+    try {
+      if (!project) return;
+      handleTurnEnd(event, ctx, project);
+    } catch (err) {
+      logError(project?.id ?? null, "turn_end", err);
+    }
+  });
+
+  pi.on("user_bash", (event, ctx) => {
+    try {
+      if (!project) return;
+      handleUserBash(event, ctx, project);
+    } catch (err) {
+      logError(project?.id ?? null, "user_bash", err);
+    }
+  });
+
+  pi.on("session_compact", (event, ctx) => {
+    try {
+      if (!project) return;
+      handleSessionCompact(event, ctx, project);
+    } catch (err) {
+      logError(project?.id ?? null, "session_compact", err);
+    }
+  });
+
+  pi.on("model_select", (event, ctx) => {
+    try {
+      if (!project) return;
+      handleModelSelect(event, ctx, project);
+    } catch (err) {
+      logError(project?.id ?? null, "model_select", err);
     }
   });
 

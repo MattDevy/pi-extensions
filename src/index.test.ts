@@ -34,8 +34,8 @@ describe("extension entry point - registrations", () => {
     expect(typeof extension).toBe("function");
   });
 
-  it("registers exactly 7 event handlers", () => {
-    expect(vi.mocked(pi.on)).toHaveBeenCalledTimes(7);
+  it("registers exactly 12 event handlers", () => {
+    expect(vi.mocked(pi.on)).toHaveBeenCalledTimes(12);
   });
 
   it("registers session_start handler", () => {
@@ -71,6 +71,31 @@ describe("extension entry point - registrations", () => {
   it("registers tool_execution_end handler", () => {
     const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
     expect(events).toContain("tool_execution_end");
+  });
+
+  it("registers turn_start handler", () => {
+    const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
+    expect(events).toContain("turn_start");
+  });
+
+  it("registers turn_end handler", () => {
+    const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
+    expect(events).toContain("turn_end");
+  });
+
+  it("registers user_bash handler", () => {
+    const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
+    expect(events).toContain("user_bash");
+  });
+
+  it("registers session_compact handler", () => {
+    const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
+    expect(events).toContain("session_compact");
+  });
+
+  it("registers model_select handler", () => {
+    const events = vi.mocked(pi.on).mock.calls.map(([e]) => e);
+    expect(events).toContain("model_select");
   });
 
   it("registers exactly 6 slash commands", () => {
