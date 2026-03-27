@@ -183,6 +183,8 @@ interface Instinct {
   title: string;                  // Human-readable title
   action: string;                 // What to do
   evidence: string[];             // Supporting evidence lines
+  graduated_to?: "agents-md" | "skill" | "command";  // Graduation target (set after graduation)
+  graduated_at?: string;          // ISO 8601 timestamp of graduation
 }
 ```
 
@@ -526,6 +528,29 @@ Cluster related instincts and suggest evolution into higher-order constructs:
 
 Implementation: `pi.registerCommand("instinct-evolve", ...)`
 
+### `/instinct-graduate`
+
+Graduate mature instincts into permanent knowledge. Scans for graduation candidates, presents proposals, and writes on user approval.
+
+Graduation targets:
+- **AGENTS.md** - Individual mature instincts become permanent guideline entries
+- **Skill** - Domain clusters of 3+ instincts scaffolded into a `SKILL.md`
+- **Command** - Workflow clusters of 3+ instincts scaffolded into a slash command specification
+
+Maturity criteria (all must be met):
+- Age >= 7 days
+- Confidence >= 0.75
+- Confirmed >= 3 times
+- Contradicted <= 1 time
+- Not a duplicate of existing AGENTS.md content
+
+TTL enforcement (28 days):
+- Instincts that don't graduate within 28 days are culled (confidence < 0.3) or aggressively decayed
+
+Graduated instincts are tracked with `graduated_to` and `graduated_at` fields.
+
+Implementation: `pi.registerCommand("instinct-graduate", ...)`
+
 ### `/instinct-export`
 
 Export instincts to a JSON file, filterable by scope and domain.
@@ -752,3 +777,13 @@ Each analysis run uses roughly:
 - Flagged-for-removal handling (instincts below 0.1 confidence)
 - UI notifications for instinct creation and contradiction warnings
 - Error handling and logging
+
+### Phase 7: Graduation Pipeline
+- Graduation maturity criteria as config constants
+- `/instinct-graduate` command with user approval flow
+- AGENTS.md writer (append graduated instinct entries)
+- Skill scaffolding from domain clusters (3+ instincts)
+- Command scaffolding from workflow clusters (3+ instincts)
+- `graduated_to` / `graduated_at` tracking on instinct type
+- TTL enforcement (28-day max age, cull or aggressive decay)
+- Parser support for new graduation fields

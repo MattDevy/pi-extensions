@@ -67,7 +67,11 @@ export interface Instinct {
   inactive_count: number;
   evidence?: string[];
   flagged_for_removal?: boolean;
+  graduated_to?: GraduationTarget;
+  graduated_at?: string; // ISO 8601
 }
+
+export type GraduationTarget = "agents-md" | "skill" | "command";
 
 // ---------------------------------------------------------------------------
 // ProjectEntry

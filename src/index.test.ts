@@ -11,6 +11,7 @@ import { COMMAND_NAME as IMPORT_CMD } from "./instinct-import.js";
 import { COMMAND_NAME as PROMOTE_CMD } from "./instinct-promote.js";
 import { COMMAND_NAME as EVOLVE_CMD } from "./instinct-evolve.js";
 import { COMMAND_NAME as PROJECTS_CMD } from "./instinct-projects.js";
+import { COMMAND_NAME as GRADUATE_CMD } from "./instinct-graduate.js";
 import extension from "./index.js";
 
 /** Builds a minimal mock ExtensionAPI sufficient for registration checks. */
@@ -98,8 +99,8 @@ describe("extension entry point - registrations", () => {
     expect(events).toContain("model_select");
   });
 
-  it("registers exactly 6 slash commands", () => {
-    expect(vi.mocked(pi.registerCommand)).toHaveBeenCalledTimes(6);
+  it("registers exactly 7 slash commands", () => {
+    expect(vi.mocked(pi.registerCommand)).toHaveBeenCalledTimes(7);
   });
 
   it("registers instinct-status command", () => {
@@ -130,6 +131,11 @@ describe("extension entry point - registrations", () => {
   it("registers instinct-projects command", () => {
     const names = vi.mocked(pi.registerCommand).mock.calls.map(([n]) => n);
     expect(names).toContain(PROJECTS_CMD);
+  });
+
+  it("registers instinct-graduate command", () => {
+    const names = vi.mocked(pi.registerCommand).mock.calls.map(([n]) => n);
+    expect(names).toContain(GRADUATE_CMD);
   });
 
   it("each registered command has a handler function", () => {

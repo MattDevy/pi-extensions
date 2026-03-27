@@ -324,6 +324,11 @@ index.ts (entry point)
   |-- instinct-promote.ts    -- /instinct-promote command
   |-- instinct-evolve.ts     -- /instinct-evolve command (LLM-powered via pi.sendUserMessage)
   |   |-- prompts/evolve-prompt.ts  -- builds evolve analysis prompt
+  |-- instinct-graduate.ts   -- /instinct-graduate command (graduation pipeline)
+  |   |-- graduation.ts            -- pure graduation logic (maturity, TTL, candidates)
+  |   |-- skill-scaffold.ts        -- generates SKILL.md from domain clusters
+  |   |-- command-scaffold.ts      -- generates command scaffolds from workflow clusters
+  |   |-- agents-md.ts             -- reads and writes AGENTS.md files
   |-- instinct-projects.ts   -- /instinct-projects command
 ```
 
@@ -355,6 +360,7 @@ All registered in `index.ts` via `pi.registerCommand()`.
 | `/instinct-import <path>` | `instinct-import.ts` | Import instincts from a JSON file |
 | `/instinct-promote [id]` | `instinct-promote.ts` | Promote project instincts to global scope (auto-promote if no ID given) |
 | `/instinct-evolve` | `instinct-evolve.ts` | LLM-powered analysis: suggests merges, duplicates, promotions, cleanup |
+| `/instinct-graduate` | `instinct-graduate.ts` | Graduate mature instincts to AGENTS.md, skills, or commands |
 | `/instinct-projects` | `instinct-projects.ts` | List known projects with instinct counts |
 
 ## LLM Tools
@@ -370,6 +376,72 @@ Registered in `index.ts` via `registerAllTools()` from `instinct-tools.ts`.
 | `instinct_merge` | Merge multiple instincts into one, removing originals |
 
 These tools are also reused by the standalone analyzer script (passed as `customTools` to `createAgentSession`).
+
+---
+
+## Instinct Graduation Pipeline
+
+The graduation pipeline promotes mature instincts into permanent knowledge. Implemented across several modules:
+
+### Lifecycle
+
+```
+Observation -> Instinct (days) -> AGENTS.md / Skill / Command (1-2 weeks)
+                                    |
+                                    v
+                              TTL enforcement (28 days)
+                              - Low confidence: deleted
+                              - Moderate confidence: aggressively decayed
+```
+
+### Modules
+
+| Module | Responsibility |
+|---|---|
+| `graduation.ts` | Pure functions: maturity checks, candidate scanning, domain clustering, TTL enforcement, `markGraduated()` |
+| `instinct-graduate.ts` | `/instinct-graduate` command handler, action helpers (`graduateToAgentsMd`, `graduateToSkill`, `graduateToCommand`, `cullExpiredInstincts`, `decayExpiredInstincts`) |
+| `skill-scaffold.ts` | Generates `SKILL.md` content from a `DomainCluster` (3+ related instincts) |
+| `command-scaffold.ts` | Generates command scaffold content from a `DomainCluster` |
+| `agents-md.ts` | Reads and writes AGENTS.md files (`appendToAgentsMd`, `generateAgentsMdDiff`) |
+
+### Maturity Criteria (constants in `config.ts`)
+
+| Constant | Value | Purpose |
+|---|---|---|
+| `GRADUATION_MIN_AGE_DAYS` | 7 | Minimum age before eligible |
+| `GRADUATION_MIN_CONFIDENCE` | 0.75 | Minimum confidence score |
+| `GRADUATION_MIN_CONFIRMED` | 3 | Minimum confirmed_count |
+| `GRADUATION_MAX_CONTRADICTED` | 1 | Maximum contradicted_count |
+| `GRADUATION_SKILL_CLUSTER_SIZE` | 3 | Min instincts for skill scaffold |
+| `GRADUATION_COMMAND_CLUSTER_SIZE` | 3 | Min instincts for command scaffold |
+| `GRADUATION_TTL_MAX_DAYS` | 28 | Max age before TTL enforcement |
+| `GRADUATION_TTL_CULL_CONFIDENCE` | 0.3 | Below this, TTL-expired instincts are deleted |
+
+### Graduation Tracking
+
+Graduated instincts have two additional fields in their YAML frontmatter:
+
+```yaml
+graduated_to: agents-md   # or "skill" or "command"
+graduated_at: "2026-03-27T12:00:00.000Z"
+```
+
+These fields are:
+- Parsed/serialized by `instinct-parser.ts`
+- Checked by `graduation.ts` to skip already-graduated instincts
+- Checked by `enforceTtl()` to skip graduated instincts from TTL culling
+- Set by `markGraduated()` which returns a new instinct without mutating the original
+
+### Command Flow (`/instinct-graduate`)
+
+1. Load all instincts (project + global)
+2. Read AGENTS.md (project + global) for dedup checking
+3. `findAgentsMdCandidates()` - check maturity criteria for each instinct
+4. `findSkillCandidates()` / `findCommandCandidates()` - find domain clusters >= 3 instincts
+5. `enforceTtl()` - identify instincts past 28-day TTL
+6. Build a summary prompt and send via `pi.sendUserMessage({ deliverAs: "followUp" })`
+7. The LLM presents findings and asks for user approval before taking action
+8. On approval, action helpers write to AGENTS.md / scaffold files and mark instincts graduated
 
 ---
 

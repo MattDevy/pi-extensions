@@ -32,6 +32,7 @@ import { handleInstinctImport, COMMAND_NAME as IMPORT_CMD } from "./instinct-imp
 import { handleInstinctPromote, COMMAND_NAME as PROMOTE_CMD } from "./instinct-promote.js";
 import { handleInstinctEvolve, COMMAND_NAME as EVOLVE_CMD } from "./instinct-evolve.js";
 import { handleInstinctProjects, COMMAND_NAME as PROJECTS_CMD } from "./instinct-projects.js";
+import { handleInstinctGraduate, COMMAND_NAME as GRADUATE_CMD } from "./instinct-graduate.js";
 import { registerAllTools } from "./instinct-tools.js";
 import { logError } from "./error-logger.js";
 import type { Config, InstalledSkill, ProjectEntry } from "./types.js";
@@ -192,5 +193,18 @@ export default function (pi: ExtensionAPI): void {
     description: "List all known projects and their instinct counts",
     handler: (args: string, ctx: ExtensionCommandContext) =>
       handleInstinctProjects(args, ctx),
+  });
+
+  pi.registerCommand(GRADUATE_CMD, {
+    description: "Graduate mature instincts to AGENTS.md, skills, or commands",
+    handler: (args: string, ctx: ExtensionCommandContext) =>
+      handleInstinctGraduate(
+        args,
+        ctx,
+        pi,
+        project?.id,
+        undefined,
+        project?.root ?? null
+      ),
   });
 }

@@ -5,6 +5,7 @@ import type {
   Instinct,
   InstinctScope,
   InstinctSource,
+  GraduationTarget,
   ProjectEntry,
   Config,
 } from "./types.js";
@@ -102,6 +103,32 @@ describe("types exports", () => {
   it("InstinctSource union is accessible", () => {
     const sources: InstinctSource[] = ["personal", "inherited"];
     expect(sources).toHaveLength(2);
+  });
+
+  it("GraduationTarget union covers all targets", () => {
+    const targets: GraduationTarget[] = ["agents-md", "skill", "command"];
+    expect(targets).toHaveLength(3);
+  });
+
+  it("Instinct allows graduated_to and graduated_at to be absent", () => {
+    const instinct: Instinct = {
+      id: "test",
+      title: "Test",
+      trigger: "when",
+      action: "do",
+      confidence: 0.5,
+      domain: "testing",
+      source: "personal",
+      scope: "global",
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+      observation_count: 1,
+      confirmed_count: 0,
+      contradicted_count: 0,
+      inactive_count: 0,
+    };
+    expect(instinct.graduated_to).toBeUndefined();
+    expect(instinct.graduated_at).toBeUndefined();
   });
 
   it("ProjectEntry type is accessible with all fields", () => {

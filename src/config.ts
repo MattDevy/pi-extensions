@@ -38,6 +38,34 @@ export const CONFIG_PATH = path.join(
   "config.json"
 );
 
+// ---------------------------------------------------------------------------
+// Graduation maturity criteria
+// ---------------------------------------------------------------------------
+
+/** Minimum age in days before an instinct is eligible for graduation. */
+export const GRADUATION_MIN_AGE_DAYS = 7;
+
+/** Minimum confidence to qualify for graduation. */
+export const GRADUATION_MIN_CONFIDENCE = 0.75;
+
+/** Minimum confirmed_count to qualify for graduation. */
+export const GRADUATION_MIN_CONFIRMED = 3;
+
+/** Maximum contradicted_count allowed for graduation. */
+export const GRADUATION_MAX_CONTRADICTED = 1;
+
+/** Minimum related instincts in same domain to propose a skill scaffold. */
+export const GRADUATION_SKILL_CLUSTER_SIZE = 3;
+
+/** Minimum related instincts in same domain to propose a command scaffold. */
+export const GRADUATION_COMMAND_CLUSTER_SIZE = 3;
+
+/** Maximum instinct age in days before TTL cull (aggressive decay / deletion). */
+export const GRADUATION_TTL_MAX_DAYS = 28;
+
+/** Confidence threshold below which TTL-expired instincts are deleted outright. */
+export const GRADUATION_TTL_CULL_CONFIDENCE = 0.3;
+
 export const DEFAULT_CONFIG: Config = {
   run_interval_minutes: 5,
   min_observations_to_analyze: 20,

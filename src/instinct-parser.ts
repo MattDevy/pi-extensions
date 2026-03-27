@@ -126,6 +126,12 @@ export function parseInstinct(content: string): Instinct {
   if (fm["flagged_for_removal"] !== undefined && fm["flagged_for_removal"] !== null) {
     instinct.flagged_for_removal = Boolean(fm["flagged_for_removal"]);
   }
+  if (fm["graduated_to"] !== undefined && fm["graduated_to"] !== null) {
+    (instinct as { graduated_to: string }).graduated_to = String(fm["graduated_to"]);
+  }
+  if (fm["graduated_at"] !== undefined && fm["graduated_at"] !== null) {
+    instinct.graduated_at = String(fm["graduated_at"]);
+  }
 
   return instinct;
 }
@@ -164,6 +170,12 @@ export function serializeInstinct(instinct: Instinct): string {
   }
   if (instinct.flagged_for_removal !== undefined) {
     frontmatter["flagged_for_removal"] = instinct.flagged_for_removal;
+  }
+  if (instinct.graduated_to !== undefined) {
+    frontmatter["graduated_to"] = instinct.graduated_to;
+  }
+  if (instinct.graduated_at !== undefined) {
+    frontmatter["graduated_at"] = instinct.graduated_at;
   }
 
   const yamlStr = stringifyYaml(frontmatter);

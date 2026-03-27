@@ -57,6 +57,7 @@ To analyze observations and create/update instincts, you need to run the analyze
 | `/instinct-export` | Export instincts to a JSON file (filterable by scope/domain) |
 | `/instinct-import <path>` | Import instincts from a JSON file |
 | `/instinct-promote [id]` | Promote project instincts to global scope |
+| `/instinct-graduate` | Graduate mature instincts to AGENTS.md, skills, or commands |
 | `/instinct-projects` | List all known projects and their instinct counts |
 
 ### LLM Tools
@@ -244,6 +245,17 @@ inactive_count: 12
 Always search with grep to find relevant context before editing files.
 ```
 
+Graduated instincts include additional fields:
+
+```yaml
+---
+id: grep-before-edit
+# ...other fields...
+graduated_to: agents-md
+graduated_at: "2026-03-27T12:00:00.000Z"
+---
+```
+
 ## Confidence Scoring
 
 Confidence comes from two sources:
@@ -262,6 +274,39 @@ Confidence comes from two sources:
 - Range: 0.1 min, 0.9 max. Below 0.1 = flagged for removal.
 
 This means an instinct observed 20 times but consistently contradicted in practice will lose confidence. Frequency alone doesn't equal correctness.
+
+## Instinct Graduation
+
+Instincts are designed to be short-lived - they should graduate into permanent knowledge within a few weeks. The graduation pipeline (`/instinct-graduate`) handles this lifecycle:
+
+```
+Observation -> Instinct (days) -> AGENTS.md / Skill / Command (1-2 weeks)
+```
+
+### Graduation Targets
+
+| Target | When | What happens |
+|--------|------|--------------|
+| **AGENTS.md** | Single mature instinct | Appended as a guideline entry to your project or global AGENTS.md |
+| **Skill** | 3+ related instincts in the same domain | Scaffolded into a `SKILL.md` file |
+| **Command** | 3+ workflow instincts in the same domain | Scaffolded into a slash command specification |
+
+### Maturity Criteria
+
+An instinct qualifies for graduation when all of these are met:
+- Age >= 7 days
+- Confidence >= 0.75
+- Confirmed >= 3 times
+- Contradicted <= 1 time
+- Not a duplicate of existing AGENTS.md content
+
+### TTL Enforcement
+
+Instincts that don't graduate within 28 days are subject to TTL enforcement:
+- **Confidence < 0.3**: Deleted outright
+- **Confidence >= 0.3**: Aggressively decayed (confidence halved, flagged for removal)
+
+Graduated instincts are tracked with `graduated_to` and `graduated_at` fields so they aren't left as duplicates of the knowledge they graduated into.
 
 ## Updating
 
