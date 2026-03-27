@@ -100,6 +100,23 @@ describe("loadConfig", () => {
     expect(DEFAULT_CONFIG.instinct_ttl_days).toBe(28);
   });
 
+  it("has correct recurring prompt detection defaults", () => {
+    expect(DEFAULT_CONFIG.recurring_prompt_min_sessions).toBe(3);
+    expect(DEFAULT_CONFIG.recurring_prompt_score_boost).toBe(3);
+  });
+
+  it("merges recurring prompt config overrides", () => {
+    const partial = { recurring_prompt_min_sessions: 5, recurring_prompt_score_boost: 5 };
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.readFileSync.mockReturnValue(JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>);
+
+    const config = loadConfig();
+
+    expect(config.recurring_prompt_min_sessions).toBe(5);
+    expect(config.recurring_prompt_score_boost).toBe(5);
+    expect(config.run_interval_minutes).toBe(DEFAULT_CONFIG.run_interval_minutes);
+  });
+
   it("exports CONFIG_PATH pointing to ~/.pi/continuous-learning/config.json", () => {
     const expected = path.join(os.homedir(), ".pi", "continuous-learning", "config.json");
     expect(CONFIG_PATH).toBe(expected);

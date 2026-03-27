@@ -54,6 +54,8 @@ const BASE_CONFIG: Config = {
   dreaming_enabled: true,
   consolidation_interval_days: 7,
   consolidation_min_sessions: 10,
+  recurring_prompt_min_sessions: 3,
+  recurring_prompt_score_boost: 3,
 };
 
 // ---------------------------------------------------------------------------

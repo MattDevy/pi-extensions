@@ -40,7 +40,14 @@ import {
   buildInstinctFromChange,
   estimateTokens,
 } from "./analyze-single-shot.js";
-import { isLowSignalBatch } from "../observation-signal.js";
+import { isLowSignalBatch, type FrequencyBoostContext } from "../observation-signal.js";
+import {
+  loadProjectFrequencyTable,
+  saveProjectFrequencyTable,
+  loadGlobalFrequencyTable,
+  saveGlobalFrequencyTable,
+  updateFrequencyTablesFromLines,
+} from "../prompt-frequency.js";
 import {
   appendAnalysisEvent,
   type InstinctChangeSummary,
@@ -217,7 +224,22 @@ async function analyzeProject(
     return { ran: false, skippedReason: "no new observation lines after preprocessing" };
   }
 
-  if (isLowSignalBatch(newObsLines)) {
+  // Update prompt frequency tables before signal check so counts accumulate
+  // even when batches are skipped as low-signal.
+  const projectFreqTable = loadProjectFrequencyTable(project.id, baseDir);
+  const globalFreqTable = loadGlobalFrequencyTable(baseDir);
+  const { project: updatedProjectFreq, global: updatedGlobalFreq } =
+    updateFrequencyTablesFromLines(newObsLines, projectFreqTable, globalFreqTable);
+  saveProjectFrequencyTable(updatedProjectFreq, project.id, baseDir);
+  saveGlobalFrequencyTable(updatedGlobalFreq, baseDir);
+
+  const freqContext: FrequencyBoostContext = {
+    projectFrequency: updatedProjectFreq,
+    minSessions: config.recurring_prompt_min_sessions,
+    scoreBoost: config.recurring_prompt_score_boost,
+  };
+
+  if (isLowSignalBatch(newObsLines, freqContext)) {
     return { ran: false, skippedReason: "low-signal batch (no errors, corrections, or user redirections)" };
   }
 

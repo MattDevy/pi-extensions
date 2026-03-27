@@ -90,6 +90,8 @@ export const DEFAULT_CONFIG: Config = {
   dreaming_enabled: true,
   consolidation_interval_days: DEFAULT_CONSOLIDATION_INTERVAL_DAYS,
   consolidation_min_sessions: DEFAULT_CONSOLIDATION_MIN_SESSIONS,
+  recurring_prompt_min_sessions: 3,
+  recurring_prompt_score_boost: 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -118,6 +120,8 @@ const PartialConfigSchema = Type.Partial(
     dreaming_enabled: Type.Boolean(),
     consolidation_interval_days: Type.Number(),
     consolidation_min_sessions: Type.Number(),
+    recurring_prompt_min_sessions: Type.Number(),
+    recurring_prompt_score_boost: Type.Number(),
   })
 );
 

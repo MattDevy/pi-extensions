@@ -3,8 +3,10 @@ import {
   scoreObservationBatch,
   isLowSignalBatch,
   LOW_SIGNAL_THRESHOLD,
+  type FrequencyBoostContext,
 } from "./observation-signal.js";
-import type { Observation } from "./types.js";
+import type { Observation, PromptFrequencyTable } from "./types.js";
+import { normalizePrompt, hashPrompt } from "./prompt-frequency.js";
 
 const base: Omit<Observation, "event"> = {
   timestamp: "2026-01-01T00:00:00.000Z",
@@ -120,5 +122,81 @@ describe("isLowSignalBatch", () => {
 
   it(`LOW_SIGNAL_THRESHOLD is ${LOW_SIGNAL_THRESHOLD}`, () => {
     expect(LOW_SIGNAL_THRESHOLD).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Frequency boost
+// ---------------------------------------------------------------------------
+
+function makeFreqContext(
+  prompts: Record<string, number>,
+  minSessions = 3,
+  scoreBoost = 3
+): FrequencyBoostContext {
+  const projectFrequency: PromptFrequencyTable = {};
+  for (const [text, sessionCount] of Object.entries(prompts)) {
+    const key = hashPrompt(normalizePrompt(text));
+    projectFrequency[key] = {
+      count: sessionCount,
+      sessions: Array.from({ length: sessionCount }, (_, i) => `sess-${i + 1}`),
+      last_text: text,
+      first_seen: "2026-01-01T00:00:00Z",
+      last_seen: "2026-03-27T00:00:00Z",
+    };
+  }
+  return { projectFrequency, minSessions, scoreBoost };
+}
+
+describe("scoreObservationBatch with frequency boost", () => {
+  it("boosts score for recurring prompt (>= minSessions)", () => {
+    const ctx = makeFreqContext({ "PR it": 5 });
+    const lines = [line({ event: "user_prompt", input: "PR it" })];
+    const result = scoreObservationBatch(lines, ctx);
+    expect(result.score).toBe(4); // 1 (user_prompt) + 3 (boost)
+    expect(result.recurringPrompts).toBe(1);
+  });
+
+  it("does not boost for non-recurring prompt (< minSessions)", () => {
+    const ctx = makeFreqContext({ "PR it": 2 });
+    const lines = [line({ event: "user_prompt", input: "PR it" })];
+    const result = scoreObservationBatch(lines, ctx);
+    expect(result.score).toBe(1);
+    expect(result.recurringPrompts).toBe(0);
+  });
+
+  it("boosts multiple recurring prompts in same batch", () => {
+    const ctx = makeFreqContext({ "PR it": 3, "ship it": 4 });
+    const lines = [
+      line({ event: "user_prompt", input: "PR it" }),
+      line({ event: "user_prompt", input: "ship it" }),
+    ];
+    const result = scoreObservationBatch(lines, ctx);
+    expect(result.score).toBe(8); // 1+3 + 1+3
+    expect(result.recurringPrompts).toBe(2);
+  });
+
+  it("returns recurringPrompts=0 when no freqContext provided", () => {
+    const lines = [line({ event: "user_prompt", input: "PR it" })];
+    const result = scoreObservationBatch(lines);
+    expect(result.score).toBe(1);
+    expect(result.recurringPrompts).toBe(0);
+  });
+
+  it("normalizes prompt before lookup (case, whitespace, punctuation)", () => {
+    const ctx = makeFreqContext({ "pr it": 3 }); // normalized form
+    const lines = [line({ event: "user_prompt", input: "  PR  It!  " })];
+    const result = scoreObservationBatch(lines, ctx);
+    expect(result.recurringPrompts).toBe(1);
+  });
+});
+
+describe("isLowSignalBatch with frequency boost", () => {
+  it("returns false when boost pushes score past threshold", () => {
+    const ctx = makeFreqContext({ "PR it": 3 });
+    const lines = [line({ event: "user_prompt", input: "PR it" })];
+    // Without boost: score=1, below threshold. With boost: score=4.
+    expect(isLowSignalBatch(lines)).toBe(true);
+    expect(isLowSignalBatch(lines, ctx)).toBe(false);
   });
 });

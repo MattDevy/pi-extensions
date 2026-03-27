@@ -164,6 +164,8 @@ describe("types exports", () => {
       dreaming_enabled: true,
       consolidation_interval_days: 7,
       consolidation_min_sessions: 10,
+      recurring_prompt_min_sessions: 3,
+      recurring_prompt_score_boost: 3,
     };
     expect(config.run_interval_minutes).toBe(5);
     expect(config.model).toBe("claude-haiku-4-5");

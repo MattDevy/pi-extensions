@@ -118,4 +118,26 @@ export interface Config {
   dreaming_enabled: boolean; // whether automatic consolidation runs during normal analysis
   consolidation_interval_days: number; // minimum days between consolidation runs
   consolidation_min_sessions: number; // minimum sessions since last consolidation
+  // Recurring prompt detection
+  recurring_prompt_min_sessions: number; // distinct sessions before a prompt is considered recurring
+  recurring_prompt_score_boost: number; // score added to batch when a recurring prompt is present
 }
+
+// ---------------------------------------------------------------------------
+// Prompt Frequency
+// ---------------------------------------------------------------------------
+
+export interface PromptFrequencyEntry {
+  readonly count: number;
+  readonly sessions: readonly string[];
+  readonly last_text: string;
+  readonly first_seen: string; // ISO 8601
+  readonly last_seen: string; // ISO 8601
+}
+
+export interface GlobalPromptFrequencyEntry extends PromptFrequencyEntry {
+  readonly project_ids: readonly string[];
+}
+
+export type PromptFrequencyTable = Record<string, PromptFrequencyEntry>;
+export type GlobalPromptFrequencyTable = Record<string, GlobalPromptFrequencyEntry>;

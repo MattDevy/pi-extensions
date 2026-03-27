@@ -4,37 +4,34 @@
  * to warrant running the analyzer (and spending tokens).
  */
 
-import type { Observation } from "./types.js";
+import type { Observation, PromptFrequencyTable } from "./types.js";
+import { normalizePrompt, hashPrompt } from "./prompt-frequency.js";
 
-/**
- * Score threshold below which a batch is considered low-signal.
- * Batches scoring below this are skipped with a log entry.
- */
 export const LOW_SIGNAL_THRESHOLD = 3;
+
+export interface FrequencyBoostContext {
+  readonly projectFrequency: PromptFrequencyTable;
+  readonly minSessions: number;
+  readonly scoreBoost: number;
+}
 
 interface ScoreResult {
   readonly score: number;
   readonly errors: number;
   readonly corrections: number;
   readonly userPrompts: number;
+  readonly recurringPrompts: number;
 }
 
-/**
- * Scores an observation batch for signal richness.
- *
- * Scoring rules:
- * - Error observation (is_error: true): +2 points
- * - user_prompt after an error (user correction): +3 points
- * - Other user_prompt events (potential corrections/redirections): +1 point
- *
- * @param lines - Raw JSONL observation lines (preprocessed or raw)
- * @returns Score result with breakdown
- */
-export function scoreObservationBatch(lines: string[]): ScoreResult {
+export function scoreObservationBatch(
+  lines: string[],
+  freqContext?: FrequencyBoostContext
+): ScoreResult {
   let score = 0;
   let errors = 0;
   let corrections = 0;
   let userPrompts = 0;
+  let recurringPrompts = 0;
   let lastWasError = false;
 
   for (const line of lines) {
@@ -45,7 +42,7 @@ export function scoreObservationBatch(lines: string[]): ScoreResult {
     try {
       obs = JSON.parse(trimmed) as Partial<Observation>;
     } catch {
-      continue; // Skip malformed lines
+      continue;
     }
 
     if (obs.is_error) {
@@ -63,18 +60,31 @@ export function scoreObservationBatch(lines: string[]): ScoreResult {
       } else {
         score += 1;
       }
+
+      // Recurring prompt boost (second pass inline)
+      if (freqContext && obs.input) {
+        const normalized = normalizePrompt(obs.input);
+        if (normalized) {
+          const key = hashPrompt(normalized);
+          const entry = freqContext.projectFrequency[key];
+          if (entry && entry.sessions.length >= freqContext.minSessions) {
+            score += freqContext.scoreBoost;
+            recurringPrompts++;
+          }
+        }
+      }
     }
 
     lastWasError = false;
   }
 
-  return { score, errors, corrections, userPrompts };
+  return { score, errors, corrections, userPrompts, recurringPrompts };
 }
 
-/**
- * Returns true if the batch is low-signal and analysis should be skipped.
- */
-export function isLowSignalBatch(lines: string[]): boolean {
-  const { score } = scoreObservationBatch(lines);
+export function isLowSignalBatch(
+  lines: string[],
+  freqContext?: FrequencyBoostContext
+): boolean {
+  const { score } = scoreObservationBatch(lines, freqContext);
   return score < LOW_SIGNAL_THRESHOLD;
 }
