@@ -61,6 +61,8 @@ All data lives under `~/.pi/continuous-learning/`. The extension creates this st
 | `*.jsonl` in archive | `appendObservation()` | JSONL | When `observations.jsonl` hits 10 MB |
 | `<id>.md` in instincts dirs | Standalone analyzer (via `instinct_write` tool) | YAML frontmatter + Markdown | Every analysis run |
 | `analyze.lock` | Standalone analyzer | JSON (`{pid, started_at}`) | While analyzer is running |
+| `analysis-events.jsonl` | Standalone analyzer | JSONL (one summary per run) | After each project analysis with changes |
+| `analysis-events.consumed` | Extension (transient) | JSONL | Briefly during atomic consume; deleted after read |
 
 ---
 
@@ -174,6 +176,9 @@ Haiku analyzes patterns, calls instinct_write/instinct_read tools
   |
   v
 session.dispose(), update last_analyzed_at in project.json
+  |
+  v
+appendAnalysisEvent()  -- write summary to analysis-events.jsonl for extension notification
   |
   v
 Release lockfile
@@ -401,6 +406,8 @@ index.ts (entry point)
   |   |-- command-scaffold.ts      -- generates command scaffolds from workflow clusters
   |   |-- agents-md.ts             -- reads and writes AGENTS.md files
   |-- instinct-projects.ts   -- /instinct-projects command
+  |-- analysis-notification.ts -- before_agent_start notification check
+  |   |-- analysis-event-log.ts    -- read + consume analysis events
 ```
 
 ### Standalone Analyzer (`src/cli/analyze.ts`)
@@ -416,6 +423,7 @@ cli/analyze.ts (entry point, run via cron)
   |   |-- confidence.ts                  -- pure confidence math
   |-- instinct-store.ts                  -- CRUD for instinct files
   |-- agents-md.ts                       -- AGENTS.md reader
+  |-- analysis-event-log.ts              -- append analysis events for extension notification
   |-- cli/analyze-single-shot.ts         -- single-shot core: parseChanges, buildInstinctFromChange,
   |                                         formatInstinctsCompact, estimateTokens
   |-- prompts/analyzer-system-single-shot.ts  -- system prompt
@@ -560,10 +568,59 @@ These fields are:
 
 ---
 
+## Analysis Event Log and Notifications
+
+The background analyzer writes a summary of instinct changes after each project analysis. The extension reads these summaries and displays a brief notification when the user starts a new prompt.
+
+### Event Log Format
+
+Each project has an `analysis-events.jsonl` file under its project directory. Each line is a JSON object:
+
+```json
+{
+  "timestamp": "2026-03-27T15:00:00Z",
+  "project_id": "a1b2c3d4e5f6",
+  "project_name": "my-app",
+  "created": [{"id": "use-result-type", "title": "Use Result type", "scope": "project", "trigger": "...", "action": "..."}],
+  "updated": [{"id": "read-before-edit", "title": "Read Before Edit", "scope": "global", "confidence_delta": 0.05}],
+  "deleted": []
+}
+```
+
+Events are only written when at least one change occurred (no-op runs produce no events).
+
+### Concurrency: Atomic Rename Pattern
+
+Multiple analyzer runs may write events before a Pi session reads them. The consume operation uses an atomic rename to prevent data loss:
+
+1. **Analyzer writes**: `appendFileSync` to `analysis-events.jsonl` (append-only, creates if missing)
+2. **Extension reads**: On `before_agent_start`, calls `consumeAnalysisEvents()` which:
+   a. Checks for orphaned `.consumed` file from a prior crash - reads it first
+   b. Atomically renames `analysis-events.jsonl` to `analysis-events.consumed` (POSIX rename is atomic)
+   c. Reads all lines from `.consumed`
+   d. Deletes `.consumed`
+
+This is safe because:
+- If the analyzer has the file open during rename, writes follow the inode (go to `.consumed`), so the extension gets that data too
+- New analyzer writes after the rename create a fresh `analysis-events.jsonl`
+- If the extension crashes between rename and delete, the orphaned `.consumed` is recovered on the next consume call
+
+### Notification Display
+
+The extension calls `checkAnalysisNotifications()` on every `before_agent_start`. If events exist, a one-line notification is shown via `ctx.ui.notify()`:
+
+```
+[instincts] Background analysis: +1 new (use-result-type), 2 updated, 0 deleted
+```
+
+Created instinct IDs are listed (up to 3, then `...`). The notification is brief and non-intrusive.
+
+---
+
 ## Session Lifecycle
 
 1. **`session_start`**: Load config, detect project, create storage dirs, clean old archives, load installed skills, register LLM tools.
-2. **`before_agent_start`** (each turn): Record user prompt observation, load and inject instincts into system prompt, store injected IDs in shared state.
+2. **`before_agent_start`** (each turn): Record user prompt observation, check for analysis notifications (consume events, show summary), load and inject instincts into system prompt, store injected IDs in shared state.
 3. **`tool_execution_start`** / **`tool_execution_end`** (each tool call): Record tool observations with scrubbed inputs/outputs and active instinct IDs.
 4. **`agent_end`** (each turn): Record agent end observation, clear active instincts state.
 5. **`session_shutdown`**: No cleanup needed (analyzer runs externally).

@@ -34,6 +34,11 @@ import {
 } from "./analyze-single-shot.js";
 import { isLowSignalBatch } from "../observation-signal.js";
 import {
+  appendAnalysisEvent,
+  type InstinctChangeSummary,
+  type AnalysisEvent,
+} from "../analysis-event-log.js";
+import {
   loadProjectInstincts,
   loadGlobalInstincts,
   saveInstinct,
@@ -321,6 +326,9 @@ async function analyzeProject(
   const timeoutHandle = setTimeout(() => abortController.abort(), timeoutMs);
 
   const instinctCounts = { created: 0, updated: 0, deleted: 0 };
+  const createdSummaries: InstinctChangeSummary[] = [];
+  const updatedSummaries: InstinctChangeSummary[] = [];
+  const deletedSummaries: InstinctChangeSummary[] = [];
   const projectInstinctsDir = getProjectInstinctsDir(project.id, "personal", baseDir);
   const globalInstinctsDir = getGlobalInstinctsDir("personal", baseDir);
 
@@ -342,6 +350,11 @@ async function analyzeProject(
         if (existsSync(filePath)) {
           unlinkSync(filePath);
           instinctCounts.deleted++;
+          deletedSummaries.push({
+            id,
+            title: id,
+            scope: change.scope ?? "project",
+          });
         }
       } else if (change.action === "create") {
         if (createsRemaining <= 0) continue; // rate limit reached
@@ -353,6 +366,13 @@ async function analyzeProject(
         saveInstinct(instinct, dir);
         instinctCounts.created++;
         createsRemaining--;
+        createdSummaries.push({
+          id: instinct.id,
+          title: instinct.title,
+          scope: instinct.scope,
+          trigger: instinct.trigger,
+          action: instinct.action,
+        });
       } else {
         // update
         const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
@@ -362,6 +382,15 @@ async function analyzeProject(
         const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
         saveInstinct(instinct, dir);
         instinctCounts.updated++;
+        const delta = existing
+          ? instinct.confidence - existing.confidence
+          : undefined;
+        updatedSummaries.push({
+          id: instinct.id,
+          title: instinct.title,
+          scope: instinct.scope,
+          ...(delta !== undefined ? { confidence_delta: delta } : {}),
+        });
       }
     }
   } finally {
@@ -390,6 +419,17 @@ async function analyzeProject(
   };
 
   logger.projectComplete(stats);
+
+  // Write analysis event for extension notification
+  const analysisEvent: AnalysisEvent = {
+    timestamp: new Date().toISOString(),
+    project_id: project.id,
+    project_name: project.name,
+    created: createdSummaries,
+    updated: updatedSummaries,
+    deleted: deletedSummaries,
+  };
+  appendAnalysisEvent(analysisEvent, baseDir);
 
   saveProjectMeta(
     project.id,
