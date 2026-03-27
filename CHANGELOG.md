@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.4.0...pi-continuous-learning-v0.5.0) (2026-03-27)
+
+
+### Features
+
+* Add structured JSON logging to analyzer CLI ([#9](https://github.com/MattDevy/pi-continuous-learning/issues/9)) ([59917b8](https://github.com/MattDevy/pi-continuous-learning/commit/59917b8fade9895e85756a4c950e5803a21c2682))
+
 ## [0.4.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.3.0...pi-continuous-learning-v0.4.0) (2026-03-27)
 
 
