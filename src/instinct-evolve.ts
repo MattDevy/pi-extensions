@@ -17,6 +17,7 @@ import {
   type CommandSuggestion,
   type PromotionSuggestion,
   type AgentsMdOverlapSuggestion,
+  type AgentsMdAdditionSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -28,6 +29,8 @@ export {
   ACTION_SIMILARITY_THRESHOLD,
   PROMOTION_CONFIDENCE_THRESHOLD,
   AGENTS_MD_OVERLAP_THRESHOLD,
+  AGENTS_MD_PROJECT_ADDITION_THRESHOLD,
+  AGENTS_MD_GLOBAL_ADDITION_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -36,12 +39,14 @@ export {
   findCommandCandidates,
   findPromotionCandidates,
   findAgentsMdOverlaps,
+  findAgentsMdAdditions,
   generateEvolveSuggestions,
   loadInstinctsForEvolve,
   type MergeSuggestion,
   type CommandSuggestion,
   type PromotionSuggestion,
   type AgentsMdOverlapSuggestion,
+  type AgentsMdAdditionSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -64,6 +69,14 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
   const promotions = suggestions.filter((s): s is PromotionSuggestion => s.type === "promotion");
   const overlaps = suggestions.filter(
     (s): s is AgentsMdOverlapSuggestion => s.type === "agents-md-overlap"
+  );
+  const projectAdditions = suggestions.filter(
+    (s): s is AgentsMdAdditionSuggestion =>
+      s.type === "agents-md-addition" && s.scope === "project"
+  );
+  const globalAdditions = suggestions.filter(
+    (s): s is AgentsMdAdditionSuggestion =>
+      s.type === "agents-md-addition" && s.scope === "global"
   );
 
   if (merges.length > 0) {
@@ -111,6 +124,30 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
       lines.push(`  * [${s.instinct.confidence.toFixed(2)}] ${s.instinct.id}`);
       lines.push(`    Trigger: ${s.instinct.trigger}`);
       lines.push(`    Excerpt: "${s.matchingExcerpt}"`);
+      lines.push("");
+    }
+  }
+
+  if (projectAdditions.length > 0) {
+    lines.push("## Suggested Project AGENTS.md Additions");
+    lines.push("High-confidence instincts ready to become permanent project guidelines:");
+    lines.push("(Edit AGENTS.md manually to add these - no file is written automatically)");
+    lines.push("");
+    for (const s of projectAdditions) {
+      lines.push(`  * [${s.instinct.confidence.toFixed(2)}] ${s.instinct.id}`);
+      lines.push(`    Proposed bullet: ${s.proposedBullet}`);
+      lines.push("");
+    }
+  }
+
+  if (globalAdditions.length > 0) {
+    lines.push("## Suggested Global AGENTS.md Additions");
+    lines.push("High-confidence global instincts ready to become permanent global guidelines:");
+    lines.push("(Edit ~/.pi/agent/AGENTS.md manually to add these - no file is written automatically)");
+    lines.push("");
+    for (const s of globalAdditions) {
+      lines.push(`  * [${s.instinct.confidence.toFixed(2)}] ${s.instinct.id}`);
+      lines.push(`    Proposed bullet: ${s.proposedBullet}`);
       lines.push("");
     }
   }

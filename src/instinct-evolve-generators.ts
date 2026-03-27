@@ -22,6 +22,12 @@ export const PROMOTION_CONFIDENCE_THRESHOLD = 0.7;
 /** Fraction of instinct tokens that must appear in AGENTS.md to flag as overlap. */
 export const AGENTS_MD_OVERLAP_THRESHOLD = 0.6;
 
+/** Minimum project-scoped instinct confidence to suggest adding to project AGENTS.md. */
+export const AGENTS_MD_PROJECT_ADDITION_THRESHOLD = 0.75;
+
+/** Minimum global-scoped instinct confidence to suggest adding to global AGENTS.md. */
+export const AGENTS_MD_GLOBAL_ADDITION_THRESHOLD = 0.8;
+
 /** Words excluded from text tokenization (noise words). */
 const STOP_WORDS = new Set([
   "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
@@ -68,11 +74,20 @@ export interface AgentsMdOverlapSuggestion {
   matchingExcerpt: string;
 }
 
+export interface AgentsMdAdditionSuggestion {
+  type: "agents-md-addition";
+  instinct: Instinct;
+  /** Plain English bullet derived from trigger + action. */
+  proposedBullet: string;
+  scope: "project" | "global";
+}
+
 export type EvolveSuggestion =
   | MergeSuggestion
   | CommandSuggestion
   | PromotionSuggestion
-  | AgentsMdOverlapSuggestion;
+  | AgentsMdOverlapSuggestion
+  | AgentsMdAdditionSuggestion;
 
 // ---------------------------------------------------------------------------
 // Tokenization and similarity
@@ -167,6 +182,53 @@ export function findAgentsMdOverlaps(
   }
 
   return suggestions;
+}
+
+// ---------------------------------------------------------------------------
+// AGENTS.md addition helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Derives a plain English bullet from an instinct's trigger and action.
+ * Format: "When {trigger}, {action}."
+ */
+function buildProposedBullet(instinct: Instinct): string {
+  const trigger = instinct.trigger.replace(/^when\s+/i, "").trim();
+  const action = instinct.action.trim().replace(/\.+$/, "");
+  return `When ${trigger}, ${action}.`;
+}
+
+/**
+ * Returns instincts that are ready to be graduated into a permanent AGENTS.md
+ * guideline, filtered by scope-specific confidence threshold and excluding
+ * any instincts already flagged as overlapping AGENTS.md.
+ *
+ * - 'project': confidence >= AGENTS_MD_PROJECT_ADDITION_THRESHOLD (0.75)
+ * - 'global':  confidence >= AGENTS_MD_GLOBAL_ADDITION_THRESHOLD (0.8)
+ */
+export function findAgentsMdAdditions(
+  instincts: Instinct[],
+  overlapIds: Set<string>,
+  scope: "project" | "global"
+): AgentsMdAdditionSuggestion[] {
+  const threshold =
+    scope === "project"
+      ? AGENTS_MD_PROJECT_ADDITION_THRESHOLD
+      : AGENTS_MD_GLOBAL_ADDITION_THRESHOLD;
+
+  return instincts
+    .filter(
+      (i) =>
+        i.scope === scope &&
+        i.confidence >= threshold &&
+        !overlapIds.has(i.id)
+    )
+    .map((instinct) => ({
+      type: "agents-md-addition" as const,
+      instinct,
+      proposedBullet: buildProposedBullet(instinct),
+      scope,
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -368,11 +430,19 @@ export function generateEvolveSuggestions(
       ? findAgentsMdOverlaps(allInstincts, agentsMdCombined)
       : [];
 
+  const overlapIds = new Set(overlapSuggestions.map((s) => s.instinct.id));
+
+  const additionSuggestions = [
+    ...findAgentsMdAdditions(allInstincts, overlapIds, "project"),
+    ...findAgentsMdAdditions(allInstincts, overlapIds, "global"),
+  ];
+
   return [
     ...findMergeCandidates(allInstincts),
     ...findCommandCandidates(allInstincts),
     ...findPromotionCandidates(projectInstincts, globalIds),
     ...overlapSuggestions,
+    ...additionSuggestions,
   ];
 }
 

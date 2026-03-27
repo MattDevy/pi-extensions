@@ -9,6 +9,8 @@ import {
   ACTION_SIMILARITY_THRESHOLD,
   PROMOTION_CONFIDENCE_THRESHOLD,
   AGENTS_MD_OVERLAP_THRESHOLD,
+  AGENTS_MD_PROJECT_ADDITION_THRESHOLD,
+  AGENTS_MD_GLOBAL_ADDITION_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -17,6 +19,7 @@ import {
   findCommandCandidates,
   findPromotionCandidates,
   findAgentsMdOverlaps,
+  findAgentsMdAdditions,
   generateEvolveSuggestions,
   formatEvolveSuggestions,
   loadInstinctsForEvolve,
@@ -869,5 +872,225 @@ describe("formatEvolveSuggestions - agents-md-overlap section", () => {
     const suggestions = findCommandCandidates([instinct]);
     const output = formatEvolveSuggestions(suggestions);
     expect(output).not.toContain("Duplicates AGENTS.md");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findAgentsMdAdditions
+// ---------------------------------------------------------------------------
+
+describe("findAgentsMdAdditions", () => {
+  it("returns project-scoped instincts at exactly the project threshold", () => {
+    const instinct = makeInstinct({
+      scope: "project",
+      confidence: AGENTS_MD_PROJECT_ADDITION_THRESHOLD,
+    });
+    const result = findAgentsMdAdditions([instinct], new Set(), "project");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.type).toBe("agents-md-addition");
+    expect(result[0]!.scope).toBe("project");
+    expect(result[0]!.instinct.id).toBe(instinct.id);
+  });
+
+  it("excludes project instincts below project threshold", () => {
+    const instinct = makeInstinct({
+      scope: "project",
+      confidence: AGENTS_MD_PROJECT_ADDITION_THRESHOLD - 0.01,
+    });
+    const result = findAgentsMdAdditions([instinct], new Set(), "project");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns global-scoped instincts at exactly the global threshold", () => {
+    const instinct = makeInstinct({
+      scope: "global",
+      confidence: AGENTS_MD_GLOBAL_ADDITION_THRESHOLD,
+    });
+    const result = findAgentsMdAdditions([instinct], new Set(), "global");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.scope).toBe("global");
+  });
+
+  it("excludes global instincts below global threshold", () => {
+    const instinct = makeInstinct({
+      scope: "global",
+      confidence: AGENTS_MD_GLOBAL_ADDITION_THRESHOLD - 0.01,
+    });
+    const result = findAgentsMdAdditions([instinct], new Set(), "global");
+    expect(result).toHaveLength(0);
+  });
+
+  it("excludes instincts already in overlapIds", () => {
+    const instinct = makeInstinct({
+      scope: "project",
+      confidence: 0.9,
+    });
+    const result = findAgentsMdAdditions([instinct], new Set([instinct.id]), "project");
+    expect(result).toHaveLength(0);
+  });
+
+  it("excludes instincts with wrong scope", () => {
+    const instinct = makeInstinct({ scope: "global", confidence: 0.9 });
+    const result = findAgentsMdAdditions([instinct], new Set(), "project");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns empty array when no instincts qualify", () => {
+    const result = findAgentsMdAdditions([], new Set(), "project");
+    expect(result).toHaveLength(0);
+  });
+
+  it("proposedBullet is a non-empty string derived from trigger and action", () => {
+    const instinct = makeInstinct({
+      scope: "project",
+      confidence: 0.8,
+      trigger: "when reviewing PRs",
+      action: "check for security issues",
+    });
+    const result = findAgentsMdAdditions([instinct], new Set(), "project");
+    expect(result[0]!.proposedBullet).toBeTruthy();
+    expect(typeof result[0]!.proposedBullet).toBe("string");
+  });
+
+  it("handles multiple instincts, returning only qualifying ones", () => {
+    const passing = makeInstinct({ scope: "project", confidence: 0.8 });
+    const failing = makeInstinct({ scope: "project", confidence: 0.5 });
+    const result = findAgentsMdAdditions([passing, failing], new Set(), "project");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.instinct.id).toBe(passing.id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateEvolveSuggestions - agents-md-addition integration
+// ---------------------------------------------------------------------------
+
+describe("generateEvolveSuggestions with agents-md-addition", () => {
+  it("includes project addition suggestions for high-confidence project instincts", () => {
+    const instinct = makeInstinct({
+      scope: "project",
+      confidence: 0.8,
+      trigger: "validate input parameters",
+      action: "use schema-based validation at boundaries",
+    });
+    const result = generateEvolveSuggestions([instinct], []);
+    const additions = result.filter((s) => s.type === "agents-md-addition");
+    expect(additions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("includes global addition suggestions for high-confidence global instincts", () => {
+    const instinct = makeInstinct({
+      scope: "global",
+      confidence: 0.85,
+      trigger: "when writing TypeScript",
+      action: "enable strict mode in tsconfig",
+    });
+    const result = generateEvolveSuggestions([], [instinct]);
+    const additions = result.filter(
+      (s) => s.type === "agents-md-addition" && (s as { scope: string }).scope === "global"
+    );
+    expect(additions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("excludes overlap instincts from addition suggestions", () => {
+    const instinct = makeInstinct({
+      id: "shared-overlap",
+      scope: "project",
+      confidence: 0.9,
+      trigger: "run tests before committing code changes",
+      action: "always check code changes",
+    });
+    const result = generateEvolveSuggestions([instinct], [], AGENTS_MD_FIXTURE, null);
+    const additions = result.filter(
+      (s) => s.type === "agents-md-addition" && s.instinct.id === "shared-overlap"
+    );
+    expect(additions).toHaveLength(0);
+  });
+
+  it("returns no addition suggestions when all instincts are below threshold", () => {
+    const instinct = makeInstinct({ scope: "project", confidence: 0.5 });
+    const result = generateEvolveSuggestions([instinct], []);
+    const additions = result.filter((s) => s.type === "agents-md-addition");
+    expect(additions).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatEvolveSuggestions - agents-md-addition sections
+// ---------------------------------------------------------------------------
+
+describe("formatEvolveSuggestions - agents-md-addition sections", () => {
+  it("renders Suggested Project AGENTS.md Additions section", () => {
+    const instinct = makeInstinct({ id: "add-proj", scope: "project", confidence: 0.8 });
+    const suggestions = [
+      {
+        type: "agents-md-addition" as const,
+        instinct,
+        proposedBullet: "When testing, run tests before committing.",
+        scope: "project" as const,
+      },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Suggested Project AGENTS.md Additions");
+    expect(output).toContain("add-proj");
+    expect(output).toContain("0.80");
+    expect(output).toContain("When testing, run tests before committing.");
+    expect(output).toContain("manually");
+  });
+
+  it("renders Suggested Global AGENTS.md Additions section", () => {
+    const instinct = makeInstinct({ id: "add-glob", scope: "global", confidence: 0.85 });
+    const suggestions = [
+      {
+        type: "agents-md-addition" as const,
+        instinct,
+        proposedBullet: "When using TypeScript, enable strict mode.",
+        scope: "global" as const,
+      },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Suggested Global AGENTS.md Additions");
+    expect(output).toContain("add-glob");
+    expect(output).toContain("0.85");
+    expect(output).toContain("When using TypeScript, enable strict mode.");
+    expect(output).toContain("manually");
+  });
+
+  it("omits Project section when no project additions", () => {
+    const instinct = makeInstinct({ id: "add-glob2", scope: "global", confidence: 0.85 });
+    const suggestions = [
+      {
+        type: "agents-md-addition" as const,
+        instinct,
+        proposedBullet: "When deploying, run full test suite.",
+        scope: "global" as const,
+      },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).not.toContain("Suggested Project AGENTS.md Additions");
+    expect(output).toContain("Suggested Global AGENTS.md Additions");
+  });
+
+  it("omits Global section when no global additions", () => {
+    const instinct = makeInstinct({ id: "add-proj2", scope: "project", confidence: 0.8 });
+    const suggestions = [
+      {
+        type: "agents-md-addition" as const,
+        instinct,
+        proposedBullet: "When writing code, add tests.",
+        scope: "project" as const,
+      },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Suggested Project AGENTS.md Additions");
+    expect(output).not.toContain("Suggested Global AGENTS.md Additions");
+  });
+
+  it("omits both sections when no addition suggestions", () => {
+    const instinct = makeInstinct({ trigger: "always run linting", domain: "style" });
+    const suggestions = findCommandCandidates([instinct]);
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).not.toContain("Suggested Project AGENTS.md Additions");
+    expect(output).not.toContain("Suggested Global AGENTS.md Additions");
   });
 });

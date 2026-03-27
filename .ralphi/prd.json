@@ -72,8 +72,8 @@
       ],
       "notes": "Uses readAgentsMd() from US-002. AGENTS_MD_OVERLAP_THRESHOLD may go in config.ts or instinct-evolve-generators.ts - either is acceptable.",
       "startedAt": "2026-03-27T10:35:04.633Z",
-      "updatedAt": "2026-03-27T10:41:30.000Z",
-      "completedAt": "2026-03-27T10:41:30.000Z"
+      "updatedAt": "2026-03-27T10:42:19.022Z",
+      "completedAt": "2026-03-27T10:42:19.022Z"
     },
     {
       "id": "US-004",
@@ -91,11 +91,14 @@
         "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 4,
-      "status": "open",
+      "status": "in_progress",
       "dependsOn": [
         "US-003"
       ],
-      "notes": "overlapIds is the set of instinct IDs already flagged by US-003 overlap detection, passed from generateEvolveSuggestions."
+      "notes": "overlapIds is the set of instinct IDs already flagged by US-003 overlap detection, passed from generateEvolveSuggestions.",
+      "startedAt": "2026-03-27T10:42:19.025Z",
+      "updatedAt": "2026-03-27T10:42:19.025Z",
+      "completedAt": null
     },
     {
       "id": "US-005",
