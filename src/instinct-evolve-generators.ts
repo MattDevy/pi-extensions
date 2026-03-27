@@ -1,10 +1,19 @@
 /**
  * Suggestion generators for /instinct-evolve command.
- * All findX() functions, tokenization utilities, and generateEvolveSuggestions live here.
+ * All findX() functions and generateEvolveSuggestions live here.
+ * Tokenization: instinct-text-utils.ts. Skill shadow detection: instinct-skill-shadows.ts.
  */
 
-import type { Instinct } from "./types.js";
+import type { Instinct, InstalledSkill } from "./types.js";
 import { loadProjectInstincts, loadGlobalInstincts } from "./instinct-store.js";
+import { tokenizeText } from "./instinct-text-utils.js";
+import {
+  SKILL_SHADOW_TOKEN_THRESHOLD,
+  findSkillShadows,
+  type SkillShadowSuggestion,
+} from "./instinct-skill-shadows.js";
+
+export { SKILL_SHADOW_TOKEN_THRESHOLD, findSkillShadows, type SkillShadowSuggestion };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -28,12 +37,6 @@ export const AGENTS_MD_PROJECT_ADDITION_THRESHOLD = 0.75;
 /** Minimum global-scoped instinct confidence to suggest adding to global AGENTS.md. */
 export const AGENTS_MD_GLOBAL_ADDITION_THRESHOLD = 0.8;
 
-/** Words excluded from text tokenization (noise words). */
-const STOP_WORDS = new Set([
-  "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
-  "of", "with", "is", "are", "was", "were", "be", "been", "i", "you",
-  "we", "it", "this", "that", "when", "if", "by", "as", "use",
-]);
 
 /** Trigger keywords indicating a repeatable workflow. */
 export const COMMAND_TRIGGER_KEYWORDS = [
@@ -87,24 +90,14 @@ export type EvolveSuggestion =
   | CommandSuggestion
   | PromotionSuggestion
   | AgentsMdOverlapSuggestion
-  | AgentsMdAdditionSuggestion;
+  | AgentsMdAdditionSuggestion
+  | SkillShadowSuggestion;
 
 // ---------------------------------------------------------------------------
-// Tokenization and similarity
+// Tokenization re-export (canonical: instinct-text-utils.ts)
 // ---------------------------------------------------------------------------
 
-/**
- * Tokenizes a text string into significant lowercase words.
- * Strips punctuation, filters stop words, requires length >= 3.
- */
-export function tokenizeText(text: string): Set<string> {
-  const words = text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
-  return new Set(words);
-}
+export { tokenizeText } from "./instinct-text-utils.js";
 
 /**
  * Computes Jaccard similarity between two instincts' trigger token sets.
@@ -416,7 +409,8 @@ export function generateEvolveSuggestions(
   projectInstincts: Instinct[],
   globalInstincts: Instinct[],
   agentsMdProject?: string | null,
-  agentsMdGlobal?: string | null
+  agentsMdGlobal?: string | null,
+  installedSkills?: InstalledSkill[]
 ): EvolveSuggestion[] {
   const allInstincts = [...projectInstincts, ...globalInstincts];
   const globalIds = new Set(globalInstincts.map((i) => i.id));
@@ -437,12 +431,15 @@ export function generateEvolveSuggestions(
     ...findAgentsMdAdditions(allInstincts, overlapIds, "global"),
   ];
 
+  const skillShadows = findSkillShadows(allInstincts, installedSkills ?? []);
+
   return [
     ...findMergeCandidates(allInstincts),
     ...findCommandCandidates(allInstincts),
     ...findPromotionCandidates(projectInstincts, globalIds),
     ...overlapSuggestions,
     ...additionSuggestions,
+    ...skillShadows,
   ];
 }
 

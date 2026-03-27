@@ -6,6 +6,7 @@
  */
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { InstalledSkill } from "./types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { getBaseDir } from "./storage.js";
@@ -18,6 +19,7 @@ import {
   type PromotionSuggestion,
   type AgentsMdOverlapSuggestion,
   type AgentsMdAdditionSuggestion,
+  type SkillShadowSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -31,6 +33,7 @@ export {
   AGENTS_MD_OVERLAP_THRESHOLD,
   AGENTS_MD_PROJECT_ADDITION_THRESHOLD,
   AGENTS_MD_GLOBAL_ADDITION_THRESHOLD,
+  SKILL_SHADOW_TOKEN_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -40,6 +43,7 @@ export {
   findPromotionCandidates,
   findAgentsMdOverlaps,
   findAgentsMdAdditions,
+  findSkillShadows,
   generateEvolveSuggestions,
   loadInstinctsForEvolve,
   type MergeSuggestion,
@@ -47,6 +51,7 @@ export {
   type PromotionSuggestion,
   type AgentsMdOverlapSuggestion,
   type AgentsMdAdditionSuggestion,
+  type SkillShadowSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -69,6 +74,9 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
   const promotions = suggestions.filter((s): s is PromotionSuggestion => s.type === "promotion");
   const overlaps = suggestions.filter(
     (s): s is AgentsMdOverlapSuggestion => s.type === "agents-md-overlap"
+  );
+  const skillShadows = suggestions.filter(
+    (s): s is SkillShadowSuggestion => s.type === "skill-shadow"
   );
   const projectAdditions = suggestions.filter(
     (s): s is AgentsMdAdditionSuggestion =>
@@ -140,6 +148,18 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
     }
   }
 
+  if (skillShadows.length > 0) {
+    lines.push("## Shadowed by Installed Skill");
+    lines.push("Instincts already covered by an installed Pi skill:");
+    lines.push("");
+    for (const s of skillShadows) {
+      lines.push(`  * [${s.instinct.confidence.toFixed(2)}] ${s.instinct.id}`);
+      lines.push(`    Trigger: ${s.instinct.trigger}`);
+      lines.push(`    Shadowed by skill: ${s.skillName}`);
+      lines.push("");
+    }
+  }
+
   if (globalAdditions.length > 0) {
     lines.push("## Suggested Global AGENTS.md Additions");
     lines.push("High-confidence global instincts ready to become permanent global guidelines:");
@@ -174,7 +194,8 @@ export async function handleInstinctEvolve(
   ctx: ExtensionCommandContext,
   projectId?: string | null,
   baseDir?: string,
-  projectRoot?: string | null
+  projectRoot?: string | null,
+  installedSkills?: InstalledSkill[]
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
   const { projectInstincts, globalInstincts } = loadInstinctsForEvolve(
@@ -190,7 +211,8 @@ export async function handleInstinctEvolve(
     projectInstincts,
     globalInstincts,
     agentsMdProject,
-    agentsMdGlobal
+    agentsMdGlobal,
+    installedSkills
   );
   const output = formatEvolveSuggestions(suggestions);
   ctx.ui.notify(output, "info");

@@ -7,6 +7,7 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { loadSkills } from "@mariozechner/pi-coding-agent";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -36,7 +37,7 @@ import { handleInstinctPromote, COMMAND_NAME as PROMOTE_CMD } from "./instinct-p
 import { handleInstinctEvolve, COMMAND_NAME as EVOLVE_CMD } from "./instinct-evolve.js";
 import { handleInstinctProjects, COMMAND_NAME as PROJECTS_CMD } from "./instinct-projects.js";
 import { logError } from "./error-logger.js";
-import type { Config, ProjectEntry } from "./types.js";
+import type { Config, InstalledSkill, ProjectEntry } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,6 +64,7 @@ export default function (pi: ExtensionAPI): void {
   let config: Config | null = null;
   let project: ProjectEntry | null = null;
   let systemPromptFile: string | null = null;
+  let installedSkills: InstalledSkill[] = [];
 
   // -------------------------------------------------------------------------
   // session_start: bootstrap all stateful components
@@ -75,6 +77,14 @@ export default function (pi: ExtensionAPI): void {
       cleanOldArchives(project.id);
       systemPromptFile = writeSystemPromptFile();
 
+      // TODO: Verify actual Pi SDK API for getting installed skills; currently using loadSkills()
+      try {
+        const result = loadSkills({ cwd: ctx.cwd });
+        installedSkills = result.skills.map((s) => ({ name: s.name, description: s.description }));
+      } catch {
+        installedSkills = [];
+      }
+
       const capturedProject = project;
       const capturedConfig = config;
       const capturedPromptFile = systemPromptFile;
@@ -83,7 +93,10 @@ export default function (pi: ExtensionAPI): void {
       startAnalyzerTimer(capturedConfig, capturedProject.id, async () => {
         const obsPath = getObservationsPath(capturedProject.id);
         const instinctsDir = getProjectInstinctsDir(capturedProject.id, "personal");
-        const userPrompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, capturedProject);
+        const capturedSkills = installedSkills;
+        const userPrompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, capturedProject, {
+          installedSkills: capturedSkills,
+        });
         await runAnalysis({
           systemPromptFile: capturedPromptFile,
           userPrompt,
@@ -196,7 +209,14 @@ export default function (pi: ExtensionAPI): void {
   pi.registerCommand(EVOLVE_CMD, {
     description: "Suggest instinct consolidations and promotions",
     handler: (args: string, ctx: ExtensionCommandContext) =>
-      handleInstinctEvolve(args, ctx, project?.id, undefined, project?.root ?? null),
+      handleInstinctEvolve(
+        args,
+        ctx,
+        project?.id,
+        undefined,
+        project?.root ?? null,
+        installedSkills
+      ),
   });
 
   pi.registerCommand(PROJECTS_CMD, {

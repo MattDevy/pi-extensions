@@ -11,6 +11,7 @@ import {
   AGENTS_MD_OVERLAP_THRESHOLD,
   AGENTS_MD_PROJECT_ADDITION_THRESHOLD,
   AGENTS_MD_GLOBAL_ADDITION_THRESHOLD,
+  SKILL_SHADOW_TOKEN_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -20,11 +21,13 @@ import {
   findPromotionCandidates,
   findAgentsMdOverlaps,
   findAgentsMdAdditions,
+  findSkillShadows,
   generateEvolveSuggestions,
   formatEvolveSuggestions,
   loadInstinctsForEvolve,
   handleInstinctEvolve,
 } from "./instinct-evolve.js";
+import type { InstalledSkill } from "./types.js";
 import { ensureStorageLayout } from "./storage.js";
 import { saveInstinct } from "./instinct-store.js";
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
@@ -1092,5 +1095,154 @@ describe("formatEvolveSuggestions - agents-md-addition sections", () => {
     const output = formatEvolveSuggestions(suggestions);
     expect(output).not.toContain("Suggested Project AGENTS.md Additions");
     expect(output).not.toContain("Suggested Global AGENTS.md Additions");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SKILL_SHADOW_TOKEN_THRESHOLD constant
+// ---------------------------------------------------------------------------
+
+describe("SKILL_SHADOW_TOKEN_THRESHOLD", () => {
+  it("is 0.3", () => {
+    expect(SKILL_SHADOW_TOKEN_THRESHOLD).toBe(0.3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findSkillShadows
+// ---------------------------------------------------------------------------
+
+const GIT_SKILL: InstalledSkill = { name: "git-workflow", description: "Git workflow assistant for branching, commits, PRs, and conflict resolution." };
+const DEBUG_SKILL: InstalledSkill = { name: "debug-helper", description: "Debug assistant for error analysis, log interpretation, and performance profiling." };
+const TESTING_SKILL: InstalledSkill = { name: "testing-helper", description: "Helps write tests and use test frameworks effectively." };
+
+describe("findSkillShadows", () => {
+  it("returns empty array when installedSkills is empty", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when committing code" });
+    expect(findSkillShadows([instinct], [])).toHaveLength(0);
+  });
+
+  it("returns empty array when no instincts match any skill", () => {
+    const instinct = makeInstinct({ domain: "css", trigger: "when styling components use consistent spacing" });
+    const result = findSkillShadows([instinct], [GIT_SKILL]);
+    expect(result).toHaveLength(0);
+  });
+
+  it("flags instinct with domain matching skill name via domain key", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when pushing changes" });
+    const result = findSkillShadows([instinct], [GIT_SKILL]);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.type).toBe("skill-shadow");
+    expect(result[0]!.instinct.id).toBe(instinct.id);
+    expect(result[0]!.skillName).toBe("git-workflow");
+  });
+
+  it("flags instinct matching skill via trigger token overlap", () => {
+    // trigger tokens must exactly match skill tokens (no stemming) - use shared exact words
+    // DEBUG_SKILL description tokens include: debug, helper, assistant, error, analysis, log, interpretation, performance, profiling
+    const instinct = makeInstinct({
+      domain: "workflow",
+      trigger: "error log analysis performance profiling debug",
+    });
+    const result = findSkillShadows([instinct], [DEBUG_SKILL]);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.skillName).toBe("debug-helper");
+  });
+
+  it("domain match uses SKILL_DOMAINS key - unknown domain is not matched", () => {
+    // "uncategorized" is not in SKILL_DOMAINS
+    const instinct = makeInstinct({ domain: "uncategorized", trigger: "when committing code" });
+    const result = findSkillShadows([instinct], [GIT_SKILL]);
+    // no domain match; trigger tokens "committing" "code" vs git-workflow tokens - low overlap
+    // result may or may not match via token overlap; just ensure domain path is not triggered
+    // "git-workflow" tokens: git, workflow; "when committing code" tokens: committing, code - no overlap
+    expect(result).toHaveLength(0);
+  });
+
+  it("does not flag instinct when domain is not in SKILL_DOMAINS", () => {
+    const instinct = makeInstinct({ domain: "randomdomain", trigger: "some unrelated action" });
+    expect(findSkillShadows([instinct], [GIT_SKILL, DEBUG_SKILL])).toHaveLength(0);
+  });
+
+  it("flags each matching instinct independently", () => {
+    const i1 = makeInstinct({ domain: "git", trigger: "when committing" });
+    const i2 = makeInstinct({ domain: "testing", trigger: "run the test suite" });
+    const i3 = makeInstinct({ domain: "css", trigger: "when styling layouts" });
+    const result = findSkillShadows([i1, i2, i3], [GIT_SKILL, TESTING_SKILL]);
+    expect(result).toHaveLength(2);
+    expect(result.map((s) => s.instinct.id)).toContain(i1.id);
+    expect(result.map((s) => s.instinct.id)).toContain(i2.id);
+  });
+
+  it("returns SkillShadowSuggestion with correct shape", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when merging branches" });
+    const result = findSkillShadows([instinct], [GIT_SKILL]);
+    expect(result[0]).toMatchObject({
+      type: "skill-shadow",
+      instinct,
+      skillName: "git-workflow",
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateEvolveSuggestions - installedSkills threading
+// ---------------------------------------------------------------------------
+
+describe("generateEvolveSuggestions - installedSkills", () => {
+  it("includes skill-shadow suggestions when installedSkills provided", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when committing changes" });
+    const result = generateEvolveSuggestions([instinct], [], undefined, undefined, [GIT_SKILL]);
+    const shadows = result.filter((s) => s.type === "skill-shadow");
+    expect(shadows).toHaveLength(1);
+  });
+
+  it("omits skill-shadow suggestions when installedSkills is undefined", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when committing changes" });
+    const result = generateEvolveSuggestions([instinct], []);
+    const shadows = result.filter((s) => s.type === "skill-shadow");
+    expect(shadows).toHaveLength(0);
+  });
+
+  it("omits skill-shadow suggestions when installedSkills is empty", () => {
+    const instinct = makeInstinct({ domain: "git", trigger: "when committing changes" });
+    const result = generateEvolveSuggestions([instinct], [], undefined, undefined, []);
+    const shadows = result.filter((s) => s.type === "skill-shadow");
+    expect(shadows).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatEvolveSuggestions - skill-shadow section
+// ---------------------------------------------------------------------------
+
+describe("formatEvolveSuggestions - skill-shadow section", () => {
+  it("renders Shadowed by Installed Skill section when shadows present", () => {
+    const instinct = makeInstinct({ id: "shadow-1", confidence: 0.7 });
+    const suggestions = [
+      { type: "skill-shadow" as const, instinct, skillName: "git-workflow" },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Shadowed by Installed Skill");
+    expect(output).toContain("shadow-1");
+    expect(output).toContain("0.70");
+    expect(output).toContain("git-workflow");
+  });
+
+  it("omits section when no skill-shadow suggestions", () => {
+    const instinct = makeInstinct({ trigger: "always run tests before pushing" });
+    const suggestions = findCommandCandidates([instinct]);
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).not.toContain("Shadowed by Installed Skill");
+  });
+
+  it("renders trigger and skill name for each shadow", () => {
+    const instinct = makeInstinct({ trigger: "when merging branches", confidence: 0.9 });
+    const suggestions = [
+      { type: "skill-shadow" as const, instinct, skillName: "git-workflow" },
+    ];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("when merging branches");
+    expect(output).toContain("git-workflow");
   });
 });

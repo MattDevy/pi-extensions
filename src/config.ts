@@ -14,6 +14,23 @@ import type { Config } from "./types.js";
 // Constants
 // ---------------------------------------------------------------------------
 
+/**
+ * Maps instinct domain names to human-readable purposes.
+ * Used by findSkillShadows() to detect when an instinct is covered by an installed Pi skill.
+ */
+export const SKILL_DOMAINS: Record<string, string> = {
+  git: "version control and git workflows",
+  testing: "test writing and test frameworks",
+  debugging: "error analysis and debugging",
+  workflow: "development workflow and automation",
+  typescript: "TypeScript language and type system",
+  css: "CSS and styling",
+  design: "UI design and component patterns",
+  security: "security practices and vulnerability prevention",
+  performance: "performance optimization",
+  documentation: "documentation writing and standards",
+};
+
 export const CONFIG_PATH = path.join(
   os.homedir(),
   ".pi",
