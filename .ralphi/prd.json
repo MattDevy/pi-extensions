@@ -1,788 +1,141 @@
 {
   "project": "pi-continuous-learning",
-  "branchName": "ralph/continuous-learning",
-  "description": "A Pi extension that observes coding sessions, records events, and uses a background Haiku process to distill observations into reusable instincts with confidence scoring and closed-loop feedback.",
+  "branchName": "ralph/instinct-evolve-improvements",
+  "description": "Extend /instinct-evolve and the background Haiku analyzer with skill promotion suggestions, AGENTS.md duplication prevention (two-layer), AGENTS.md addition suggestions, installed-skill deduplication, and deep action-text instinct deduplication.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Project Scaffolding",
-      "description": "As a developer, I want the project scaffolded as a pi-package with correct manifest, TypeScript config, and dependencies so that development can begin.",
+      "title": "Deep Instinct Deduplication",
+      "description": "Rename tokenizeTrigger to tokenizeText, add actionSimilarity(), extend findMergeCandidates with an action-text similarity pass, add recommendation/keepId fields to MergeSuggestion, and split instinct-evolve.ts into handler+formatter (<200 lines) and instinct-evolve-generators.ts (<400 lines).",
       "acceptanceCriteria": [
-        "package.json exists with name: pi-continuous-learning, keywords: [pi-package], and pi.extensions: [src/index.ts]",
-        "peerDependencies include @mariozechner/pi-coding-agent, @mariozechner/pi-ai, @mariozechner/pi-tui, @sinclair/typebox",
-        "tsconfig.json has strict: true",
-        "vitest.config.ts is configured",
-        "ESLint is configured",
-        "src/index.ts exports a default function that accepts ExtensionAPI and is a no-op",
-        "Extension loads in Pi without errors (pi -e ./src/index.ts)",
-        "npm run test, npm run lint, npm run build all pass"
+        "tokenizeTrigger is renamed to tokenizeText and re-exported from instinct-evolve-generators.ts",
+        "All callers of tokenizeTrigger (triggerSimilarity, tests) are updated to use tokenizeText",
+        "actionSimilarity(a, b) computes Jaccard similarity on action text token sets using tokenizeText",
+        "findMergeCandidates runs a second pass comparing action text with threshold 0.4; pairs already caught by trigger pass (threshold 0.3) are not duplicated",
+        "MergeSuggestion includes recommendation: 'merge' | 'delete-lower' and keepId: string (higher-confidence instinct's id; tie-breaks to first alphabetically)",
+        "instinct-evolve.ts contains only the command handler (handleInstinctEvolve) and formatter (formatEvolveSuggestions) - under 200 lines",
+        "instinct-evolve-generators.ts contains all findX() and generateEvolveSuggestions() functions - under 400 lines",
+        "All existing tests for tokenizeTrigger are updated to tokenizeText; new tests cover actionSimilarity and the action-based dedup pass",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 1,
       "status": "done",
       "dependsOn": [],
-      "notes": "",
-      "startedAt": "2026-03-26T14:00:28.556Z",
-      "updatedAt": "2026-03-26T14:04:59.093Z",
-      "completedAt": "2026-03-26T14:04:59.093Z"
+      "notes": "This story also performs the module split described in the PRD technical considerations section. Do the split first, then add the new logic.",
+      "startedAt": "2026-03-27T10:14:57.562Z",
+      "updatedAt": "2026-03-27T10:20:34.398Z",
+      "completedAt": "2026-03-27T10:20:34.397Z"
     },
     {
       "id": "US-002",
-      "title": "Shared Type Definitions",
-      "description": "As a developer, I want all shared TypeScript interfaces defined in types.ts so that modules have consistent data contracts.",
+      "title": "Analyzer AGENTS.md Awareness (Prevention Layer)",
+      "description": "Create a readAgentsMd() utility, extend buildAnalyzerUserPrompt with agentsMdProject/agentsMdGlobal/installedSkills parameters, and add 'Avoid Duplicating Guidelines' and 'Avoid Duplicating Installed Skills' sections to the analyzer system prompt so Haiku skips creating instincts already covered by AGENTS.md.",
       "acceptanceCriteria": [
-        "Observation interface defined with fields: timestamp, event, tool, input, output, session, project_id, project_name, is_error, active_instincts",
-        "event field is a union type: tool_start | tool_complete | user_prompt | agent_end",
-        "Instinct interface defined with all frontmatter fields: id, trigger, confidence, domain, source, scope, project_id, project_name, created_at, updated_at, observation_count, confirmed_count, contradicted_count, inactive_count, title, action, evidence",
-        "ProjectEntry interface defined with: id, name, root, remote, created_at, last_seen",
-        "Config interface defined matching the config.json schema from the spec",
-        "Unit tests verify type exports are accessible",
-        "Lint and typecheck pass"
+        "agents-md.ts exports readAgentsMd(filePath: string): string | null - returns file content or null if not found/unreadable",
+        "buildAnalyzerUserPrompt accepts agentsMdProject: string | null, agentsMdGlobal: string | null, installedSkills: Array<{name: string; description: string}> as optional parameters",
+        "When agentsMdProject or agentsMdGlobal are non-null, their content is appended under '## Existing Guidelines' in the user prompt",
+        "When installedSkills is non-empty, the list (name + description) is appended under '## Installed Skills' in the user prompt",
+        "buildAnalyzerSystemPrompt includes a new 'Avoid Duplicating Guidelines' section instructing Haiku to skip patterns already covered by AGENTS.md",
+        "buildAnalyzerSystemPrompt includes a new 'Avoid Duplicating Installed Skills' section instructing Haiku not to create instincts for behaviors covered by a named skill",
+        "InstalledSkill interface is added to types.ts: { name: string; description: string }",
+        "Unit tests cover: readAgentsMd with existing file, missing file, unreadable file; new user prompt parameters appear in output; new system prompt sections are present",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 2,
-      "status": "done",
-      "dependsOn": [
-        "US-001"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T14:04:59.094Z",
-      "updatedAt": "2026-03-26T14:06:55.914Z",
-      "completedAt": "2026-03-26T14:06:55.914Z"
+      "status": "open",
+      "dependsOn": [],
+      "notes": "InstalledSkill type added here (FR-10) since it is also needed by US-005 and US-001. No changes to index.ts or instinct-evolve in this story."
     },
     {
       "id": "US-003",
-      "title": "Configuration Module",
-      "description": "As a developer, I want a configuration module that loads user settings from ~/.pi/continuous-learning/config.json with sensible defaults so that all modules share consistent configuration.",
+      "title": "/instinct-evolve AGENTS.md Overlap Flagging (Post-hoc Layer)",
+      "description": "Extend /instinct-evolve to read project and global AGENTS.md at command run time and flag any existing instincts whose trigger+action text overlaps lexically with AGENTS.md content.",
       "acceptanceCriteria": [
-        "loadConfig() reads from ~/.pi/continuous-learning/config.json",
-        "When config file is absent, returns a complete default config object",
-        "When config file has partial overrides, merges them with defaults (overrides win)",
-        "Invalid JSON in config file logs a warning and returns defaults",
-        "Default values match the spec: run_interval_minutes: 5, min_observations_to_analyze: 20, min_confidence: 0.5, max_instincts: 20, model: claude-haiku-4-5, timeout_seconds: 120",
-        "Unit tests cover: missing file, valid file, partial override, invalid JSON",
-        "Lint and typecheck pass"
+        "handleInstinctEvolve accepts projectRoot: string | null as a new parameter; index.ts supplies it from session context",
+        "At invocation, project AGENTS.md ({projectRoot}/AGENTS.md) and global AGENTS.md (~/.pi/agent/AGENTS.md) are read via readAgentsMd()",
+        "AGENTS_MD_OVERLAP_THRESHOLD = 0.6 constant is defined in instinct-evolve-generators.ts (or config.ts)",
+        "findAgentsMdOverlaps(instincts, agentsMdText): AgentsMdOverlapSuggestion[] checks each instinct - if >= 60% of significant tokens from trigger+action appear in agentsMdText, the instinct is flagged",
+        "AgentsMdOverlapSuggestion has type: 'agents-md-overlap', instinct: Instinct, matchingExcerpt: string (up to 100 chars of the matching AGENTS.md portion)",
+        "Flagged instincts appear in a 'Duplicates AGENTS.md' section in the evolve output, showing id, confidence, and excerpt",
+        "If no AGENTS.md files exist or both are null, the section is omitted silently",
+        "generateEvolveSuggestions is updated to accept and thread agentsMd parameters",
+        "Unit tests use fixture AGENTS.md strings to verify overlap detection at/above/below threshold",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 3,
-      "status": "done",
+      "status": "open",
       "dependsOn": [
         "US-002"
       ],
-      "notes": "",
-      "startedAt": "2026-03-26T14:06:55.915Z",
-      "updatedAt": "2026-03-26T14:09:26.458Z",
-      "completedAt": "2026-03-26T14:09:26.458Z"
+      "notes": "Uses readAgentsMd() from US-002. AGENTS_MD_OVERLAP_THRESHOLD may go in config.ts or instinct-evolve-generators.ts - either is acceptable."
     },
     {
       "id": "US-004",
-      "title": "Project Detection",
-      "description": "As a developer, I want project detection via git remote URL hashing so that observations and instincts are scoped to the correct project.",
+      "title": "AGENTS.md Addition Suggestions",
+      "description": "Extend /instinct-evolve to suggest which high-confidence instincts are ready to be graduated into permanent AGENTS.md project or global guidelines.",
       "acceptanceCriteria": [
-        "detectProject(pi, cwd) returns a ProjectEntry",
-        "Uses pi.exec(git, [remote, get-url, origin]) to get the remote URL",
-        "Project ID is the first 12 characters of SHA256 hash of the remote URL",
-        "Falls back to git rev-parse --show-toplevel when no remote exists, hashing the repo path",
-        "Falls back to project ID global when not in a git repo",
-        "project_name is the basename of cwd",
-        "Unit tests cover: remote URL detected, no remote (path fallback), not a git repo (global fallback)",
-        "Lint and typecheck pass"
+        "findAgentsMdAdditions(instincts, overlapIds, scope): AgentsMdAdditionSuggestion[] returns instincts that pass confidence threshold and are NOT already flagged as overlapping AGENTS.md",
+        "AgentsMdAdditionSuggestion has type: 'agents-md-addition', instinct: Instinct, proposedBullet: string (derived from trigger + action, plain English), scope: 'project' | 'global'",
+        "Project-scoped instincts with confidence >= 0.75 not in overlapIds are suggested as project AGENTS.md additions",
+        "Global-scoped instincts with confidence >= 0.8 not in overlapIds are suggested as global AGENTS.md additions",
+        "Output includes two sub-sections: 'Suggested Project AGENTS.md Additions' and 'Suggested Global AGENTS.md Additions'; each is omitted when empty",
+        "Each suggestion shows: instinct id, confidence, and the proposed bullet text with a note that the user must edit the file manually",
+        "No AGENTS.md file is written or modified",
+        "Unit tests cover: confidence threshold boundary, overlap exclusion, both scopes, empty results",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 4,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T14:09:26.460Z",
-      "updatedAt": "2026-03-26T14:11:41.741Z",
-      "completedAt": "2026-03-26T14:11:41.741Z"
-    },
-    {
-      "id": "US-005",
-      "title": "Storage Layout Creation",
-      "description": "As a developer, I want the storage directory structure created on first use so that observation and instinct files have a place to live.",
-      "acceptanceCriteria": [
-        "ensureStorageLayout(projectId) creates ~/.pi/continuous-learning/ root directory",
-        "Creates projects/<projectId>/instincts/personal/ and projects/<projectId>/instincts/inherited/",
-        "Creates instincts/personal/ and instincts/inherited/ (global)",
-        "Creates projects/<projectId>/observations.archive/",
-        "Writes projects/<projectId>/project.json with project metadata if it does not exist",
-        "Updates projects.json registry with the project entry",
-        "Idempotent - safe to call multiple times",
-        "Unit tests use tmp_path to verify directory creation and idempotency",
-        "Lint and typecheck pass"
-      ],
-      "priority": 5,
-      "status": "done",
-      "dependsOn": [
-        "US-002",
-        "US-004"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T14:11:41.745Z",
-      "updatedAt": "2026-03-26T14:15:24.884Z",
-      "completedAt": "2026-03-26T14:15:24.884Z"
-    },
-    {
-      "id": "US-006",
-      "title": "Instinct File Parsing and Serialization",
-      "description": "As a developer, I want to parse instinct markdown files (YAML frontmatter + body) into Instinct objects and serialize them back so that instincts can be read, created, and updated.",
-      "acceptanceCriteria": [
-        "parseInstinct(content) extracts YAML frontmatter and markdown body into an Instinct object",
-        "serializeInstinct(instinct) produces valid YAML-frontmatter markdown matching the spec format",
-        "Round-trip: serializeInstinct(parseInstinct(content)) preserves all data",
-        "Handles missing optional fields gracefully (e.g., project_id for global instincts)",
-        "Validates id is kebab-case (lowercase, hyphens, no special characters)",
-        "Validates confidence is clamped to 0.1 - 0.9 range",
-        "Throws on invalid frontmatter (missing required fields)",
-        "Unit tests cover: valid parse, round-trip, missing optional fields, invalid id, out-of-range confidence",
-        "Lint and typecheck pass"
-      ],
-      "priority": 6,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T14:15:24.886Z",
-      "updatedAt": "2026-03-26T14:19:11.777Z",
-      "completedAt": "2026-03-26T14:19:11.777Z"
-    },
-    {
-      "id": "US-007",
-      "title": "Instinct CRUD Operations",
-      "description": "As a developer, I want functions to load, save, list, and delete instinct files from disk so that the analyzer and injector can manage instincts.",
-      "acceptanceCriteria": [
-        "loadInstinct(filePath) reads a .md file and returns an Instinct object",
-        "saveInstinct(instinct, dir) writes an instinct to <dir>/<id>.md",
-        "listInstincts(dir) returns all instincts from a directory",
-        "loadProjectInstincts(projectId) loads from projects/<projectId>/instincts/personal/",
-        "loadGlobalInstincts() loads from instincts/personal/",
-        "File paths are validated against path traversal (no .. in instinct IDs)",
-        "Unit tests use tmp_path to verify file I/O, path traversal rejection",
-        "Lint and typecheck pass"
-      ],
-      "priority": 7,
-      "status": "done",
-      "dependsOn": [
-        "US-005",
-        "US-006"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:23:03.168Z",
-      "updatedAt": "2026-03-26T16:25:16.105Z",
-      "completedAt": "2026-03-26T16:25:16.105Z"
-    },
-    {
-      "id": "US-008",
-      "title": "Instinct Confidence Calculations",
-      "description": "As a developer, I want confidence scoring functions that handle both discovery-based initial scoring and feedback-based adjustments so that instinct confidence reflects real outcomes.",
-      "acceptanceCriteria": [
-        "initialConfidence(observationCount) returns: 0.3 for 1-2, 0.5 for 3-5, 0.7 for 6-10, 0.85 for 11+",
-        "adjustConfidence(current, outcome) applies: +0.05 for confirmed, -0.15 for contradicted, 0 for inactive",
-        "applyPassiveDecay(confidence, lastUpdated) applies -0.02 per week since last update",
-        "Confidence is always clamped to 0.1 - 0.9",
-        "Below 0.1 (after clamping), sets flagged_for_removal: true on the instinct",
-        "Unit tests cover: all observation count brackets, each outcome type, decay over time, clamping at boundaries",
-        "Lint and typecheck pass"
-      ],
-      "priority": 8,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "Pure functions with no I/O dependencies.",
-      "startedAt": "2026-03-26T16:25:16.107Z",
-      "updatedAt": "2026-03-26T16:27:45.685Z",
-      "completedAt": "2026-03-26T16:27:45.685Z"
-    },
-    {
-      "id": "US-009",
-      "title": "Secret Scrubbing",
-      "description": "As a developer, I want secrets scrubbed from observation data before it is written to disk so that API keys and passwords are never stored in plain text.",
-      "acceptanceCriteria": [
-        "scrubSecrets(text) replaces matches of the regex pattern from the spec with [REDACTED]",
-        "Pattern matches: API keys, tokens, passwords, authorization headers, credentials",
-        "Scrubbing is applied to both input and output fields before writing",
-        "Does not modify non-secret text",
-        "Unit tests cover: API key formats, bearer tokens, password fields, no false positives on normal code",
-        "Lint and typecheck pass"
-      ],
-      "priority": 9,
-      "status": "done",
-      "dependsOn": [
-        "US-001"
-      ],
-      "notes": "Pure function, no type dependencies beyond string. Moved before observer stories since they depend on it.",
-      "startedAt": "2026-03-26T16:27:45.687Z",
-      "updatedAt": "2026-03-26T16:30:26.143Z",
-      "completedAt": "2026-03-26T16:30:26.143Z"
-    },
-    {
-      "id": "US-010",
-      "title": "Self-Observation Prevention",
-      "description": "As a developer, I want the observer to skip its own analyzer's activity so that the system does not create infinite observation loops.",
-      "acceptanceCriteria": [
-        "A module-level boolean flag isAnalyzerRunning gates observation recording",
-        "When isAnalyzerRunning is true, all observation handlers return without writing",
-        "Observations for file paths under ~/.pi/continuous-learning/ are also skipped (path-based filter)",
-        "Unit tests verify observations are suppressed when the flag is set and for filtered paths",
-        "Lint and typecheck pass"
-      ],
-      "priority": 10,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "Shared state module exporting getter/setter for isAnalyzerRunning flag.",
-      "startedAt": "2026-03-26T16:30:26.147Z",
-      "updatedAt": "2026-03-26T16:32:17.949Z",
-      "completedAt": "2026-03-26T16:32:17.949Z"
-    },
-    {
-      "id": "US-011",
-      "title": "Active Instincts Tagging State",
-      "description": "As a developer, I want a shared module state for tracking which instinct IDs are currently active so that observations can be tagged for feedback analysis.",
-      "acceptanceCriteria": [
-        "Exports getCurrentActiveInstincts(): string[] and setCurrentActiveInstincts(ids: string[])",
-        "Exports clearActiveInstincts() to reset to empty array",
-        "Observer reads this state when writing observations to populate the active_instincts field",
-        "When no instincts are active, active_instincts is omitted or empty",
-        "Unit tests verify get/set/clear lifecycle",
-        "Lint and typecheck pass"
-      ],
-      "priority": 11,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "Simple shared state module. Split from US-013 and US-023 to break circular dependency between observer and injector.",
-      "startedAt": "2026-03-26T16:32:17.958Z",
-      "updatedAt": "2026-03-26T16:33:36.809Z",
-      "completedAt": "2026-03-26T16:33:36.809Z"
-    },
-    {
-      "id": "US-012",
-      "title": "JSONL File Writing and Archival",
-      "description": "As a developer, I want observations written as append-only JSONL with automatic archival when the file exceeds 10MB so that storage is managed.",
-      "acceptanceCriteria": [
-        "appendObservation(observation, projectId) appends one JSON line to projects/<projectId>/observations.jsonl",
-        "Before writing, checks file size; if >= 10MB, moves file to observations.archive/<timestamp>.jsonl",
-        "Archived files older than 30 days are deleted (checked once per session_start)",
-        "Unit tests verify: append, archival trigger at size threshold, old archive cleanup",
-        "Lint and typecheck pass"
-      ],
-      "priority": 12,
-      "status": "done",
-      "dependsOn": [
-        "US-002",
-        "US-005"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:33:36.811Z",
-      "updatedAt": "2026-03-26T16:36:00.201Z",
-      "completedAt": "2026-03-26T16:36:00.201Z"
-    },
-    {
-      "id": "US-013",
-      "title": "Tool Call Observation",
-      "description": "As a developer, I want tool_execution_start and tool_execution_end events captured as observations so that the analyzer can detect patterns in tool usage.",
-      "acceptanceCriteria": [
-        "tool_execution_start handler records an observation with event: tool_start, tool name, and truncated input (max 5000 chars)",
-        "tool_execution_end handler records an observation with event: tool_complete, tool name, truncated output (max 5000 chars), and is_error flag",
-        "Observations include timestamp (ISO 8601 UTC), session, project_id, project_name",
-        "Observations are tagged with active_instincts from shared state (US-011)",
-        "Self-observation guard (US-010) is checked before recording",
-        "Secret scrubbing (US-009) is applied to input and output",
-        "Unit tests verify event capture, field population, input/output truncation, guard checks, scrubbing",
-        "Lint and typecheck pass"
-      ],
-      "priority": 13,
-      "status": "done",
-      "dependsOn": [
-        "US-009",
-        "US-010",
-        "US-011",
-        "US-012"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:36:00.205Z",
-      "updatedAt": "2026-03-26T16:40:57.640Z",
-      "completedAt": "2026-03-26T16:40:57.640Z"
-    },
-    {
-      "id": "US-014",
-      "title": "User Prompt and Agent End Observation",
-      "description": "As a developer, I want user prompts and agent completions captured as observations so that the analyzer has full session context.",
-      "acceptanceCriteria": [
-        "before_agent_start handler records an observation with event: user_prompt and the user's prompt text (from event.prompt)",
-        "agent_end handler records an observation with event: agent_end",
-        "Self-observation guard (US-010) is checked before recording",
-        "Secret scrubbing (US-009) is applied to prompt text",
-        "Unit tests verify both event types are captured with correct fields",
-        "Lint and typecheck pass"
-      ],
-      "priority": 14,
-      "status": "done",
-      "dependsOn": [
-        "US-009",
-        "US-010",
-        "US-011",
-        "US-012"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:40:57.642Z",
-      "updatedAt": "2026-03-26T16:43:18.358Z",
-      "completedAt": "2026-03-26T16:43:18.358Z"
-    },
-    {
-      "id": "US-015",
-      "title": "Analyzer System Prompt Construction",
-      "description": "As a developer, I want the analyzer system prompt to contain instinct format specs, pattern detection rules, feedback analysis instructions, and confidence scoring guidelines so that Haiku produces correct instinct files.",
-      "acceptanceCriteria": [
-        "buildAnalyzerSystemPrompt() returns the full system prompt as a string",
-        "Includes the exact instinct file format (YAML frontmatter + markdown structure)",
-        "Includes pattern detection heuristics: user corrections, error resolutions, repeated workflows, tool preferences",
-        "Includes feedback analysis section: how to cross-reference active_instincts against observed behavior (confirmed/contradicted/inactive logic)",
-        "Includes confidence scoring rules (both discovery and feedback adjustments)",
-        "Includes scope decision guide (project vs global)",
-        "Includes rules: be conservative, only clear patterns with 3+ observations, never include code snippets",
-        "Unit tests verify the prompt contains all required sections",
-        "Lint and typecheck pass"
-      ],
-      "priority": 15,
-      "status": "done",
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "Template construction - no I/O. Lives in src/prompts/analyzer-system.ts.",
-      "startedAt": "2026-03-26T16:43:18.360Z",
-      "updatedAt": "2026-03-26T16:45:45.470Z",
-      "completedAt": "2026-03-26T16:45:45.470Z"
-    },
-    {
-      "id": "US-016",
-      "title": "Analyzer User Prompt Construction",
-      "description": "As a developer, I want the user prompt to tell Haiku where to find observations and instincts and what project context applies so that the analyzer reads and writes the correct files.",
-      "acceptanceCriteria": [
-        "buildAnalyzerUserPrompt(observationsPath, instinctsDir, project) returns the user prompt string",
-        "User prompt includes the absolute path to observations.jsonl",
-        "User prompt includes the absolute path to the instincts directory",
-        "User prompt includes project context: project_id, project_name",
-        "Observations are tailed to max 500 entries before analysis (tail logic in separate helper)",
-        "Unit tests verify prompt contains required paths and context",
-        "Lint and typecheck pass"
-      ],
-      "priority": 16,
-      "status": "done",
-      "dependsOn": [
-        "US-002",
-        "US-005"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:45:45.471Z",
-      "updatedAt": "2026-03-26T16:48:10.528Z",
-      "completedAt": "2026-03-26T16:48:10.528Z"
-    },
-    {
-      "id": "US-017",
-      "title": "Pi CLI Subprocess Spawning",
-      "description": "As a developer, I want the analyzer to spawn a Pi CLI subprocess with the correct flags so that analysis runs in an isolated process using the user's subscription credentials.",
-      "acceptanceCriteria": [
-        "spawnAnalyzer(systemPromptFile, userPrompt, cwd) spawns pi with args: --mode json, -p, --no-session, --model claude-haiku-4-5, --tools read,write, --no-extensions, --no-skills, --no-prompt-templates, --no-themes, --append-system-prompt <file>",
-        "User prompt is passed as the final positional argument",
-        "Subprocess stdio: stdin ignored, stdout piped, stderr piped",
-        "Returns a handle with the child process and a promise for completion",
-        "Unit tests verify correct argument construction (mock child_process.spawn)",
-        "Lint and typecheck pass"
-      ],
-      "priority": 17,
-      "status": "done",
+      "status": "open",
       "dependsOn": [
         "US-003"
       ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:48:10.532Z",
-      "updatedAt": "2026-03-26T16:50:18.242Z",
-      "completedAt": "2026-03-26T16:50:18.242Z"
+      "notes": "overlapIds is the set of instinct IDs already flagged by US-003 overlap detection, passed from generateEvolveSuggestions."
     },
     {
-      "id": "US-018",
-      "title": "JSON Event Stream Parsing",
-      "description": "As a developer, I want the analyzer to parse JSON events from the subprocess stdout so that we can monitor analysis progress and detect success/failure.",
+      "id": "US-005",
+      "title": "Installed Skills Deduplication",
+      "description": "Discover installed Pi skills at session start, pass them to both the analyzer and /instinct-evolve, and flag instincts that are already covered by an installed skill.",
       "acceptanceCriteria": [
-        "Parses newline-delimited JSON from stdout",
-        "Tracks tool_execution_end events to detect what files were written",
-        "Detects agent_end as successful completion",
-        "Handles malformed JSON lines gracefully (log warning, skip line)",
-        "Returns an AnalysisResult with: success boolean, files written, errors encountered",
-        "Unit tests verify parsing of valid events, malformed lines, and result extraction",
-        "Lint and typecheck pass"
+        "SKILL_DOMAINS constant is added to config.ts mapping domain names to human-readable purposes (e.g., git, testing, debugging, workflow, typescript)",
+        "index.ts attempts to discover installed skills at session_start: try pi.getInstalledSkills() (or equivalent Pi SDK API) inside a try-catch; fall back to scanning ~/.pi/agent/skills/*/SKILL.md and known pi-package skill directories, parsing name+description from YAML frontmatter; fall back to empty array if all fails",
+        "A TODO comment in index.ts notes the actual Pi SDK API needs verification",
+        "The discovered skill list is stored in extension state and passed to buildAnalyzerUserPrompt as installedSkills",
+        "The discovered skill list is passed to handleInstinctEvolve",
+        "findSkillShadows(instincts, installedSkills): SkillShadowSuggestion[] checks each instinct - if instinct domain matches a SKILL_DOMAINS key that matches a skill name, or trigger tokens overlap >= 0.3 with skill name+description tokens, the instinct is flagged",
+        "SkillShadowSuggestion has type: 'skill-shadow', instinct: Instinct, skillName: string",
+        "Flagged instincts appear in a 'Shadowed by Installed Skill' section in evolve output",
+        "If installedSkills is empty, the section is omitted silently",
+        "Unit tests for findSkillShadows use hardcoded skill lists (no Pi API); cover domain match, token overlap match, no-match cases",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
-      "priority": 18,
-      "status": "done",
+      "priority": 5,
+      "status": "open",
       "dependsOn": [
-        "US-017"
+        "US-002"
       ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:50:18.244Z",
-      "updatedAt": "2026-03-26T16:52:58.848Z",
-      "completedAt": "2026-03-26T16:52:58.848Z"
+      "notes": "InstalledSkill interface was added in US-002. SKILL_DOMAINS goes in config.ts. The Pi SDK skill API is unknown - wrap in try-catch and document with TODO."
     },
     {
-      "id": "US-019",
-      "title": "Analyzer Timeout and Process Management",
-      "description": "As a developer, I want the analyzer subprocess killed after 120 seconds and on session shutdown so that hung analyses cannot affect the system.",
+      "id": "US-006",
+      "title": "Skill Promotion Suggestions",
+      "description": "Extend /instinct-evolve to identify instincts (individually or as merge-candidate clusters) that have enough coherence and confidence to be formalized into a Pi skill file.",
       "acceptanceCriteria": [
-        "Subprocess is killed with SIGTERM after timeout_seconds (default 120)",
-        "On session_shutdown, any running subprocess is killed immediately",
-        "Re-entrancy guard: a boolean flag prevents concurrent analyses",
-        "Cooldown: minimum 60 seconds between analysis runs",
-        "Unit tests verify: timeout kills process, shutdown kills process, concurrent run prevented",
-        "Lint and typecheck pass"
+        "findSkillPromotionCandidates(instincts, mergeSuggestions, shadowIds): SkillPromotionSuggestion[] identifies candidates",
+        "A single instinct qualifies if: confidence >= 0.8 AND domain maps to a key in SKILL_DOMAINS AND its id is NOT in shadowIds (not already covered by an installed skill)",
+        "A merge-candidate cluster qualifies if: all member instincts have confidence >= 0.7 AND they share a common domain in SKILL_DOMAINS AND no member id is in shadowIds",
+        "SkillPromotionSuggestion has type: 'skill-promotion', instincts: Instinct[], reason: string (includes suggested skill trigger/purpose), domain: string",
+        "Output includes a 'Skill Promotion Candidates' section listing qualifying instincts/clusters with their IDs, confidence scores, and a note that no skill file is written",
+        "If no candidates exist or all are suppressed by installed skills, the section is omitted",
+        "generateEvolveSuggestions is updated to thread shadowIds from SkillShadowSuggestions into findSkillPromotionCandidates",
+        "Unit tests cover: single-instinct candidate, cluster candidate, suppression by installed skill, domain not in SKILL_DOMAINS",
+        "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
-      "priority": 19,
-      "status": "done",
+      "priority": 6,
+      "status": "open",
       "dependsOn": [
-        "US-017",
-        "US-018"
+        "US-005"
       ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:52:58.851Z",
-      "updatedAt": "2026-03-26T16:56:17.770Z",
-      "completedAt": "2026-03-26T16:56:17.770Z"
-    },
-    {
-      "id": "US-020",
-      "title": "Analyzer Timer Management",
-      "description": "As a developer, I want the analyzer to run on a configurable interval during active sessions so that patterns are detected periodically without manual intervention.",
-      "acceptanceCriteria": [
-        "startAnalyzerTimer() sets up a setInterval with run_interval_minutes from config (default 5 min)",
-        "Timer is started on session_start",
-        "Timer is cleared on session_shutdown",
-        "Each tick checks: enough observations accumulated (>= min_observations_to_analyze), no analysis in progress, within active hours, user not idle > 30 min",
-        "Skips analysis run if any check fails",
-        "Unit tests verify: timer starts/stops, skip conditions",
-        "Lint and typecheck pass"
-      ],
-      "priority": 20,
-      "status": "done",
-      "dependsOn": [
-        "US-003",
-        "US-015",
-        "US-016",
-        "US-019"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T16:56:17.773Z",
-      "updatedAt": "2026-03-26T17:01:11.725Z",
-      "completedAt": "2026-03-26T17:01:11.725Z"
-    },
-    {
-      "id": "US-021",
-      "title": "Instinct Loading and Filtering",
-      "description": "As a developer, I want instincts loaded, filtered by confidence threshold, sorted, and capped so that only the most relevant instincts are injected.",
-      "acceptanceCriteria": [
-        "Loads project-scoped instincts (if in a project) and global instincts",
-        "Filters to confidence >= min_confidence (default 0.5, configurable)",
-        "Sorts by confidence descending",
-        "Takes top N instincts (default 20, configurable via max_instincts)",
-        "Excludes instincts with flagged_for_removal: true",
-        "Unit tests verify: filtering, sorting, cap, exclusion of flagged instincts",
-        "Lint and typecheck pass"
-      ],
-      "priority": 21,
-      "status": "done",
-      "dependsOn": [
-        "US-007",
-        "US-008"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:01:11.728Z",
-      "updatedAt": "2026-03-26T17:03:46.129Z",
-      "completedAt": "2026-03-26T17:03:46.129Z"
-    },
-    {
-      "id": "US-022",
-      "title": "System Prompt Injection via before_agent_start",
-      "description": "As a developer, I want filtered instincts appended to the system prompt on each before_agent_start event so that the agent benefits from learned behaviors.",
-      "acceptanceCriteria": [
-        "Handler registered on before_agent_start",
-        "Returns { systemPrompt: event.systemPrompt + injectionBlock } with instincts formatted as: ## Learned Behaviors (Instincts) header, bullet list with [confidence] trigger: action",
-        "When no instincts qualify, does not modify the system prompt (returns undefined or omits systemPrompt)",
-        "Unit tests verify: injection format, no-op when empty",
-        "Lint and typecheck pass"
-      ],
-      "priority": 22,
-      "status": "done",
-      "dependsOn": [
-        "US-021"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:03:46.132Z",
-      "updatedAt": "2026-03-26T17:07:16.155Z",
-      "completedAt": "2026-03-26T17:07:16.155Z"
-    },
-    {
-      "id": "US-023",
-      "title": "Active Instincts State Bridge",
-      "description": "As a developer, I want the injector to store the list of injected instinct IDs in shared module state so that the observer can tag observations for feedback analysis.",
-      "acceptanceCriteria": [
-        "After injection, calls setCurrentActiveInstincts() (from US-011) with the IDs of injected instincts",
-        "Resets to empty array on agent_end (so next prompt starts clean)",
-        "Observer (US-013) reads this state when writing observations",
-        "Unit tests verify: state is set after injection, cleared after agent_end",
-        "Lint and typecheck pass"
-      ],
-      "priority": 23,
-      "status": "done",
-      "dependsOn": [
-        "US-011",
-        "US-022"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:07:16.158Z",
-      "updatedAt": "2026-03-26T17:09:37.598Z",
-      "completedAt": "2026-03-26T17:09:37.598Z"
-    },
-    {
-      "id": "US-024",
-      "title": "/instinct-status Command",
-      "description": "As a user, I want to run /instinct-status to see all instincts grouped by domain with confidence scores and feedback stats so that I can understand what the system has learned.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-status, ...)",
-        "Displays instincts grouped by domain",
-        "Each instinct shows: title, confidence score, trend arrow (up/down/stable based on recent confirmed vs contradicted), feedback ratio (confirmed/contradicted/inactive)",
-        "Flagged-for-removal instincts are highlighted",
-        "Output uses ctx.ui.notify or prints formatted text",
-        "Unit tests verify grouping and formatting logic",
-        "Lint and typecheck pass"
-      ],
-      "priority": 24,
-      "status": "done",
-      "dependsOn": [
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:09:37.600Z",
-      "updatedAt": "2026-03-26T17:12:20.214Z",
-      "completedAt": "2026-03-26T17:12:20.214Z"
-    },
-    {
-      "id": "US-025",
-      "title": "/instinct-export Command",
-      "description": "As a user, I want to run /instinct-export to save instincts to a JSON file so that I can share or back them up.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-export, ...)",
-        "Accepts optional args for scope (project or global) and domain filter",
-        "Writes a JSON file with an array of instinct objects to the current directory",
-        "Filename: instincts-export-<timestamp>.json",
-        "Confirms file path via ctx.ui.notify",
-        "Unit tests verify JSON output matches instinct data",
-        "Lint and typecheck pass"
-      ],
-      "priority": 25,
-      "status": "done",
-      "dependsOn": [
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:12:20.216Z",
-      "updatedAt": "2026-03-26T17:15:03.846Z",
-      "completedAt": "2026-03-26T17:15:03.846Z"
-    },
-    {
-      "id": "US-026",
-      "title": "/instinct-import Command",
-      "description": "As a user, I want to run /instinct-import <path> to load instincts from a JSON file so that I can import shared instincts.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-import, ...)",
-        "Reads the JSON file at the given path",
-        "Validates each instinct object (required fields, valid id format)",
-        "Saves imported instincts to instincts/inherited/ (global) or projects/<id>/instincts/inherited/ (project) based on scope field",
-        "Skips instincts with duplicate IDs (warns user)",
-        "Reports count of imported instincts via ctx.ui.notify",
-        "Unit tests verify import, validation, duplicate handling",
-        "Lint and typecheck pass"
-      ],
-      "priority": 26,
-      "status": "done",
-      "dependsOn": [
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:15:03.849Z",
-      "updatedAt": "2026-03-26T17:18:10.185Z",
-      "completedAt": "2026-03-26T17:18:10.185Z"
-    },
-    {
-      "id": "US-027",
-      "title": "/instinct-promote Command",
-      "description": "As a user, I want to run /instinct-promote [id] to promote project instincts to global scope so that good patterns are reused across projects.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-promote, ...)",
-        "With an ID argument: promotes that specific project instinct to global (copies to instincts/personal/, updates scope to global, removes project_id/project_name)",
-        "Without an ID: auto-promotes all qualifying instincts (confidence >= 0.8, seen in 2+ projects)",
-        "Does not delete the project-scoped original",
-        "Reports promoted instincts via ctx.ui.notify",
-        "Unit tests verify manual and auto promotion logic",
-        "Lint and typecheck pass"
-      ],
-      "priority": 27,
-      "status": "done",
-      "dependsOn": [
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:18:10.186Z",
-      "updatedAt": "2026-03-26T17:21:21.155Z",
-      "completedAt": "2026-03-26T17:21:21.155Z"
-    },
-    {
-      "id": "US-028",
-      "title": "/instinct-evolve Command",
-      "description": "As a user, I want to run /instinct-evolve to see suggestions for clustering related instincts into higher-order constructs so that instincts can be consolidated.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-evolve, ...)",
-        "Clusters instincts by domain and trigger similarity",
-        "Suggests: related instincts that could merge, workflow instincts that could become commands, project instincts ready for global promotion",
-        "Displays suggestions via ctx.ui.notify or formatted output",
-        "Does not auto-apply changes (informational only)",
-        "Unit tests verify clustering logic produces reasonable groupings",
-        "Lint and typecheck pass"
-      ],
-      "priority": 28,
-      "status": "done",
-      "dependsOn": [
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:21:21.157Z",
-      "updatedAt": "2026-03-26T17:26:32.890Z",
-      "completedAt": "2026-03-26T17:26:32.890Z"
-    },
-    {
-      "id": "US-029",
-      "title": "/instinct-projects Command",
-      "description": "As a user, I want to run /instinct-projects to see all known projects and their instinct counts so that I can understand what has been learned per project.",
-      "acceptanceCriteria": [
-        "Registered via pi.registerCommand(instinct-projects, ...)",
-        "Reads projects.json registry",
-        "For each project, counts instinct files in projects/<id>/instincts/personal/",
-        "Displays: project name, project ID, instinct count, last seen date",
-        "Unit tests verify correct count aggregation",
-        "Lint and typecheck pass"
-      ],
-      "priority": 29,
-      "status": "done",
-      "dependsOn": [
-        "US-005",
-        "US-007"
-      ],
-      "notes": "",
-      "startedAt": "2026-03-26T17:26:32.892Z",
-      "updatedAt": "2026-03-26T17:29:03.757Z",
-      "completedAt": "2026-03-26T17:29:03.757Z"
-    },
-    {
-      "id": "US-030",
-      "title": "Session Guardian (Active Hours and Idle Detection)",
-      "description": "As a developer, I want the analyzer to only run during active hours and when the user is not idle so that system resources are not wasted.",
-      "acceptanceCriteria": [
-        "Analyzer skips if current time is outside active_hours_start - active_hours_end (default 8:00 - 23:00)",
-        "Analyzer skips if last observation timestamp is older than max_idle_seconds (default 1800 = 30 min)",
-        "Both thresholds are configurable via config",
-        "Unit tests verify skip logic for both conditions",
-        "Lint and typecheck pass"
-      ],
-      "priority": 30,
-      "status": "done",
-      "dependsOn": [
-        "US-020"
-      ],
-      "notes": "All AC implemented in analyzer-timer.ts as part of US-020. isWithinActiveHours, getLastObservationTime, and getSkipReason cover both guardian conditions with configurable thresholds.",
-      "startedAt": "2026-03-26T17:29:03.760Z",
-      "updatedAt": "2026-03-26T17:31:51.340Z",
-      "completedAt": "2026-03-26T17:31:51.340Z"
-    },
-    {
-      "id": "US-031",
-      "title": "Passive Confidence Decay",
-      "description": "As a developer, I want instinct confidence to decay passively over time so that stale instincts lose relevance.",
-      "acceptanceCriteria": [
-        "On each analysis run, the analyzer applies -0.02 per week since updated_at for each instinct",
-        "Decay is applied before feedback adjustments",
-        "Instincts that drop below 0.1 are flagged for removal",
-        "updated_at is set to current time when any change is made to an instinct",
-        "Unit tests verify decay calculation and flagging",
-        "Lint and typecheck pass"
-      ],
-      "priority": 31,
-      "status": "done",
-      "dependsOn": [
-        "US-008",
-        "US-020"
-      ],
-      "notes": "Integrates confidence decay into the analyzer run cycle.",
-      "startedAt": "2026-03-26T17:31:51.344Z",
-      "updatedAt": "2026-03-26T17:40:00.590Z",
-      "completedAt": "2026-03-26T17:40:00.590Z"
-    },
-    {
-      "id": "US-032",
-      "title": "Extension Entry Point Wiring",
-      "description": "As a developer, I want index.ts to wire together all modules - event handlers, commands, timers - so that the extension works end-to-end.",
-      "acceptanceCriteria": [
-        "Default export function registers all event handlers: session_start, session_shutdown, before_agent_start, agent_start, agent_end, tool_execution_start, tool_execution_end",
-        "Registers all 6 slash commands",
-        "Starts analyzer timer on session_start, stops on session_shutdown",
-        "Loads config on session_start",
-        "Detects project on session_start and stores in module state",
-        "Ensures storage layout on session_start",
-        "Flushes pending observations on session_shutdown",
-        "Unit tests verify all registrations occur (mock ExtensionAPI)",
-        "Lint and typecheck pass"
-      ],
-      "priority": 32,
-      "status": "done",
-      "dependsOn": [
-        "US-013",
-        "US-014",
-        "US-020",
-        "US-022",
-        "US-023",
-        "US-024",
-        "US-025",
-        "US-026",
-        "US-027",
-        "US-028",
-        "US-029"
-      ],
-      "notes": "Integration wiring story - depends on all individual modules being complete.",
-      "startedAt": "2026-03-26T17:40:00.592Z",
-      "updatedAt": "2026-03-26T17:46:44.567Z",
-      "completedAt": "2026-03-26T17:46:44.567Z"
-    },
-    {
-      "id": "US-033",
-      "title": "Error Handling and Logging",
-      "description": "As a developer, I want all modules to handle errors gracefully with logging so that failures in the learning system never crash the main Pi session.",
-      "acceptanceCriteria": [
-        "All event handlers wrap their body in try/catch",
-        "Errors are logged to projects/<id>/analyzer.log with timestamp and context",
-        "Observer errors do not propagate to Pi (silently log and continue)",
-        "Analyzer subprocess failures are logged with stderr output",
-        "Config loading errors fall back to defaults with a warning",
-        "Unit tests verify error paths do not throw",
-        "Lint and typecheck pass"
-      ],
-      "priority": 33,
-      "status": "done",
-      "dependsOn": [
-        "US-032"
-      ],
-      "notes": "Final hardening pass across all modules.",
-      "startedAt": "2026-03-26T17:46:44.570Z",
-      "updatedAt": "2026-03-26T17:51:08.991Z",
-      "completedAt": "2026-03-26T17:51:08.991Z"
+      "notes": "shadowIds is the set of instinct IDs already flagged as skill-shadowed by US-005, passed from generateEvolveSuggestions to suppress overlapping promotion suggestions."
     }
   ]
 }
