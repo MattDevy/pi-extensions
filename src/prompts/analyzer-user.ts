@@ -5,7 +5,8 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import type { InstalledSkill, ProjectEntry } from "../types.js";
+import type { InstalledSkill, Observation, ProjectEntry } from "../types.js";
+import { preprocessObservations } from "../observation-preprocessor.js";
 
 /** Maximum number of observation lines to include in analysis. */
 const MAX_TAIL_ENTRIES = 500;
@@ -35,15 +36,18 @@ export function tailObservations(
 export interface TailSinceResult {
   lines: string[];
   totalLineCount: number;
+  /** Number of raw new lines before preprocessing. */
+  rawLineCount: number;
 }
 
 export function tailObservationsSince(
   observationsPath: string,
   sinceLineCount: number,
-  maxEntries = MAX_TAIL_ENTRIES
+  maxEntries = MAX_TAIL_ENTRIES,
+  preprocess = true
 ): TailSinceResult {
   if (!existsSync(observationsPath)) {
-    return { lines: [], totalLineCount: 0 };
+    return { lines: [], totalLineCount: 0, rawLineCount: 0 };
   }
   const content = readFileSync(observationsPath, "utf-8");
   const allLines = content
@@ -55,12 +59,26 @@ export function tailObservationsSince(
 
   // If file was archived/reset (fewer lines than cursor), treat as fresh
   const effectiveSince = totalLineCount < sinceLineCount ? 0 : sinceLineCount;
-  const newLines = allLines.slice(effectiveSince);
+  const newLines = allLines.slice(effectiveSince).slice(-maxEntries);
+  const rawLineCount = newLines.length;
 
-  return {
-    lines: newLines.slice(-maxEntries),
-    totalLineCount,
-  };
+  if (!preprocess) {
+    return { lines: newLines, totalLineCount, rawLineCount };
+  }
+
+  const parsed: Observation[] = [];
+  for (const line of newLines) {
+    try {
+      parsed.push(JSON.parse(line) as Observation);
+    } catch {
+      // skip malformed lines
+    }
+  }
+
+  const filtered = preprocessObservations(parsed);
+  const lines = filtered.map((obs) => JSON.stringify(obs));
+
+  return { lines, totalLineCount, rawLineCount };
 }
 
 export interface AnalyzerUserPromptOptions {

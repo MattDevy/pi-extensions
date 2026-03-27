@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildAnalyzerUserPrompt, tailObservations } from "./analyzer-user.js";
+import { buildAnalyzerUserPrompt, tailObservations, tailObservationsSince } from "./analyzer-user.js";
 import type { InstalledSkill, ProjectEntry } from "../types.js";
 
 // ---------------------------------------------------------------------------
@@ -224,5 +224,88 @@ describe("buildAnalyzerUserPrompt - optional parameters", () => {
       installedSkills: [{ name: "skill-a", description: "desc" }],
     });
     expect(prompt).toContain("## Instructions");
+  });
+});
+
+describe("tailObservationsSince", () => {
+  const toolStart = JSON.stringify({
+    timestamp: "2026-01-01T00:00:00.000Z",
+    event: "tool_start",
+    session: "s1",
+    project_id: "p1",
+    project_name: "proj",
+    tool: "bash",
+    input: "ls",
+  });
+  const toolComplete = JSON.stringify({
+    timestamp: "2026-01-01T00:00:01.000Z",
+    event: "tool_complete",
+    session: "s1",
+    project_id: "p1",
+    project_name: "proj",
+    tool: "bash",
+    output: "file1.ts\nfile2.ts",
+    is_error: false,
+  });
+  const errorComplete = JSON.stringify({
+    timestamp: "2026-01-01T00:00:02.000Z",
+    event: "tool_complete",
+    session: "s1",
+    project_id: "p1",
+    project_name: "proj",
+    tool: "bash",
+    output: "command not found",
+    is_error: true,
+  });
+  const userBash = JSON.stringify({
+    timestamp: "2026-01-01T00:00:03.000Z",
+    event: "user_bash",
+    session: "s1",
+    project_id: "p1",
+    project_name: "proj",
+    command: "git status",
+  });
+
+  it("returns empty result with rawLineCount=0 when file does not exist", () => {
+    const result = tailObservationsSince(join(tmpDir, "nope.jsonl"), 0);
+    expect(result.lines).toEqual([]);
+    expect(result.totalLineCount).toBe(0);
+    expect(result.rawLineCount).toBe(0);
+  });
+
+  it("drops tool_start and strips output from non-error tool_complete by default", () => {
+    const obsFile = join(tmpDir, "obs-since.jsonl");
+    writeFileSync(obsFile, [toolStart, toolComplete, errorComplete, userBash].join("\n") + "\n");
+
+    const result = tailObservationsSince(obsFile, 0);
+    // tool_start dropped → 3 remain (toolComplete stripped, errorComplete kept, userBash kept)
+    expect(result.rawLineCount).toBe(4);
+    expect(result.lines).toHaveLength(3);
+
+    const parsed = result.lines.map((l) => JSON.parse(l));
+    expect(parsed.some((o: { event: string }) => o.event === "tool_start")).toBe(false);
+    expect(parsed.find((o: { event: string }) => o.event === "tool_complete" && !(o as { is_error?: boolean }).is_error)?.output).toBeUndefined();
+    expect(parsed.find((o: { event: string; is_error?: boolean }) => o.event === "tool_complete" && o.is_error)?.output).toBe("command not found");
+  });
+
+  it("skips preprocessing when preprocess=false", () => {
+    const obsFile = join(tmpDir, "obs-raw.jsonl");
+    writeFileSync(obsFile, [toolStart, toolComplete].join("\n") + "\n");
+
+    const result = tailObservationsSince(obsFile, 0, 500, false);
+    expect(result.lines).toHaveLength(2);
+    expect(result.rawLineCount).toBe(2);
+    const parsed = result.lines.map((l) => JSON.parse(l));
+    expect(parsed[0].event).toBe("tool_start");
+    expect(parsed[1].output).toBeDefined();
+  });
+
+  it("only returns lines since the cursor position", () => {
+    const obsFile = join(tmpDir, "obs-cursor.jsonl");
+    writeFileSync(obsFile, [userBash, userBash, userBash, userBash].join("\n") + "\n");
+
+    const result = tailObservationsSince(obsFile, 2);
+    expect(result.rawLineCount).toBe(2);
+    expect(result.totalLineCount).toBe(4);
   });
 });
