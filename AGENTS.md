@@ -54,6 +54,8 @@ pi-continuous-learning/
     active-instincts.ts     # Shared state for injected instinct IDs
     agents-md.ts            # AGENTS.md file reader
     error-logger.ts         # Structured logging
+    analysis-event-log.ts   # Append-only event log for analyzer -> extension notification
+    analysis-notification.ts # Extension-side notification check on before_agent_start
     instinct-status.ts      # /instinct-status command
     instinct-evolve.ts      # /instinct-evolve command (LLM-powered)
     instinct-export.ts      # /instinct-export command

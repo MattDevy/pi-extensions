@@ -35,6 +35,7 @@ import { handleInstinctProjects, COMMAND_NAME as PROJECTS_CMD } from "./instinct
 import { handleInstinctGraduate, COMMAND_NAME as GRADUATE_CMD } from "./instinct-graduate.js";
 import { registerAllTools } from "./instinct-tools.js";
 import { logError } from "./error-logger.js";
+import { checkAnalysisNotifications } from "./analysis-notification.js";
 import type { Config, InstalledSkill, ProjectEntry } from "./types.js";
 
 export default function (pi: ExtensionAPI): void {
@@ -70,6 +71,7 @@ export default function (pi: ExtensionAPI): void {
     try {
       if (!project || !config) return;
       handleBeforeAgentStart(event, ctx, project);
+      checkAnalysisNotifications(ctx, project.id);
       return handleBeforeAgentStartInjection(event, ctx, config, project.id) ?? undefined;
     } catch (err) {
       logError(project?.id ?? null, "before_agent_start", err);
