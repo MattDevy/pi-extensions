@@ -66,11 +66,14 @@
         "npx vitest run && npx eslint src/ && npx tsc --noEmit all pass"
       ],
       "priority": 3,
-      "status": "open",
+      "status": "in_progress",
       "dependsOn": [
         "US-002"
       ],
-      "notes": "Uses readAgentsMd() from US-002. AGENTS_MD_OVERLAP_THRESHOLD may go in config.ts or instinct-evolve-generators.ts - either is acceptable."
+      "notes": "Uses readAgentsMd() from US-002. AGENTS_MD_OVERLAP_THRESHOLD may go in config.ts or instinct-evolve-generators.ts - either is acceptable.",
+      "startedAt": "2026-03-27T10:35:04.633Z",
+      "updatedAt": "2026-03-27T10:35:04.633Z",
+      "completedAt": null
     },
     {
       "id": "US-004",

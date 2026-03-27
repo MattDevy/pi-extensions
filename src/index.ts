@@ -196,7 +196,7 @@ export default function (pi: ExtensionAPI): void {
   pi.registerCommand(EVOLVE_CMD, {
     description: "Suggest instinct consolidations and promotions",
     handler: (args: string, ctx: ExtensionCommandContext) =>
-      handleInstinctEvolve(args, ctx, project?.id),
+      handleInstinctEvolve(args, ctx, project?.id, undefined, project?.root ?? null),
   });
 
   pi.registerCommand(PROJECTS_CMD, {

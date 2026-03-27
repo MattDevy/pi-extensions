@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Instinct } from "./types.js";
@@ -8,6 +8,7 @@ import {
   MERGE_SIMILARITY_THRESHOLD,
   ACTION_SIMILARITY_THRESHOLD,
   PROMOTION_CONFIDENCE_THRESHOLD,
+  AGENTS_MD_OVERLAP_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -15,6 +16,7 @@ import {
   findMergeCandidates,
   findCommandCandidates,
   findPromotionCandidates,
+  findAgentsMdOverlaps,
   generateEvolveSuggestions,
   formatEvolveSuggestions,
   loadInstinctsForEvolve,
@@ -90,6 +92,10 @@ describe("constants", () => {
 
   it("COMMAND_TRIGGER_KEYWORDS is a non-empty array", () => {
     expect(COMMAND_TRIGGER_KEYWORDS.length).toBeGreaterThan(0);
+  });
+
+  it("AGENTS_MD_OVERLAP_THRESHOLD is 0.6", () => {
+    expect(AGENTS_MD_OVERLAP_THRESHOLD).toBe(0.6);
   });
 });
 
@@ -548,6 +554,123 @@ describe("formatEvolveSuggestions", () => {
 });
 
 // ---------------------------------------------------------------------------
+// findAgentsMdOverlaps
+// ---------------------------------------------------------------------------
+
+// Fixture AGENTS.md content used across tests
+const AGENTS_MD_FIXTURE = `# Project Guidelines
+
+Always run tests before committing any code changes.
+Use strict TypeScript with no implicit any.
+Keep functions under fifty lines for readability.
+`;
+
+describe("findAgentsMdOverlaps", () => {
+  it("returns empty array when agentsMdText is empty", () => {
+    const instincts = [makeInstinct({ trigger: "run tests before commit", action: "execute test suite" })];
+    expect(findAgentsMdOverlaps(instincts, "")).toHaveLength(0);
+  });
+
+  it("returns empty array when no instincts provided", () => {
+    expect(findAgentsMdOverlaps([], AGENTS_MD_FIXTURE)).toHaveLength(0);
+  });
+
+  it("flags instinct with high token overlap (above threshold)", () => {
+    // trigger+action tokens: run, tests, before, code, changes = 5 tokens
+    // AGENTS_MD_FIXTURE contains: run, tests, before, code, changes = all 5 match
+    // ratio: 5/5 = 1.0 >= 0.6
+    const instinct = makeInstinct({
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.type).toBe("agents-md-overlap");
+    expect(result[0]!.instinct.id).toBe(instinct.id);
+  });
+
+  it("does NOT flag instinct with low token overlap (below threshold)", () => {
+    // These tokens don't appear in AGENTS_MD_FIXTURE
+    const instinct = makeInstinct({
+      trigger: "format python source files",
+      action: "use black reformatter",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(0);
+  });
+
+  it("flags instinct at exactly the threshold (3/5 = 0.6)", () => {
+    // AGENTS_MD_FIXTURE tokens include: run, tests, before
+    // trigger: "run tests before deploy staging" = run, tests, before, deploy, staging (5 tokens)
+    // matching: run, tests, before = 3 tokens; ratio = 3/5 = 0.6 (at threshold)
+    const instinct = makeInstinct({
+      trigger: "run tests before deploy staging",
+      action: "",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(1);
+  });
+
+  it("does NOT flag instinct just below threshold (3/6 = 0.5)", () => {
+    // trigger: "run tests before deploy staging failed" = 6 tokens, 3 match (0.5 < 0.6)
+    const instinct = makeInstinct({
+      trigger: "run tests before deploy staging failed",
+      action: "",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(0);
+  });
+
+  it("matchingExcerpt is at most 100 chars", () => {
+    const instinct = makeInstinct({
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.matchingExcerpt.length).toBeLessThanOrEqual(100);
+  });
+
+  it("matchingExcerpt is a non-empty string when overlap found", () => {
+    const instinct = makeInstinct({
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.matchingExcerpt.length).toBeGreaterThan(0);
+  });
+
+  it("handles multiple instincts - only flags those above threshold", () => {
+    const overlapping = makeInstinct({
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const notOverlapping = makeInstinct({
+      trigger: "format python source files",
+      action: "use black reformatter",
+    });
+    const result = findAgentsMdOverlaps([overlapping, notOverlapping], AGENTS_MD_FIXTURE);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.instinct.id).toBe(overlapping.id);
+  });
+
+  it("uses both trigger and action tokens for overlap calculation", () => {
+    // trigger alone: "deploy build artifact" (deploy, build, artifact) - 0 match
+    // trigger+action: "deploy build artifact" + "run tests before" - 3/6 match = 0.5 < 0.6
+    // action alone contributing: run, tests, before
+    // Combined: deploy, build, artifact, run, tests, before = 6 tokens, 3 match = 0.5 < 0.6
+    const instinct = makeInstinct({
+      trigger: "deploy build artifact",
+      action: "run tests before",
+    });
+    const result = findAgentsMdOverlaps([instinct], AGENTS_MD_FIXTURE);
+    // 3/6 = 0.5 < 0.6 threshold - not flagged
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // loadInstinctsForEvolve (I/O)
 // ---------------------------------------------------------------------------
 
@@ -613,5 +736,138 @@ describe("handleInstinctEvolve", () => {
     await handleInstinctEvolve("", ctx, null, tmpDir);
     const message = (ctx.ui.notify as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
     expect(message).toContain("No evolution suggestions");
+  });
+
+  it("accepts projectRoot param without error when null", async () => {
+    const ctx = mockCtx();
+    await handleInstinctEvolve("", ctx, null, tmpDir, null);
+    expect(ctx.ui.notify).toHaveBeenCalledOnce();
+  });
+
+  it("accepts projectRoot param without error when pointing to non-existent dir", async () => {
+    const ctx = mockCtx();
+    await handleInstinctEvolve("", ctx, null, tmpDir, "/does/not/exist");
+    expect(ctx.ui.notify).toHaveBeenCalledOnce();
+  });
+
+  it("includes Duplicates AGENTS.md section when projectRoot has matching AGENTS.md", async () => {
+    // Write a minimal AGENTS.md in tmpDir
+    const agentsMdPath = join(tmpDir, "AGENTS.md");
+    writeFileSync(agentsMdPath, "Always run tests before committing code changes.", "utf-8");
+
+    const project = {
+      id: "proj-overlap",
+      name: "overlap-project",
+      root: tmpDir,
+      remote: "https://github.com/test/overlap",
+      created_at: "2026-01-01T00:00:00.000Z",
+      last_seen: "2026-01-01T00:00:00.000Z",
+    };
+    ensureStorageLayout(project, tmpDir);
+
+    // Save an instinct whose tokens heavily overlap with the AGENTS.md content
+    const overlappingInstinct = makeInstinct({
+      id: "overlap-instinct",
+      scope: "project",
+      project_id: "proj-overlap",
+      trigger: "run tests before committing",
+      action: "always check code changes",
+    });
+    const dir = join(tmpDir, "projects/proj-overlap/instincts/personal");
+    saveInstinct(overlappingInstinct, dir);
+
+    const ctx = mockCtx();
+    await handleInstinctEvolve("", ctx, "proj-overlap", tmpDir, tmpDir);
+    const message = (ctx.ui.notify as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
+    expect(message).toContain("Duplicates AGENTS.md");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateEvolveSuggestions with agentsMd params
+// ---------------------------------------------------------------------------
+
+describe("generateEvolveSuggestions with agentsMd", () => {
+  it("includes overlap suggestions when agentsMdProject is provided", () => {
+    const instinct = makeInstinct({
+      id: "ol1",
+      trigger: "run tests before code changes",
+      action: "",
+      scope: "project",
+    });
+    const result = generateEvolveSuggestions([instinct], [], AGENTS_MD_FIXTURE, null);
+    const overlaps = result.filter((s) => s.type === "agents-md-overlap");
+    expect(overlaps.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("includes overlap suggestions when agentsMdGlobal is provided", () => {
+    const instinct = makeInstinct({
+      id: "ol2",
+      trigger: "run tests before code changes",
+      action: "",
+      scope: "global",
+    });
+    const result = generateEvolveSuggestions([], [instinct], null, AGENTS_MD_FIXTURE);
+    const overlaps = result.filter((s) => s.type === "agents-md-overlap");
+    expect(overlaps.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("returns no overlap suggestions when both agentsMd params are null", () => {
+    const instinct = makeInstinct({
+      id: "ol3",
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const result = generateEvolveSuggestions([instinct], [], null, null);
+    const overlaps = result.filter((s) => s.type === "agents-md-overlap");
+    expect(overlaps).toHaveLength(0);
+  });
+
+  it("returns no overlap suggestions when both agentsMd params are omitted", () => {
+    const instinct = makeInstinct({
+      id: "ol4",
+      trigger: "run tests before code changes",
+      action: "",
+    });
+    const result = generateEvolveSuggestions([instinct], []);
+    const overlaps = result.filter((s) => s.type === "agents-md-overlap");
+    expect(overlaps).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatEvolveSuggestions - Duplicates AGENTS.md section
+// ---------------------------------------------------------------------------
+
+describe("formatEvolveSuggestions - agents-md-overlap section", () => {
+  it("includes Duplicates AGENTS.md section when overlap suggestions exist", () => {
+    const instinct = makeInstinct({ id: "ov1", trigger: "run tests", action: "check code" });
+    const suggestions = [{
+      type: "agents-md-overlap" as const,
+      instinct,
+      matchingExcerpt: "Always run tests before committing code changes",
+    }];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("Duplicates AGENTS.md");
+  });
+
+  it("shows instinct id, confidence, and excerpt in overlap section", () => {
+    const instinct = makeInstinct({ id: "ov2", trigger: "run tests", action: "check code", confidence: 0.75 });
+    const suggestions = [{
+      type: "agents-md-overlap" as const,
+      instinct,
+      matchingExcerpt: "Always run tests before committing",
+    }];
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).toContain("ov2");
+    expect(output).toContain("0.75");
+    expect(output).toContain("Always run tests before committing");
+  });
+
+  it("omits Duplicates AGENTS.md section when no overlap suggestions", () => {
+    const instinct = makeInstinct({ trigger: "always run linting", domain: "style" });
+    const suggestions = findCommandCandidates([instinct]);
+    const output = formatEvolveSuggestions(suggestions);
+    expect(output).not.toContain("Duplicates AGENTS.md");
   });
 });

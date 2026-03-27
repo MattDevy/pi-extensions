@@ -19,6 +19,9 @@ export const ACTION_SIMILARITY_THRESHOLD = 0.4;
 /** Minimum project-instinct confidence to suggest global promotion. */
 export const PROMOTION_CONFIDENCE_THRESHOLD = 0.7;
 
+/** Fraction of instinct tokens that must appear in AGENTS.md to flag as overlap. */
+export const AGENTS_MD_OVERLAP_THRESHOLD = 0.6;
+
 /** Words excluded from text tokenization (noise words). */
 const STOP_WORDS = new Set([
   "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
@@ -58,10 +61,18 @@ export interface PromotionSuggestion {
   reason: string;
 }
 
+export interface AgentsMdOverlapSuggestion {
+  type: "agents-md-overlap";
+  instinct: Instinct;
+  /** Up to 100 chars of the matching AGENTS.md portion. */
+  matchingExcerpt: string;
+}
+
 export type EvolveSuggestion =
   | MergeSuggestion
   | CommandSuggestion
-  | PromotionSuggestion;
+  | PromotionSuggestion
+  | AgentsMdOverlapSuggestion;
 
 // ---------------------------------------------------------------------------
 // Tokenization and similarity
@@ -104,6 +115,58 @@ export function actionSimilarity(a: Instinct, b: Instinct): number {
   const intersection = [...tokensA].filter((t) => tokensB.has(t));
   const union = new Set([...tokensA, ...tokensB]);
   return intersection.length / union.size;
+}
+
+// ---------------------------------------------------------------------------
+// AGENTS.md overlap helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Finds the first excerpt in agentsMdText (up to 100 chars) that contains
+ * any of the given tokens. Falls back to first 100 chars of the text.
+ */
+function findExcerpt(text: string, tokens: string[]): string {
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (tokens.some((t) => lower.includes(t))) {
+      const trimmed = line.trim();
+      return trimmed.length > 100 ? trimmed.slice(0, 100) : trimmed;
+    }
+  }
+  return text.trim().slice(0, 100);
+}
+
+/**
+ * Flags instincts whose combined trigger+action text shares >= 60% of tokens
+ * with the provided AGENTS.md content.
+ */
+export function findAgentsMdOverlaps(
+  instincts: Instinct[],
+  agentsMdText: string
+): AgentsMdOverlapSuggestion[] {
+  const agentsMdTokens = tokenizeText(agentsMdText);
+  if (agentsMdTokens.size === 0) return [];
+
+  const suggestions: AgentsMdOverlapSuggestion[] = [];
+
+  for (const instinct of instincts) {
+    const instinctTokens = tokenizeText(`${instinct.trigger} ${instinct.action}`);
+    if (instinctTokens.size === 0) continue;
+
+    const matchingTokens = [...instinctTokens].filter((t) => agentsMdTokens.has(t));
+    const overlapRatio = matchingTokens.length / instinctTokens.size;
+
+    if (overlapRatio >= AGENTS_MD_OVERLAP_THRESHOLD) {
+      suggestions.push({
+        type: "agents-md-overlap",
+        instinct,
+        matchingExcerpt: findExcerpt(agentsMdText, matchingTokens),
+      });
+    }
+  }
+
+  return suggestions;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,18 +348,31 @@ export function findPromotionCandidates(
 
 /**
  * Generates all evolution suggestions from project and global instinct sets.
+ * Optionally checks instincts against AGENTS.md content to flag overlaps.
  */
 export function generateEvolveSuggestions(
   projectInstincts: Instinct[],
-  globalInstincts: Instinct[]
+  globalInstincts: Instinct[],
+  agentsMdProject?: string | null,
+  agentsMdGlobal?: string | null
 ): EvolveSuggestion[] {
   const allInstincts = [...projectInstincts, ...globalInstincts];
   const globalIds = new Set(globalInstincts.map((i) => i.id));
+
+  const agentsMdCombined = [agentsMdProject, agentsMdGlobal]
+    .filter((s): s is string => s != null)
+    .join("\n");
+
+  const overlapSuggestions =
+    agentsMdCombined.length > 0
+      ? findAgentsMdOverlaps(allInstincts, agentsMdCombined)
+      : [];
 
   return [
     ...findMergeCandidates(allInstincts),
     ...findCommandCandidates(allInstincts),
     ...findPromotionCandidates(projectInstincts, globalIds),
+    ...overlapSuggestions,
   ];
 }
 

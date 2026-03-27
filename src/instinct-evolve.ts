@@ -6,13 +6,17 @@
  */
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { getBaseDir } from "./storage.js";
+import { readAgentsMd } from "./agents-md.js";
 import {
   loadInstinctsForEvolve,
   generateEvolveSuggestions,
   type MergeSuggestion,
   type CommandSuggestion,
   type PromotionSuggestion,
+  type AgentsMdOverlapSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -23,6 +27,7 @@ export {
   MERGE_SIMILARITY_THRESHOLD,
   ACTION_SIMILARITY_THRESHOLD,
   PROMOTION_CONFIDENCE_THRESHOLD,
+  AGENTS_MD_OVERLAP_THRESHOLD,
   COMMAND_TRIGGER_KEYWORDS,
   tokenizeText,
   triggerSimilarity,
@@ -30,11 +35,13 @@ export {
   findMergeCandidates,
   findCommandCandidates,
   findPromotionCandidates,
+  findAgentsMdOverlaps,
   generateEvolveSuggestions,
   loadInstinctsForEvolve,
   type MergeSuggestion,
   type CommandSuggestion,
   type PromotionSuggestion,
+  type AgentsMdOverlapSuggestion,
   type EvolveSuggestion,
 } from "./instinct-evolve-generators.js";
 
@@ -55,6 +62,9 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
   const merges = suggestions.filter((s): s is MergeSuggestion => s.type === "merge");
   const commands = suggestions.filter((s): s is CommandSuggestion => s.type === "command");
   const promotions = suggestions.filter((s): s is PromotionSuggestion => s.type === "promotion");
+  const overlaps = suggestions.filter(
+    (s): s is AgentsMdOverlapSuggestion => s.type === "agents-md-overlap"
+  );
 
   if (merges.length > 0) {
     lines.push("## Merge Candidates");
@@ -93,6 +103,18 @@ export function formatEvolveSuggestions(suggestions: EvolveSuggestion[]): string
     }
   }
 
+  if (overlaps.length > 0) {
+    lines.push("## Duplicates AGENTS.md");
+    lines.push("Instincts whose content overlaps with AGENTS.md guidelines:");
+    lines.push("");
+    for (const s of overlaps) {
+      lines.push(`  * [${s.instinct.confidence.toFixed(2)}] ${s.instinct.id}`);
+      lines.push(`    Trigger: ${s.instinct.trigger}`);
+      lines.push(`    Excerpt: "${s.matchingExcerpt}"`);
+      lines.push("");
+    }
+  }
+
   const total = suggestions.length;
   lines.push(
     `Total: ${total} suggestion${total !== 1 ? "s" : ""} (informational only - no changes applied)`
@@ -114,14 +136,25 @@ export async function handleInstinctEvolve(
   _args: string,
   ctx: ExtensionCommandContext,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
+  projectRoot?: string | null
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
   const { projectInstincts, globalInstincts } = loadInstinctsForEvolve(
     projectId,
     effectiveBase
   );
-  const suggestions = generateEvolveSuggestions(projectInstincts, globalInstincts);
+
+  const agentsMdProject =
+    projectRoot != null ? readAgentsMd(join(projectRoot, "AGENTS.md")) : null;
+  const agentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+
+  const suggestions = generateEvolveSuggestions(
+    projectInstincts,
+    globalInstincts,
+    agentsMdProject,
+    agentsMdGlobal
+  );
   const output = formatEvolveSuggestions(suggestions);
   ctx.ui.notify(output, "info");
 }
