@@ -87,6 +87,7 @@ export const DEFAULT_CONFIG: Config = {
   max_new_instincts_per_run: 3,
   flagged_cleanup_days: 7,
   instinct_ttl_days: 28,
+  dreaming_enabled: true,
   consolidation_interval_days: DEFAULT_CONSOLIDATION_INTERVAL_DAYS,
   consolidation_min_sessions: DEFAULT_CONSOLIDATION_MIN_SESSIONS,
 };
@@ -114,6 +115,7 @@ const PartialConfigSchema = Type.Partial(
     max_new_instincts_per_run: Type.Number(),
     flagged_cleanup_days: Type.Number(),
     instinct_ttl_days: Type.Number(),
+    dreaming_enabled: Type.Boolean(),
     consolidation_interval_days: Type.Number(),
     consolidation_min_sessions: Type.Number(),
   })

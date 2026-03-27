@@ -90,6 +90,7 @@ Defined in `config.ts`. The extension reads `~/.pi/continuous-learning/config.js
   flagged_cleanup_days: 7,               // Auto-delete flagged_for_removal instincts after N days
   instinct_ttl_days: 28,                 // Auto-delete zero-confirmation instincts after N days
   // Consolidation (dream)
+  dreaming_enabled: true,                 // Whether automatic consolidation runs during normal analysis
   consolidation_interval_days: 7,         // Minimum days between consolidation runs
   consolidation_min_sessions: 10,         // Minimum sessions since last consolidation
 }
@@ -530,16 +531,17 @@ Periodic holistic review of the entire instinct corpus, independent of new obser
 
 ### Two entry points
 
-1. **CLI flag**: `npx tsx src/cli/analyze.ts --consolidate` - automated via cron, respects dual-gate trigger
-2. **Slash command**: `/instinct-dream` - interactive, runs in a Pi session with user confirmation
+1. **Automatic (normal analyzer run)**: After analyzing observations for all projects, the analyzer opportunistically runs consolidation for each project if `dreaming_enabled` is `true` (default) and the dual-gate conditions are met. No separate cron job needed.
+2. **Manual CLI flag**: `npx tsx src/cli/analyze.ts --consolidate` - runs consolidation only (skips observation analysis), always forces past the gate check.
+3. **Slash command**: `/instinct-dream` - interactive, runs in a Pi session with user confirmation.
 
-### Dual-gate trigger (CLI mode)
+### Dual-gate trigger (automatic mode)
 
-Both conditions must be met before a consolidation runs:
+Both conditions must be met before an automatic consolidation runs:
 - At least `consolidation_interval_days` (default: 7) since last consolidation
 - At least `consolidation_min_sessions` (default: 10) new sessions since last consolidation
 
-The `--force` flag bypasses the gate check entirely.
+Set `dreaming_enabled: false` in config to disable automatic consolidation entirely.
 
 ### Consolidation meta
 

@@ -115,6 +115,7 @@ export interface Config {
   flagged_cleanup_days: number; // auto-delete flagged instincts after N days
   instinct_ttl_days: number; // auto-delete zero-confirmation instincts after N days
   // Consolidation (dream) settings
+  dreaming_enabled: boolean; // whether automatic consolidation runs during normal analysis
   consolidation_interval_days: number; // minimum days between consolidation runs
   consolidation_min_sessions: number; // minimum sessions since last consolidation
 }

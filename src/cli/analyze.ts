@@ -665,8 +665,7 @@ async function consolidateProject(
 // Main
 // ---------------------------------------------------------------------------
 
-const isConsolidateMode = process.argv.includes("--consolidate");
-const isForceMode = process.argv.includes("--force");
+const isConsolidateOnly = process.argv.includes("--consolidate");
 
 async function main(): Promise<void> {
   const baseDir = getBaseDir();
@@ -691,32 +690,67 @@ async function main(): Promise<void> {
       return;
     }
 
-    const mode = isConsolidateMode ? "consolidation" : "analysis";
-    logger.info(`Starting ${mode} run`, { event: "run_start", mode, project_count: projects.length });
+    logger.runStart(projects.length);
 
     let processed = 0;
     let skipped = 0;
     let errored = 0;
     const allProjectStats: ProjectRunStats[] = [];
 
-    for (const project of projects) {
-      try {
-        const result = isConsolidateMode
-          ? await consolidateProject(project, config, baseDir, logger, isForceMode)
-          : await analyzeProject(project, config, baseDir, logger);
+    if (isConsolidateOnly) {
+      // --consolidate: manual trigger, consolidation only, skip gates
+      for (const project of projects) {
+        try {
+          const result = await consolidateProject(project, config, baseDir, logger, true);
+          if (result.ran && result.stats) {
+            processed++;
+            allProjectStats.push(result.stats);
+          } else {
+            skipped++;
+            if (result.skippedReason) {
+              logger.projectSkipped(project.id, project.name, result.skippedReason);
+            }
+          }
+        } catch (err) {
+          errored++;
+          logger.projectError(project.id, project.name, err);
+        }
+      }
+    } else {
+      // Normal mode: analyze observations, then opportunistic consolidation
+      for (const project of projects) {
+        try {
+          const result = await analyzeProject(project, config, baseDir, logger);
+          if (result.ran && result.stats) {
+            processed++;
+            allProjectStats.push(result.stats);
+          } else {
+            skipped++;
+            if (result.skippedReason) {
+              logger.projectSkipped(project.id, project.name, result.skippedReason);
+            }
+          }
+        } catch (err) {
+          errored++;
+          logger.projectError(project.id, project.name, err);
+        }
+      }
 
-        if (result.ran && result.stats) {
-          processed++;
-          allProjectStats.push(result.stats);
-        } else {
-          skipped++;
-          if (result.skippedReason) {
-            logger.projectSkipped(project.id, project.name, result.skippedReason);
+      // Opportunistic consolidation: run if enabled and gates pass
+      if (config.dreaming_enabled) {
+        for (const project of projects) {
+          try {
+            const result = await consolidateProject(project, config, baseDir, logger, false);
+            if (result.ran && result.stats) {
+              processed++;
+              allProjectStats.push(result.stats);
+            } else if (result.skippedReason) {
+              logger.projectSkipped(project.id, project.name, result.skippedReason);
+            }
+          } catch (err) {
+            logger.projectError(project.id, project.name, err);
           }
         }
-      } catch (err) {
-        errored++;
-        logger.projectError(project.id, project.name, err);
       }
     }
 
