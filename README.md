@@ -39,7 +39,7 @@ This installs the extension globally and makes the `pi-cl-analyze` CLI available
 ### Requirements
 
 - [Pi](https://github.com/nicholasgasior/pi-coding-agent) >= 0.62.0
-- An active Claude subscription (the analyzer uses Haiku via your existing Pi credentials — no separate API key needed)
+- An LLM provider configured with Pi (subscription or API key — the analyzer defaults to Haiku; see [Configuration](#configuration) to change the model)
 - Node.js >= 18
 
 ## Usage
@@ -271,7 +271,7 @@ Only include the fields you want to change — missing fields use the defaults a
 | `min_confidence` | 0.5 | Instincts below this are not injected into prompts |
 | `max_instincts` | 20 | Maximum instincts injected per turn |
 | `max_injection_chars` | 4000 | Character budget for the injection block (~1000 tokens) |
-| `model` | `claude-haiku-4-5` | Model for the background analyzer |
+| `model` | `claude-haiku-4-5` | Model for the background analyzer (lightweight models recommended to minimize cost) |
 | `timeout_seconds` | 120 | Per-project timeout for the analyzer LLM session |
 
 ## Storage
@@ -296,8 +296,7 @@ All data stays local on your machine:
 - All data stays on your machine — no external telemetry
 - Secrets (API keys, tokens, passwords) are scrubbed from observations before writing to disk
 - Only instincts (patterns) can be exported — never raw observations
-- The analyzer reuses your existing Pi/Claude subscription credentials
-- No separate API key required
+- The analyzer uses your existing Pi LLM credentials — no additional keys needed
 
 ## Development
 
