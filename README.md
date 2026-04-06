@@ -1,5 +1,8 @@
 # pi-extensions
 
+[![CI](https://github.com/MattDevy/pi-continuous-learning/workflows/CI/badge.svg)](https://github.com/MattDevy/pi-continuous-learning/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A monorepo of [Pi](https://github.com/nicholasgasior/pi-coding-agent) extensions, built and released independently under `packages/`.
 
 ## Packages
@@ -21,8 +24,3 @@ npm run lint:mega                     # run MegaLinter locally (requires Docker)
 ```
 
 See each package's `README.md` for installation and usage, and `AGENTS.md` for development conventions.
-
-## CI
-
-[![CI](https://github.com/MattDevy/pi-continuous-learning/workflows/CI/badge.svg)](https://github.com/MattDevy/pi-continuous-learning/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
