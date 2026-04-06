@@ -17,6 +17,7 @@ import {
   findSimilarInstinct,
 } from "../instinct-validator.js";
 import { confirmationDelta } from "../confidence.js";
+import { normalizeRelativeDates } from "../text-utils.js";
 
 export interface InstinctChangePayload {
   id: string;
@@ -188,7 +189,9 @@ export function buildInstinctFromChange(
     confirmed_count: resolvedConfirmedCount,
     contradicted_count: payload.contradicted_count ?? 0,
     inactive_count: payload.inactive_count ?? 0,
-    ...(payload.evidence !== undefined ? { evidence: payload.evidence } : {}),
+    ...(payload.evidence !== undefined
+      ? { evidence: payload.evidence.map((e) => normalizeRelativeDates(e)) }
+      : {}),
     ...(resolvedLastConfirmedSession !== undefined
       ? { last_confirmed_session: resolvedLastConfirmedSession }
       : {}),

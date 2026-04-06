@@ -12,6 +12,7 @@ import {
 } from "./instinct-store.js";
 import { getProjectInstinctsDir, getGlobalInstinctsDir } from "./storage.js";
 import { validateInstinct, findSimilarInstinct } from "./instinct-validator.js";
+import { normalizeRelativeDates } from "./text-utils.js";
 
 function getInstinctsDir(
   scope: "project" | "global",
@@ -196,7 +197,9 @@ export function createInstinctWriteTool(
         confirmed_count: params.confirmed_count ?? 0,
         contradicted_count: params.contradicted_count ?? 0,
         inactive_count: params.inactive_count ?? 0,
-        ...(params.evidence ? { evidence: params.evidence } : {}),
+        ...(params.evidence
+          ? { evidence: params.evidence.map((e) => normalizeRelativeDates(e)) }
+          : {}),
       };
 
       saveInstinct(instinct, dir);
@@ -406,7 +409,9 @@ export function createInstinctMergeTool(
         confirmed_count: 0,
         contradicted_count: 0,
         inactive_count: 0,
-        ...(merged.evidence ? { evidence: merged.evidence } : {}),
+        ...(merged.evidence
+          ? { evidence: merged.evidence.map((e) => normalizeRelativeDates(e)) }
+          : {}),
       };
 
       saveInstinct(instinct, dir);
