@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.10.0...pi-continuous-learning-v0.10.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* Refresh docs ([b7cf275](https://github.com/MattDevy/pi-continuous-learning/commit/b7cf27564947482774568bc9b95352e178d25d12))
+
 ## [0.10.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.9.0...pi-continuous-learning-v0.10.0) (2026-04-06)
 
 
