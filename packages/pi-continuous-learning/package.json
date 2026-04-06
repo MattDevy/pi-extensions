@@ -7,12 +7,12 @@
   "author": "Matt Devy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MattDevy/pi-continuous-learning.git",
+    "url": "https://github.com/MattDevy/pi-extensions.git",
     "directory": "packages/pi-continuous-learning"
   },
-  "homepage": "https://github.com/MattDevy/pi-continuous-learning#readme",
+  "homepage": "https://github.com/MattDevy/pi-extensions/tree/main/packages/pi-continuous-learning#readme",
   "bugs": {
-    "url": "https://github.com/MattDevy/pi-continuous-learning/issues"
+    "url": "https://github.com/MattDevy/pi-extensions/issues"
   },
   "keywords": [
     "pi-package",

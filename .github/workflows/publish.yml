@@ -3,6 +3,12 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package name to publish (e.g. pi-continuous-learning)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -19,15 +25,20 @@ jobs:
           node-version: lts/*
           registry-url: https://registry.npmjs.org
 
-      - name: Resolve package path from release tag
+      - name: Resolve package path
         id: pkg
         env:
           TAG: ${{ github.event.release.tag_name }}
+          DISPATCH_PKG: ${{ inputs.package }}
         run: |
-          PKG_NAME="${TAG%-v*}"
-          PKG_PATH="packages/${PKG_NAME}"
+          if [ -n "${DISPATCH_PKG}" ]; then
+            PKG_PATH="packages/${DISPATCH_PKG}"
+          else
+            PKG_NAME="${TAG%-v*}"
+            PKG_PATH="packages/${PKG_NAME}"
+          fi
           if [ ! -d "${PKG_PATH}" ]; then
-            echo "Error: package directory '${PKG_PATH}' not found for tag '${TAG}'"
+            echo "Error: package directory '${PKG_PATH}' not found"
             exit 1
           fi
           echo "path=${PKG_PATH}" >> "$GITHUB_OUTPUT"
@@ -45,4 +56,4 @@ jobs:
 
       - name: Publish
         working-directory: ${{ steps.pkg.outputs.path }}
-        run: npm publish
+        run: npm publish --provenance --access public
