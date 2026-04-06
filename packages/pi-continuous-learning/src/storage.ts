@@ -49,6 +49,21 @@ export function getGlobalInstinctsDir(
   return join(baseDir, "instincts", source);
 }
 
+export function getProjectFactsDir(
+  projectId: string,
+  source: "personal",
+  baseDir = getBaseDir(),
+): string {
+  return join(getProjectDir(projectId, baseDir), "facts", source);
+}
+
+export function getGlobalFactsDir(
+  source: "personal",
+  baseDir = getBaseDir(),
+): string {
+  return join(baseDir, "facts", source);
+}
+
 export function getProjectsRegistryPath(baseDir = getBaseDir()): string {
   return join(baseDir, "projects.json");
 }
@@ -98,11 +113,13 @@ export function ensureStorageLayout(
   // Global instinct directories
   ensureDir(join(baseDir, "instincts", "personal"));
   ensureDir(join(baseDir, "instincts", "inherited"));
+  ensureDir(join(baseDir, "facts", "personal"));
 
   // Project-scoped directories
   const projectDir = getProjectDir(project.id, baseDir);
   ensureDir(join(projectDir, "instincts", "personal"));
   ensureDir(join(projectDir, "instincts", "inherited"));
+  ensureDir(join(projectDir, "facts", "personal"));
   ensureDir(join(projectDir, "observations.archive"));
 
   // Write project.json only if it does not yet exist

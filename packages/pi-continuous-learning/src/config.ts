@@ -92,6 +92,10 @@ export const DEFAULT_CONFIG: Config = {
   consolidation_min_sessions: DEFAULT_CONSOLIDATION_MIN_SESSIONS,
   recurring_prompt_min_sessions: 3,
   recurring_prompt_score_boost: 3,
+  // Facts volume control
+  max_facts_per_project: 30,
+  max_facts_global: 50,
+  max_new_facts_per_run: 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -122,6 +126,9 @@ const PartialConfigSchema = Type.Partial(
     consolidation_min_sessions: Type.Number(),
     recurring_prompt_min_sessions: Type.Number(),
     recurring_prompt_score_boost: Type.Number(),
+    max_facts_per_project: Type.Number(),
+    max_facts_global: Type.Number(),
+    max_new_facts_per_run: Type.Number(),
   }),
 );
 

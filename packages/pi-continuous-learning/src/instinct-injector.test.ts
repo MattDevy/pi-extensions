@@ -66,6 +66,9 @@ const BASE_CONFIG: Config = {
   consolidation_min_sessions: 10,
   recurring_prompt_min_sessions: 3,
   recurring_prompt_score_boost: 3,
+  max_facts_per_project: 30,
+  max_facts_global: 50,
+  max_new_facts_per_run: 3,
 };
 
 const MOCK_CTX = {} as ExtensionContext;

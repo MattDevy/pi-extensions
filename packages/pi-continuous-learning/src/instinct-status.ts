@@ -5,8 +5,9 @@
  */
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
-import type { Instinct } from "./types.js";
+import type { Instinct, Fact } from "./types.js";
 import { loadProjectInstincts, loadGlobalInstincts } from "./instinct-store.js";
+import { loadProjectFacts, loadGlobalFacts } from "./fact-store.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -101,6 +102,65 @@ export function formatStatusOutput(instincts: Instinct[]): string {
 }
 
 // ---------------------------------------------------------------------------
+// Fact formatting helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Formats a single fact line for display.
+ */
+export function formatFact(fact: Fact): string {
+  const confidence = `[${fact.confidence.toFixed(2)}]`;
+  const feedbackRatio = `✓${fact.confirmed_count} ✗${fact.contradicted_count} ○${fact.inactive_count}`;
+
+  const parts = [
+    `  ${confidence} ${fact.title} (${feedbackRatio})`,
+    `    ${fact.content}`,
+  ];
+  if (fact.flagged_for_removal) {
+    parts.push(`    ${FLAG_REMOVAL}`);
+  }
+  return parts.join("\n");
+}
+
+/**
+ * Formats all facts as a status section string.
+ * Returns empty string when no facts exist.
+ */
+export function formatFactsStatusSection(facts: Fact[]): string {
+  if (facts.length === 0) return "";
+
+  const lines: string[] = ["", "=== Facts / Knowledge Notes ===", ""];
+
+  // Group by domain
+  const groups: Record<string, Fact[]> = {};
+  for (const fact of facts) {
+    const domain = fact.domain || "uncategorized";
+    if (!groups[domain]) {
+      groups[domain] = [];
+    }
+    groups[domain].push(fact);
+  }
+
+  for (const domain of Object.keys(groups).sort()) {
+    const domainFacts = groups[domain];
+    if (!domainFacts || domainFacts.length === 0) continue;
+    lines.push(`## ${domain}`);
+    for (const fact of domainFacts) {
+      lines.push(formatFact(fact));
+    }
+    lines.push("");
+  }
+
+  const total = facts.length;
+  const flagged = facts.filter((f) => f.flagged_for_removal).length;
+  lines.push(
+    `Total: ${total} fact${total !== 1 ? "s" : ""} (${flagged} flagged for removal)`,
+  );
+
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // loadAllInstincts
 // ---------------------------------------------------------------------------
 
@@ -124,7 +184,7 @@ export function loadAllInstincts(
 
 /**
  * Command handler for /instinct-status.
- * Loads all instincts, formats them grouped by domain, and notifies the user.
+ * Loads all instincts and facts, formats them grouped by domain, and notifies the user.
  */
 export async function handleInstinctStatus(
   _args: string,
@@ -133,7 +193,11 @@ export async function handleInstinctStatus(
   baseDir?: string,
 ): Promise<void> {
   const instincts = loadAllInstincts(projectId, baseDir);
-  const output = formatStatusOutput(instincts);
+  const facts = [
+    ...(projectId != null ? loadProjectFacts(projectId, baseDir) : []),
+    ...loadGlobalFacts(baseDir),
+  ];
+  const output = formatStatusOutput(instincts) + formatFactsStatusSection(facts);
   ctx.ui.notify(output, "info");
 }
 

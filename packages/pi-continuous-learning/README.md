@@ -80,6 +80,10 @@ Before each agent turn, the injector loads instincts relevant to the current pro
 ## Learned Behaviours (Instincts)
 - [0.75] when modifying code files: Always search with grep to find relevant context before editing
 - [0.68] when debugging errors: Read stack traces to understand root cause before suggesting fixes
+
+## Project Knowledge
+- [0.80] The test database runs on port 3306
+- [0.72] Use pnpm build:fast for incremental TypeScript compilation
 ```
 
 ### 4. Feedback loop
@@ -159,6 +163,22 @@ Before creating or updating instincts, a deterministic (no LLM cost) contradicti
 
 Every write is checked against existing instincts using Jaccard similarity. If any existing instinct scores >= 0.6 similarity, the write is blocked and the LLM is instructed to update the existing one instead. This keeps the corpus clean without human effort.
 
+### Facts / Knowledge Notes
+
+Alongside behavioural instincts, the extension maintains a second memory class: **facts**. A fact is a declarative statement with no trigger or action — just something that is true.
+
+```
+Instinct: when modifying API routes → always update the OpenAPI spec
+Fact:     The staging environment lives at staging.example.com
+```
+
+Facts are **user-driven** — you create them by telling Pi to remember something during a session. Pi then calls the `fact_write` tool directly:
+
+> "Remember that the test database port is 3306"
+> "Store the fact that we use pnpm build:fast for incremental TypeScript compilation"
+
+Facts are injected into the system prompt as a separate `## Project Knowledge` block after the instincts block. They participate in the same confidence and decay system as instincts — facts that aren't confirmed decay over time and are eventually pruned. The background analyzer handles this maintenance automatically; it does **not** try to detect or create facts from observations.
+
 ---
 
 ## Slash commands
@@ -185,8 +205,12 @@ The LLM can call these directly during conversation — no slash command needed:
 | `instinct_write` | Create or update an instinct |
 | `instinct_delete` | Remove an instinct by ID |
 | `instinct_merge` | Merge multiple instincts into one |
+| `fact_list` | List knowledge facts with optional scope/domain filters |
+| `fact_read` | Read a specific fact by ID |
+| `fact_write` | Create or update a knowledge fact |
+| `fact_delete` | Remove a fact by ID |
 
-Ask Pi things like _"show me my instincts"_, _"merge these two"_, or _"delete anything with low confidence"_ and it will use these tools directly.
+Ask Pi things like _"show me my instincts"_, _"merge these two"_, or _"remember that the DB port is 3306"_ and it will use these tools directly.
 
 ---
 
@@ -363,7 +387,10 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
   "consolidation_min_sessions": 10,
   "max_total_instincts_per_project": 100,
   "max_total_instincts_global": 200,
-  "max_new_instincts_per_run": 10
+  "max_new_instincts_per_run": 10,
+  "max_facts_per_project": 30,
+  "max_facts_global": 50,
+  "max_new_facts_per_run": 3
 }
 ```
 
@@ -385,6 +412,9 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
 | `max_total_instincts_per_project` | 100 | Hard cap; oldest low-confidence instincts are pruned first |
 | `max_total_instincts_global` | 200 | Hard cap for global instincts |
 | `max_new_instincts_per_run` | 10 | Rate limit on instinct creation per analyzer run |
+| `max_facts_per_project` | 30 | Hard cap on facts per project; lowest-confidence pruned first |
+| `max_facts_global` | 50 | Hard cap on global facts |
+| `max_new_facts_per_run` | 3 | Rate limit on fact creation per analyzer run |
 | `log_path` | `~/.pi/continuous-learning/analyzer.log` | Analyzer log file path |
 
 ---
@@ -400,11 +430,13 @@ All data stays local on your machine:
   analyze.lock                  # Present only while analyzer runs
   analyzer.log                  # Structured JSON event log
   instincts/personal/           # Global instincts
+  facts/personal/               # Global facts
   projects/<hash>/
     project.json                # Project metadata + analysis cursor
     observations.jsonl          # Current observations
     observations.archive/       # Archived (auto-purged after 30 days)
     instincts/personal/         # Project-scoped instincts
+    facts/personal/             # Project-scoped facts
 ```
 
 ---

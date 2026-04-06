@@ -32,6 +32,8 @@ import { buildConsolidateUserPrompt } from "../prompts/consolidate-user.js";
 import { countObservations } from "../observations.js";
 import { runDecayPass } from "../instinct-decay.js";
 import { runCleanupPass } from "../instinct-cleanup.js";
+import { runFactDecayPass } from "../fact-decay.js";
+import { runFactCleanupPass } from "../fact-cleanup.js";
 import { tailObservationsSince } from "../prompts/analyzer-user.js";
 import { buildSingleShotSystemPrompt } from "../prompts/analyzer-system-single-shot.js";
 import { buildSingleShotUserPrompt } from "../prompts/analyzer-user-single-shot.js";
@@ -290,6 +292,8 @@ async function analyzeProject(
 
   runCleanupPass(project.id, config, baseDir);
   runDecayPass(project.id, baseDir);
+  runFactCleanupPass(project.id, config, baseDir);
+  runFactDecayPass(project.id, baseDir);
 
   // Load current instincts inline - no tool calls needed
   const projectInstincts = loadProjectInstincts(project.id, baseDir);
@@ -627,6 +631,8 @@ async function consolidateProject(
   // Run cleanup and decay before consolidation
   runCleanupPass(project.id, config, baseDir);
   runDecayPass(project.id, baseDir);
+  runFactCleanupPass(project.id, config, baseDir);
+  runFactDecayPass(project.id, baseDir);
 
   // Load all instincts
   const projectInstincts = loadProjectInstincts(project.id, baseDir);

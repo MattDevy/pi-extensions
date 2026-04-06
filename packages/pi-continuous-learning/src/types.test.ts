@@ -166,6 +166,9 @@ describe("types exports", () => {
       consolidation_min_sessions: 10,
       recurring_prompt_min_sessions: 3,
       recurring_prompt_score_boost: 3,
+      max_facts_per_project: 30,
+      max_facts_global: 50,
+      max_new_facts_per_run: 3,
     };
     expect(config.run_interval_minutes).toBe(5);
     expect(config.model).toBe("claude-haiku-4-5");

@@ -10,7 +10,7 @@ import type {
   BeforeAgentStartEvent,
   AgentEndEvent,
 } from "./prompt-observer.js";
-import type { Config, Instinct } from "./types.js";
+import type { Config, Instinct, Fact } from "./types.js";
 
 /** Subset of BeforeAgentStartEventResult used by this module. */
 export interface InjectionResult {
@@ -22,12 +22,14 @@ import {
   setCurrentActiveInstincts,
   clearActiveInstincts,
 } from "./active-instincts.js";
+import { loadProjectFacts, loadGlobalFacts } from "./fact-store.js";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 export const INSTINCTS_HEADER = "## Learned Behaviors (Instincts)";
+export const FACTS_HEADER = "## Project Knowledge";
 
 // ---------------------------------------------------------------------------
 // buildInjectionBlock
@@ -66,6 +68,48 @@ export function buildInjectionBlock(
   let result = `\n\n${INSTINCTS_HEADER}\n${allBullets.join("\n")}`;
   if (omitted > 0) {
     result += `\n(${omitted} lower-confidence instinct${omitted > 1 ? "s" : ""} omitted)`;
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// buildFactsInjectionBlock
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the facts injection block string from a list of facts.
+ * Returns null when the list is empty (no block needed).
+ * Format per bullet: `- [0.75] content text`
+ */
+export function buildFactsInjectionBlock(
+  facts: Fact[],
+  maxChars?: number,
+): string | null {
+  if (facts.length === 0) return null;
+
+  const headerLen = `\n\n${FACTS_HEADER}\n`.length;
+  const allBullets: string[] = [];
+  let charCount = headerLen;
+  let omitted = 0;
+
+  for (const f of facts) {
+    const bullet = `- [${f.confidence.toFixed(2)}] ${f.content}`;
+    const bulletLen = bullet.length + 1; // +1 for newline
+
+    if (maxChars && charCount + bulletLen > maxChars) {
+      omitted = facts.length - allBullets.length;
+      break;
+    }
+
+    allBullets.push(bullet);
+    charCount += bulletLen;
+  }
+
+  if (allBullets.length === 0) return null;
+
+  let result = `\n\n${FACTS_HEADER}\n${allBullets.join("\n")}`;
+  if (omitted > 0) {
+    result += `\n(${omitted} lower-confidence fact${omitted > 1 ? "s" : ""} omitted)`;
   }
   return result;
 }
@@ -113,14 +157,34 @@ export function handleBeforeAgentStartInjection(
     relevantDomains,
   );
 
-  const block = buildInjectionBlock(instincts, config.max_injection_chars);
-  if (block === null) {
+  const instinctsBlock = buildInjectionBlock(
+    instincts,
+    config.max_injection_chars,
+  );
+
+  // Load and filter facts: confidence >= min_confidence, not flagged, sorted by confidence desc
+  const allFacts = [
+    ...(projectId ? loadProjectFacts(projectId, baseDir) : []),
+    ...loadGlobalFacts(baseDir),
+  ]
+    .filter((f) => f.confidence >= config.min_confidence && !f.flagged_for_removal)
+    .sort((a, b) => b.confidence - a.confidence);
+
+  const usedChars = instinctsBlock?.length ?? 0;
+  const remainingChars = config.max_injection_chars - usedChars;
+  const factsBlock = buildFactsInjectionBlock(
+    allFacts,
+    remainingChars > 0 ? remainingChars : undefined,
+  );
+
+  if (instinctsBlock === null && factsBlock === null) {
     setCurrentActiveInstincts([]);
     return undefined;
   }
 
   setCurrentActiveInstincts(instincts.map((i) => i.id));
-  return { systemPrompt: event.systemPrompt + block };
+  const addition = (instinctsBlock ?? "") + (factsBlock ?? "");
+  return { systemPrompt: event.systemPrompt + addition };
 }
 
 // ---------------------------------------------------------------------------

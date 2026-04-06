@@ -75,6 +75,33 @@ export interface Instinct {
 export type GraduationTarget = "agents-md" | "skill" | "command";
 
 // ---------------------------------------------------------------------------
+// Fact
+// ---------------------------------------------------------------------------
+
+export type FactScope = "project" | "global";
+export type FactSource = "personal";
+
+export interface Fact {
+  id: string; // kebab-case
+  title: string;
+  content: string; // declarative statement (markdown body)
+  confidence: number; // 0.1 - 0.9
+  domain: string;
+  source: FactSource;
+  scope: FactScope;
+  project_id?: string;
+  project_name?: string;
+  created_at: string; // ISO 8601
+  updated_at: string; // ISO 8601
+  observation_count: number;
+  confirmed_count: number;
+  contradicted_count: number;
+  inactive_count: number;
+  evidence?: string[];
+  flagged_for_removal?: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // ProjectEntry
 // ---------------------------------------------------------------------------
 
@@ -121,6 +148,10 @@ export interface Config {
   // Recurring prompt detection
   recurring_prompt_min_sessions: number; // distinct sessions before a prompt is considered recurring
   recurring_prompt_score_boost: number; // score added to batch when a recurring prompt is present
+  // Facts volume control
+  max_facts_per_project: number;
+  max_facts_global: number;
+  max_new_facts_per_run: number;
 }
 
 // ---------------------------------------------------------------------------

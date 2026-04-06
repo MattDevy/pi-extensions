@@ -62,6 +62,7 @@ import {
   COMMAND_NAME as DREAM_CMD,
 } from "./instinct-dream.js";
 import { registerAllTools } from "./instinct-tools.js";
+import { registerAllFactTools } from "./fact-tools.js";
 import { logError } from "./error-logger.js";
 import { checkAnalysisNotifications } from "./analysis-notification.js";
 import type { Config, InstalledSkill, ProjectEntry } from "./types.js";
@@ -89,6 +90,7 @@ export default function (pi: ExtensionAPI): void {
       }
 
       registerAllTools(pi, project.id, project.name);
+      registerAllFactTools(pi, project.id, project.name);
     } catch (err) {
       logError(project?.id ?? null, "session_start", err);
     }
