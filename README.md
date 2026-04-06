@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/pi-continuous-learning)](https://www.npmjs.com/package/pi-continuous-learning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/MattDevy)
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-red.png)](https://www.buymeacoffee.com/MattDevy)
 
 Inspired by [everything-claude-code/continuous-learning-v2](https://github.com/nicholasb/everything-claude-code), reimplemented as a native Pi extension in TypeScript.
 
