@@ -6,6 +6,10 @@
 [![npm](https://img.shields.io/npm/v/pi-continuous-learning)](https://www.npmjs.com/package/pi-continuous-learning)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<!-- markdownlint-disable MD033 -->
+<a href="https://www.buymeacoffee.com/MattDevy"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" width="150"></a>
+<!-- markdownlint-enable MD033 -->
+
 Inspired by [everything-claude-code/continuous-learning-v2](https://github.com/nicholasb/everything-claude-code), reimplemented as a native Pi extension in TypeScript.
 
 ---
@@ -264,7 +268,7 @@ Every write is validated and deduplicated before saving.
 
 Instincts are designed to be short-lived — they should graduate into permanent knowledge within a few weeks:
 
-```
+```text
 Observation → Instinct (days) → AGENTS.md / Skill / Command (1–2 weeks)
 ```
 
@@ -324,7 +328,7 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
 
 All data stays local on your machine:
 
-```
+```text
 ~/.pi/continuous-learning/
   config.json                   # Optional overrides
   projects.json                 # Project registry
