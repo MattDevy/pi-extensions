@@ -11,7 +11,7 @@ permissions: {}
 
 jobs:
   megalinter:
-    name: Lint (MegaLinter)
+    name: Lint
     runs-on: ubuntu-latest
 
     permissions:

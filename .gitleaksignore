@@ -1,0 +1,6 @@
+# False positives — test fixtures containing fake/example secrets
+4fc6b18d265d27f652f347610e7778c168862ce5:src/session-observer.test.ts:curl-auth-header:187
+d7bd51a88ac14ca5d6d47b19f4859eeecedc0ae8:src/session-observer.test.ts:curl-auth-header:160
+cccc0735a04ff516490c544aba1ae1c82248b2dc:src/tool-observer.test.ts:curl-auth-header:133
+1a0e3ca5f96cafc91c08cf006493b4d89fe3f16f:src/scrubber.test.ts:generic-api-key:29
+1a0e3ca5f96cafc91c08cf006493b4d89fe3f16f:src/scrubber.test.ts:generic-api-key:68
