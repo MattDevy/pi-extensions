@@ -503,6 +503,7 @@ A warning is logged when budget enforcement triggers.
 | Error observation (`is_error: true`) | +2 |
 | `user_prompt` immediately after an error (correction) | +3 |
 | Any other `user_prompt` | +1 |
+| Model change (`model_select`) | +1 |
 
 If the total score is below `LOW_SIGNAL_THRESHOLD` (3), analysis is skipped entirely with a log entry of `"low-signal batch"`. This avoids burning tokens on batches containing only routine successful tool calls.
 

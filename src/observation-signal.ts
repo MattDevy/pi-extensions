@@ -73,6 +73,8 @@ export function scoreObservationBatch(
           }
         }
       }
+    } else if (obs.event === "model_select") {
+      score += 1;
     }
 
     lastWasError = false;

@@ -66,6 +66,12 @@ describe("scoreObservationBatch", () => {
     expect(result.corrections).toBe(0);
   });
 
+  it("scores model_select at +1", () => {
+    const lines = [line({ event: "model_select" })];
+    const result = scoreObservationBatch(lines);
+    expect(result.score).toBe(1);
+  });
+
   it("resets error flag after non-error event", () => {
     const lines = [
       line({ event: "tool_complete", tool: "bash", is_error: true }),

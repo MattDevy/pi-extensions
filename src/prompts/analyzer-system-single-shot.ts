@@ -81,6 +81,7 @@ Analyze observations for these categories:
 
 ### Model Preferences
 - model_select events track when users switch models
+- Trigger: the context or task type right before the switch; Action: the preferred model to use. Example: "When doing X type of work, user prefers model Y."
 
 ## Feedback Analysis
 
