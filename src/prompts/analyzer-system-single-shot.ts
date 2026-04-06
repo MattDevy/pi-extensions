@@ -93,6 +93,16 @@ Use this to update existing instinct confidence scores:
 - Contradicted (-0.15): instinct was active but user corrected the agent
 - Inactive (no change): instinct was injected but trigger never arose
 
+### Implicit confirmation from clean sessions
+
+When a batch contains zero errors and zero user corrections, and one or more
+instinct IDs appear in active_instincts across the observations, treat this as
+implicit confirmation for those instincts — the agent executed cleanly while
+the instincts were injected. Apply the same confirmed_count increment rules
+(per-session deduplication, baseline behavior filtering, diminishing returns)
+as for explicit confirmations. Do not count it if the instinct's trigger was
+never relevant to the work done in the session.
+
 When updating, increment the corresponding count field.
 
 ### Confirmation confidence deltas (diminishing returns)
