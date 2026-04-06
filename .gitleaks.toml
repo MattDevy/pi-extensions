@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore test files containing fake/example secrets"
+paths = [
+  '''.*\.test\.ts$''',
+  '''.*\.spec\.ts$''',
+  '''.*\.test\.js$''',
+  '''.*\.spec\.js$''',
+]
