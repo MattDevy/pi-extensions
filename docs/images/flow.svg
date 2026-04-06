@@ -1,0 +1,125 @@
+<svg width="100%" viewBox="0 -32 680 512" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .th { font-size: 14px; font-weight: 500; fill: #1a1a1a; }
+    .ts { font-size: 12px; font-weight: 400; fill: #6b6b6b; }
+    .arr { stroke: #9b9b9b; stroke-width: 1.5; fill: none; }
+    .node { cursor: pointer; }
+
+    /* Purple */
+    .c-purple rect { fill: #EEEDFE; stroke: #534AB7; }
+    .c-purple text.th { fill: #3C3489; }
+    .c-purple text.ts { fill: #534AB7; }
+
+    /* Teal */
+    .c-teal rect { fill: #E1F5EE; stroke: #0F6E56; }
+    .c-teal text.th { fill: #085041; }
+    .c-teal text.ts { fill: #0F6E56; }
+
+    /* Amber */
+    .c-amber rect { fill: #FAEEDA; stroke: #854F0B; }
+    .c-amber text.th { fill: #633806; }
+    .c-amber text.ts { fill: #854F0B; }
+
+    /* Coral */
+    .c-coral rect { fill: #FAECE7; stroke: #993C1D; }
+    .c-coral text.th { fill: #712B13; }
+    .c-coral text.ts { fill: #993C1D; }
+
+    /* Gray */
+    .c-gray rect { fill: #F1EFE8; stroke: #5F5E5A; }
+    .c-gray text.th { fill: #444441; }
+    .c-gray text.ts { fill: #5F5E5A; }
+  </style>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#9b9b9b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Background -->
+<rect y="-32" width="680" height="512" fill="#ffffff" rx="12"/>
+
+<!-- Pi Session container -->
+<rect x="20" y="20" width="380" height="280" rx="14" fill="none" stroke="#c8c6be" stroke-width="1" stroke-dasharray="6 4"/>
+<text class="ts" x="36" y="42" font-style="italic">Pi session</text>
+
+<!-- Session events -->
+<g class="c-purple">
+  <rect x="40" y="56" width="140" height="44" rx="8" stroke-width="0.5"/>
+  <text class="th" x="110" y="78" text-anchor="middle" dominant-baseline="central">Session events</text>
+</g>
+
+<!-- Observation collector -->
+<g class="c-teal">
+  <rect x="40" y="148" width="140" height="52" rx="8" stroke-width="0.5"/>
+  <text class="th" x="110" y="167" text-anchor="middle" dominant-baseline="central">Observation</text>
+  <text class="ts" x="110" y="186" text-anchor="middle" dominant-baseline="central">collector</text>
+</g>
+
+<!-- System prompt injection -->
+<g class="c-teal">
+  <rect x="220" y="148" width="150" height="52" rx="8" stroke-width="0.5"/>
+  <text class="th" x="295" y="167" text-anchor="middle" dominant-baseline="central">System prompt</text>
+  <text class="ts" x="295" y="186" text-anchor="middle" dominant-baseline="central">injection</text>
+</g>
+
+<!-- Feedback loop -->
+<g class="c-purple">
+  <rect x="220" y="232" width="150" height="44" rx="8" stroke-width="0.5"/>
+  <text class="th" x="295" y="254" text-anchor="middle" dominant-baseline="central">Feedback loop</text>
+</g>
+
+<!-- Arrows inside session -->
+<line x1="110" y1="100" x2="110" y2="146" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+<text class="ts" x="168" y="128" text-anchor="middle">observations.jsonl</text>
+
+<!-- observation collector → system prompt injection -->
+<line x1="180" y1="174" x2="218" y2="174" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+<!-- system prompt → feedback -->
+<line x1="295" y1="200" x2="295" y2="230" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+<!-- feedback → system prompt (validates, dashed) -->
+<path d="M220 254 Q180 254 180 200 Q180 148 218 168" fill="none" stroke="#c8c6be" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text class="ts" x="155" y="212" text-anchor="middle">validates</text>
+
+<!-- Background analyzer container -->
+<rect x="430" y="20" width="230" height="200" rx="14" fill="none" stroke="#c8c6be" stroke-width="1" stroke-dasharray="6 4"/>
+<text class="ts" x="446" y="42" font-style="italic">Background analyzer</text>
+
+<!-- Reads observations -->
+<g class="c-gray">
+  <rect x="448" y="56" width="192" height="44" rx="8" stroke-width="0.5"/>
+  <text class="th" x="544" y="78" text-anchor="middle" dominant-baseline="central">Reads observations</text>
+</g>
+
+<!-- Haiku LLM -->
+<g class="c-amber">
+  <rect x="448" y="130" width="192" height="52" rx="8" stroke-width="0.5"/>
+  <text class="th" x="544" y="150" text-anchor="middle" dominant-baseline="central">Haiku LLM</text>
+  <text class="ts" x="544" y="170" text-anchor="middle" dominant-baseline="central">analyses patterns</text>
+</g>
+
+<!-- Arrow inside analyzer -->
+<line x1="544" y1="100" x2="544" y2="128" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+<!-- Instinct files -->
+<g class="c-coral">
+  <rect x="448" y="260" width="192" height="52" rx="8" stroke-width="0.5"/>
+  <text class="th" x="544" y="280" text-anchor="middle" dominant-baseline="central">Instinct files</text>
+  <text class="ts" x="544" y="298" text-anchor="middle" dominant-baseline="central">.md + YAML frontmatter</text>
+</g>
+
+<!-- Haiku → instinct files -->
+<line x1="544" y1="182" x2="544" y2="258" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+<text class="ts" x="538" y="225" text-anchor="end">creates / updates</text>
+
+<!-- observations → analyzer (scheduled, dashed) -->
+<path d="M110 200 L110 380 Q110 400 130 400 L430 400 Q450 400 450 380 L450 312" fill="none" stroke="#c8c6be" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text class="ts" x="280" y="418" text-anchor="middle">scheduled cron / launchd</text>
+
+<!-- instinct files → session injection (routes above both containers) -->
+<path d="M544 260 L544 10 L295 10 L295 146" fill="none" stroke="#6b6b6b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="420" y="-6" text-anchor="middle">high-confidence instincts injected</text>
+</svg>

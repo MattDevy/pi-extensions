@@ -12,23 +12,7 @@ Inspired by [everything-claude-code/continuous-learning-v2](https://github.com/n
 
 ## How it works
 
-```mermaid
-flowchart LR
-    subgraph session ["Pi Session (extension)"]
-        A[Session events] --> B[Observation collector]
-        B -->|writes observations.jsonl| C[System prompt injection]
-        C --> D[Feedback loop]
-        D -->|confirms / contradicts / ignores| C
-    end
-
-    subgraph analyzer ["Background analyzer (pi-cl-analyze)"]
-        E[Reads observations.jsonl] --> F[Haiku LLM\nanalyses patterns]
-        F -->|creates / updates| G[Instinct files\n.md + YAML frontmatter]
-    end
-
-    G -->|high-confidence instincts injected| C
-    B -.->|scheduled cron / launchd| E
-```
+![Flow diagram](docs/images/flow.svg)
 
 **The key idea:** the extension watches what you do, learns patterns, injects relevant instincts into future sessions, then validates whether those instincts actually helped — adjusting confidence based on real outcomes rather than observation count alone.
 
