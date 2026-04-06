@@ -18,7 +18,7 @@ npm run build                     # compile all packages to dist/
 
 ## Architecture
 
-This is a [Pi](https://github.com/nicholasgasior/pi-coding-agent) extension. The entry point (`src/index.ts`) exports a default function that receives `ExtensionAPI` and registers hooks and commands.
+This is an npm workspaces monorepo. The `pi-continuous-learning` package lives under `packages/pi-continuous-learning/`. Its entry point (`packages/pi-continuous-learning/src/index.ts`) exports a default function that receives `ExtensionAPI` and registers hooks and commands.
 
 ### Data flow
 
@@ -38,14 +38,16 @@ The analyzer runs as a **separate background process** (cron/launchd), never ins
 
 ### Key modules
 
+All source lives under `packages/pi-continuous-learning/src/`:
+
 - **Observers** (`tool-observer.ts`, `session-observer.ts`, `prompt-observer.ts`) — capture session events and write `observations.jsonl`
 - **Instinct store** (`instinct-store.ts`, `instinct-parser.ts`, `instinct-loader.ts`) — CRUD for markdown instinct files (YAML frontmatter + body)
 - **Injector** (`instinct-injector.ts`, `active-instincts.ts`) — selects high-confidence instincts and injects them into the system prompt before each agent start
 - **Confidence** (`confidence.ts`, `instinct-decay.ts`) — scoring and TTL-based decay
-- **CLI analyzer** (`src/cli/analyze.ts`) — standalone background process with lockfile guard, 5-minute global timeout, structured JSON logging
+- **CLI analyzer** (`cli/analyze.ts`) — standalone background process with lockfile guard, 5-minute global timeout, structured JSON logging
 - **Commands** (`src/commands/`) — slash commands registered with Pi
 - **Tools** (`instinct-tools.ts`) — LLM-callable tools for instinct CRUD
-- **Prompts** (`src/prompts/`) — system and user prompts for the LLM analyzer, consolidation, and evolution passes
+- **Prompts** (`prompts/`) — system and user prompts for the LLM analyzer, consolidation, and evolution passes
 
 ### Storage layout
 
