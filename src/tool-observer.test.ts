@@ -1,8 +1,19 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { clearActiveInstincts, setCurrentActiveInstincts } from "./active-instincts.js";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
+import {
+  clearActiveInstincts,
+  setCurrentActiveInstincts,
+} from "./active-instincts.js";
 import { ensureStorageLayout } from "./storage.js";
 import {
   handleToolEnd,
@@ -26,15 +37,31 @@ function makeCtx(sessionId = "test-session-001") {
   } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
 }
 
-function makeStartEvent(toolName: string, args: unknown): ToolExecutionStartEvent {
+function makeStartEvent(
+  toolName: string,
+  args: unknown,
+): ToolExecutionStartEvent {
   return { type: "tool_execution_start", toolCallId: "call-1", toolName, args };
 }
 
-function makeEndEvent(toolName: string, result: unknown, isError = false): ToolExecutionEndEvent {
-  return { type: "tool_execution_end", toolCallId: "call-1", toolName, result, isError };
+function makeEndEvent(
+  toolName: string,
+  result: unknown,
+  isError = false,
+): ToolExecutionEndEvent {
+  return {
+    type: "tool_execution_end",
+    toolCallId: "call-1",
+    toolName,
+    result,
+    isError,
+  };
 }
 
-function readObservations(projectId: string, baseDir: string): Record<string, unknown>[] {
+function readObservations(
+  projectId: string,
+  baseDir: string,
+): Record<string, unknown>[] {
   const filePath = join(baseDir, "projects", projectId, "observations.jsonl");
   const raw = readFileSync(filePath, "utf-8").trim();
   return raw
@@ -76,12 +103,10 @@ afterAll(() => {
 
 beforeEach(() => {
   clearActiveInstincts();
-
 });
 
 afterEach(() => {
   clearActiveInstincts();
-
 });
 
 // ---------------------------------------------------------------------------
@@ -123,7 +148,9 @@ describe("handleToolStart", () => {
     handleToolStart(event, ctx, PROJECT, tmpDir);
 
     const last = lastObs(PROJECT.id, tmpDir);
-    expect((last["input"] as string).length).toBeLessThanOrEqual(MAX_TOOL_INPUT_LENGTH);
+    expect((last["input"] as string).length).toBeLessThanOrEqual(
+      MAX_TOOL_INPUT_LENGTH,
+    );
   });
 
   it("applies secret scrubbing to input", () => {
@@ -212,7 +239,9 @@ describe("handleToolEnd", () => {
     handleToolEnd(event, ctx, PROJECT, tmpDir);
 
     const last = lastObs(PROJECT.id, tmpDir);
-    expect((last["output"] as string).length).toBeLessThanOrEqual(MAX_TOOL_OUTPUT_LENGTH);
+    expect((last["output"] as string).length).toBeLessThanOrEqual(
+      MAX_TOOL_OUTPUT_LENGTH,
+    );
   });
 
   it("applies secret scrubbing to output", () => {

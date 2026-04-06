@@ -39,7 +39,10 @@ function makeProject(overrides: Partial<ProjectEntry> = {}): ProjectEntry {
   };
 }
 
-function makeMockCtx(baseDir: string): { ui: { notify: ReturnType<typeof vi.fn> }; cwd: string } {
+function makeMockCtx(baseDir: string): {
+  ui: { notify: ReturnType<typeof vi.fn> };
+  cwd: string;
+} {
   return { ui: { notify: vi.fn() }, cwd: baseDir };
 }
 
@@ -66,7 +69,11 @@ describe("readProjectsRegistry", () => {
   it("returns parsed registry from projects.json", () => {
     const project = makeProject();
     const registry = { [project.id]: project };
-    writeFileSync(join(tmpDir, "projects.json"), JSON.stringify(registry), "utf-8");
+    writeFileSync(
+      join(tmpDir, "projects.json"),
+      JSON.stringify(registry),
+      "utf-8",
+    );
     const result = readProjectsRegistry(tmpDir);
     expect(result).toEqual(registry);
   });
@@ -98,7 +105,13 @@ describe("countProjectInstincts", () => {
   it("counts only .md files in personal instincts directory", () => {
     const project = makeProject();
     ensureStorageLayout(project, tmpDir);
-    const instinctsDir = join(tmpDir, "projects", project.id, "instincts", "personal");
+    const instinctsDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "personal",
+    );
     writeFileSync(join(instinctsDir, "first-instinct.md"), "# test", "utf-8");
     writeFileSync(join(instinctsDir, "second-instinct.md"), "# test", "utf-8");
     writeFileSync(join(instinctsDir, "README.txt"), "not an instinct", "utf-8");
@@ -109,8 +122,18 @@ describe("countProjectInstincts", () => {
   it("does not count inherited instincts", () => {
     const project = makeProject();
     ensureStorageLayout(project, tmpDir);
-    const inheritedDir = join(tmpDir, "projects", project.id, "instincts", "inherited");
-    writeFileSync(join(inheritedDir, "inherited-instinct.md"), "# test", "utf-8");
+    const inheritedDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "inherited",
+    );
+    writeFileSync(
+      join(inheritedDir, "inherited-instinct.md"),
+      "# test",
+      "utf-8",
+    );
     const count = countProjectInstincts(project.id, tmpDir);
     expect(count).toBe(0);
   });
@@ -154,7 +177,13 @@ describe("formatProjectsOutput", () => {
   it("displays correct instinct count", () => {
     const project = makeProject();
     ensureStorageLayout(project, tmpDir);
-    const instinctsDir = join(tmpDir, "projects", project.id, "instincts", "personal");
+    const instinctsDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "personal",
+    );
     writeFileSync(join(instinctsDir, "one.md"), "# test", "utf-8");
     writeFileSync(join(instinctsDir, "two.md"), "# test", "utf-8");
     const output = formatProjectsOutput({ [project.id]: project }, tmpDir);
@@ -162,8 +191,16 @@ describe("formatProjectsOutput", () => {
   });
 
   it("sorts projects by last_seen descending (most recent first)", () => {
-    const older = makeProject({ id: "older000001", name: "older-project", last_seen: "2026-01-01T00:00:00.000Z" });
-    const newer = makeProject({ id: "newer000001", name: "newer-project", last_seen: "2026-03-01T00:00:00.000Z" });
+    const older = makeProject({
+      id: "older000001",
+      name: "older-project",
+      last_seen: "2026-01-01T00:00:00.000Z",
+    });
+    const newer = makeProject({
+      id: "newer000001",
+      name: "newer-project",
+      last_seen: "2026-03-01T00:00:00.000Z",
+    });
     const registry = { [older.id]: older, [newer.id]: newer };
     const output = formatProjectsOutput(registry, tmpDir);
     const olderIdx = output.indexOf("older-project");
@@ -194,18 +231,26 @@ describe("handleInstinctProjects", () => {
   it("calls ctx.ui.notify with formatted output", async () => {
     const project = makeProject();
     ensureStorageLayout(project, tmpDir);
-    const ctx = makeMockCtx(tmpDir) as unknown as Parameters<typeof handleInstinctProjects>[1];
+    const ctx = makeMockCtx(tmpDir) as unknown as Parameters<
+      typeof handleInstinctProjects
+    >[1];
     await handleInstinctProjects("", ctx, tmpDir);
-    expect((ctx as unknown as ReturnType<typeof makeMockCtx>).ui.notify).toHaveBeenCalledOnce();
-    const [message, level] = (ctx as unknown as ReturnType<typeof makeMockCtx>).ui.notify.mock.calls[0] as [string, string];
+    expect(
+      (ctx as unknown as ReturnType<typeof makeMockCtx>).ui.notify,
+    ).toHaveBeenCalledOnce();
+    const [message, level] = (ctx as unknown as ReturnType<typeof makeMockCtx>)
+      .ui.notify.mock.calls[0] as [string, string];
     expect(typeof message).toBe("string");
     expect(level).toBe("info");
   });
 
   it("shows no-projects message when registry is empty", async () => {
-    const ctx = makeMockCtx(tmpDir) as unknown as Parameters<typeof handleInstinctProjects>[1];
+    const ctx = makeMockCtx(tmpDir) as unknown as Parameters<
+      typeof handleInstinctProjects
+    >[1];
     await handleInstinctProjects("", ctx, tmpDir);
-    const [message] = (ctx as unknown as ReturnType<typeof makeMockCtx>).ui.notify.mock.calls[0] as [string, string];
+    const [message] = (ctx as unknown as ReturnType<typeof makeMockCtx>).ui
+      .notify.mock.calls[0] as [string, string];
     expect(message).toBe("No projects found.");
   });
 });

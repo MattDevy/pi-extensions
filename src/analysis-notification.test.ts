@@ -2,8 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { formatNotification, checkAnalysisNotifications } from "./analysis-notification.js";
-import { appendAnalysisEvent, type AnalysisEvent } from "./analysis-event-log.js";
+import {
+  formatNotification,
+  checkAnalysisNotifications,
+} from "./analysis-notification.js";
+import {
+  appendAnalysisEvent,
+  type AnalysisEvent,
+} from "./analysis-event-log.js";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
@@ -51,7 +57,9 @@ function makeMockCtx(): ExtensionContext {
     },
     hasUI: true,
     cwd: "/tmp",
-    sessionManager: { getSessionId: vi.fn().mockReturnValue("session-1") } as unknown as ExtensionContext["sessionManager"],
+    sessionManager: {
+      getSessionId: vi.fn().mockReturnValue("session-1"),
+    } as unknown as ExtensionContext["sessionManager"],
     modelRegistry: {} as unknown as ExtensionContext["modelRegistry"],
     model: undefined,
     isIdle: vi.fn(),
@@ -86,7 +94,9 @@ describe("formatNotification", () => {
       }),
     ];
     const result = formatNotification(events);
-    expect(result).toBe("[instincts] Background analysis: +1 new (use-result-type)");
+    expect(result).toBe(
+      "[instincts] Background analysis: +1 new (use-result-type)",
+    );
   });
 
   it("formats multiple change types", () => {
@@ -102,7 +112,7 @@ describe("formatNotification", () => {
     ];
     const result = formatNotification(events);
     expect(result).toBe(
-      "[instincts] Background analysis: +1 new (a), 2 updated, 1 deleted"
+      "[instincts] Background analysis: +1 new (a), 2 updated, 1 deleted",
     );
   });
 
@@ -113,12 +123,14 @@ describe("formatNotification", () => {
       }),
       makeEvent({
         created: [{ id: "y", title: "Y", scope: "global" }],
-        updated: [{ id: "z", title: "Z", scope: "project", confidence_delta: 0.1 }],
+        updated: [
+          { id: "z", title: "Z", scope: "project", confidence_delta: 0.1 },
+        ],
       }),
     ];
     const result = formatNotification(events);
     expect(result).toBe(
-      "[instincts] Background analysis: +2 new (x, y), 1 updated"
+      "[instincts] Background analysis: +2 new (x, y), 1 updated",
     );
   });
 
@@ -135,7 +147,7 @@ describe("formatNotification", () => {
     ];
     const result = formatNotification(events);
     expect(result).toBe(
-      "[instincts] Background analysis: +4 new (a, b, c, ...)"
+      "[instincts] Background analysis: +4 new (a, b, c, ...)",
     );
   });
 });
@@ -167,16 +179,18 @@ describe("checkAnalysisNotifications", () => {
   it("shows notification and consumes events", () => {
     appendAnalysisEvent(
       makeEvent({
-        created: [{ id: "new-instinct", title: "New instinct", scope: "project" }],
+        created: [
+          { id: "new-instinct", title: "New instinct", scope: "project" },
+        ],
       }),
-      baseDir
+      baseDir,
     );
 
     checkAnalysisNotifications(ctx, "proj-1", baseDir);
 
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       "[instincts] Background analysis: +1 new (new-instinct)",
-      "info"
+      "info",
     );
 
     // Second call should not notify (events consumed)
@@ -189,21 +203,23 @@ describe("checkAnalysisNotifications", () => {
       makeEvent({
         created: [{ id: "a", title: "A", scope: "project" }],
       }),
-      baseDir
+      baseDir,
     );
     appendAnalysisEvent(
       makeEvent({
-        updated: [{ id: "b", title: "B", scope: "global", confidence_delta: 0.05 }],
+        updated: [
+          { id: "b", title: "B", scope: "global", confidence_delta: 0.05 },
+        ],
         deleted: [{ id: "c", title: "C", scope: "project" }],
       }),
-      baseDir
+      baseDir,
     );
 
     checkAnalysisNotifications(ctx, "proj-1", baseDir);
 
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       "[instincts] Background analysis: +1 new (a), 1 updated, 1 deleted",
-      "info"
+      "info",
     );
   });
 });

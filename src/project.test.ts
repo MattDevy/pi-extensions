@@ -31,16 +31,17 @@ describe("detectProject", () => {
     expect(pi.exec).toHaveBeenCalledWith(
       "git",
       ["remote", "get-url", "origin"],
-      { cwd: "/home/user/projects/myrepo" }
+      { cwd: "/home/user/projects/myrepo" },
     );
   });
 
   it("falls back to hashed repo root when no remote exists", async () => {
     const repoRoot = "/home/user/projects/myrepo";
     const pi = makePi(
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce(makeExecResult(128, "")) // remote fails
-        .mockResolvedValueOnce(makeExecResult(0, `${repoRoot}\n`)) // show-toplevel ok
+        .mockResolvedValueOnce(makeExecResult(0, `${repoRoot}\n`)), // show-toplevel ok
     );
 
     const result = await detectProject(pi, repoRoot);
@@ -64,7 +65,9 @@ describe("detectProject", () => {
 
   it("trims whitespace from remote URL before hashing", async () => {
     const remote = "https://github.com/org/project.git";
-    const pi = makePi(() => Promise.resolve(makeExecResult(0, `  ${remote}  \n`)));
+    const pi = makePi(() =>
+      Promise.resolve(makeExecResult(0, `  ${remote}  \n`)),
+    );
 
     const result = await detectProject(pi, "/some/project");
 
@@ -75,9 +78,10 @@ describe("detectProject", () => {
   it("trims whitespace from repo root path before hashing", async () => {
     const repoRoot = "/home/user/projects/norepo";
     const pi = makePi(
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce(makeExecResult(128, ""))
-        .mockResolvedValueOnce(makeExecResult(0, `  ${repoRoot}  \n`))
+        .mockResolvedValueOnce(makeExecResult(0, `  ${repoRoot}  \n`)),
     );
 
     const result = await detectProject(pi, repoRoot);

@@ -71,31 +71,52 @@ describe("parseExportArgs", () => {
   });
 
   it("returns scope=project when first token is 'project'", () => {
-    expect(parseExportArgs("project")).toEqual({ scope: "project", domain: null });
+    expect(parseExportArgs("project")).toEqual({
+      scope: "project",
+      domain: null,
+    });
   });
 
   it("returns scope=global when first token is 'global'", () => {
-    expect(parseExportArgs("global")).toEqual({ scope: "global", domain: null });
+    expect(parseExportArgs("global")).toEqual({
+      scope: "global",
+      domain: null,
+    });
   });
 
   it("returns scope and domain when both are provided", () => {
-    expect(parseExportArgs("project testing")).toEqual({ scope: "project", domain: "testing" });
+    expect(parseExportArgs("project testing")).toEqual({
+      scope: "project",
+      domain: "testing",
+    });
   });
 
   it("returns global scope with domain", () => {
-    expect(parseExportArgs("global git")).toEqual({ scope: "global", domain: "git" });
+    expect(parseExportArgs("global git")).toEqual({
+      scope: "global",
+      domain: "git",
+    });
   });
 
   it("treats non-scope first token as domain (no scope)", () => {
-    expect(parseExportArgs("testing")).toEqual({ scope: null, domain: "testing" });
+    expect(parseExportArgs("testing")).toEqual({
+      scope: null,
+      domain: "testing",
+    });
   });
 
   it("joins multi-word domain tokens when no scope prefix", () => {
-    expect(parseExportArgs("git workflow")).toEqual({ scope: null, domain: "git workflow" });
+    expect(parseExportArgs("git workflow")).toEqual({
+      scope: null,
+      domain: "git workflow",
+    });
   });
 
   it("joins multi-word domain tokens when scope is present", () => {
-    expect(parseExportArgs("project git workflow")).toEqual({ scope: "project", domain: "git workflow" });
+    expect(parseExportArgs("project git workflow")).toEqual({
+      scope: "project",
+      domain: "git workflow",
+    });
   });
 });
 
@@ -195,7 +216,13 @@ describe("handleInstinctExport", () => {
     ensureStorageLayout(project, tmpDir);
 
     const instinct = makeInstinct({ id: "export-test", domain: "workflow" });
-    const instinctsDir = join(tmpDir, "projects", project.id, "instincts", "personal");
+    const instinctsDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "personal",
+    );
     saveInstinct(instinct, instinctsDir);
 
     const notifyMock = vi.fn();
@@ -221,7 +248,13 @@ describe("handleInstinctExport", () => {
       domain: "data",
       scope: "project",
     });
-    const instinctsDir = join(tmpDir, "projects", project.id, "instincts", "personal");
+    const instinctsDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "personal",
+    );
     saveInstinct(instinct, instinctsDir);
 
     const notifyMock = vi.fn();
@@ -261,7 +294,13 @@ describe("handleInstinctExport", () => {
       scope: "global",
       source: "personal",
     });
-    const projectInstinctsDir = join(tmpDir, "projects", project.id, "instincts", "personal");
+    const projectInstinctsDir = join(
+      tmpDir,
+      "projects",
+      project.id,
+      "instincts",
+      "personal",
+    );
     saveInstinct(projectInstinct, projectInstinctsDir);
     saveInstinct(globalInstinct, globalDir);
 

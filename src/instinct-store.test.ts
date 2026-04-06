@@ -97,9 +97,7 @@ describe("saveInstinct", () => {
     mkdirSync(dir);
 
     const malicious: Instinct = { ...BASE_INSTINCT, id: "../evil" };
-    expect(() => saveInstinct(malicious, dir)).toThrow(
-      /path traversal/
-    );
+    expect(() => saveInstinct(malicious, dir)).toThrow(/path traversal/);
   });
 
   it("rejects instinct IDs with forward slashes", () => {
@@ -149,7 +147,11 @@ describe("listInstincts", () => {
     // Write a valid instinct
     saveInstinct(BASE_INSTINCT, dir);
     // Write a malformed file
-    writeFileSync(join(dir, "bad-instinct.md"), "not valid frontmatter", "utf-8");
+    writeFileSync(
+      join(dir, "bad-instinct.md"),
+      "not valid frontmatter",
+      "utf-8",
+    );
 
     const instincts = listInstincts(dir);
     // Only the valid one is returned
@@ -170,7 +172,7 @@ describe("loadProjectInstincts", () => {
       "projects",
       projectId,
       "instincts",
-      "personal"
+      "personal",
     );
     mkdirSync(instinctsDir, { recursive: true });
 

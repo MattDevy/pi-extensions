@@ -2,7 +2,11 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildAnalyzerUserPrompt, tailObservations, tailObservationsSince } from "./analyzer-user.js";
+import {
+  buildAnalyzerUserPrompt,
+  tailObservations,
+  tailObservationsSince,
+} from "./analyzer-user.js";
 import type { InstalledSkill, ProjectEntry } from "../types.js";
 
 // ---------------------------------------------------------------------------
@@ -65,7 +69,7 @@ describe("tailObservations", () => {
 
   it("tails to the requested maxEntries when file has more lines", () => {
     const lines = Array.from({ length: 10 }, (_, i) =>
-      JSON.stringify({ ...JSON.parse(OBSERVATION_LINE), session: `sess-${i}` })
+      JSON.stringify({ ...JSON.parse(OBSERVATION_LINE), session: `sess-${i}` }),
     );
     writeFileSync(obsPath, lines.join("\n") + "\n", "utf-8");
     const result = tailObservations(obsPath, 3);
@@ -75,14 +79,18 @@ describe("tailObservations", () => {
   });
 
   it("ignores blank lines in the file", () => {
-    writeFileSync(obsPath, `${OBSERVATION_LINE}\n\n${OBSERVATION_LINE}\n`, "utf-8");
+    writeFileSync(
+      obsPath,
+      `${OBSERVATION_LINE}\n\n${OBSERVATION_LINE}\n`,
+      "utf-8",
+    );
     const result = tailObservations(obsPath);
     expect(result).toHaveLength(2);
   });
 
   it("defaults to 500 max entries", () => {
     const lines = Array.from({ length: 600 }, (_, i) =>
-      JSON.stringify({ ...JSON.parse(OBSERVATION_LINE), session: `s-${i}` })
+      JSON.stringify({ ...JSON.parse(OBSERVATION_LINE), session: `s-${i}` }),
     );
     writeFileSync(obsPath, lines.join("\n") + "\n", "utf-8");
     const result = tailObservations(obsPath);
@@ -194,7 +202,10 @@ describe("buildAnalyzerUserPrompt - optional parameters", () => {
   it("includes installed skills under Installed Skills when non-empty", () => {
     const skills: InstalledSkill[] = [
       { name: "git-workflow", description: "Git workflow assistant" },
-      { name: "debug-helper", description: "Debug assistant for error analysis" },
+      {
+        name: "debug-helper",
+        description: "Debug assistant for error analysis",
+      },
     ];
     const prompt = buildAnalyzerUserPrompt(obsPath, instinctsDir, PROJECT, {
       installedSkills: skills,
@@ -275,7 +286,10 @@ describe("tailObservationsSince", () => {
 
   it("drops tool_start and strips output from non-error tool_complete by default", () => {
     const obsFile = join(tmpDir, "obs-since.jsonl");
-    writeFileSync(obsFile, [toolStart, toolComplete, errorComplete, userBash].join("\n") + "\n");
+    writeFileSync(
+      obsFile,
+      [toolStart, toolComplete, errorComplete, userBash].join("\n") + "\n",
+    );
 
     const result = tailObservationsSince(obsFile, 0);
     // tool_start dropped → 3 remain (toolComplete stripped, errorComplete kept, userBash kept)
@@ -283,9 +297,22 @@ describe("tailObservationsSince", () => {
     expect(result.lines).toHaveLength(3);
 
     const parsed = result.lines.map((l) => JSON.parse(l));
-    expect(parsed.some((o: { event: string }) => o.event === "tool_start")).toBe(false);
-    expect(parsed.find((o: { event: string }) => o.event === "tool_complete" && !(o as { is_error?: boolean }).is_error)?.output).toBeUndefined();
-    expect(parsed.find((o: { event: string; is_error?: boolean }) => o.event === "tool_complete" && o.is_error)?.output).toBe("command not found");
+    expect(
+      parsed.some((o: { event: string }) => o.event === "tool_start"),
+    ).toBe(false);
+    expect(
+      parsed.find(
+        (o: { event: string }) =>
+          o.event === "tool_complete" &&
+          !(o as { is_error?: boolean }).is_error,
+      )?.output,
+    ).toBeUndefined();
+    expect(
+      parsed.find(
+        (o: { event: string; is_error?: boolean }) =>
+          o.event === "tool_complete" && o.is_error,
+      )?.output,
+    ).toBe("command not found");
   });
 
   it("skips preprocessing when preprocess=false", () => {
@@ -302,7 +329,10 @@ describe("tailObservationsSince", () => {
 
   it("only returns lines since the cursor position", () => {
     const obsFile = join(tmpDir, "obs-cursor.jsonl");
-    writeFileSync(obsFile, [userBash, userBash, userBash, userBash].join("\n") + "\n");
+    writeFileSync(
+      obsFile,
+      [userBash, userBash, userBash, userBash].join("\n") + "\n",
+    );
 
     const result = tailObservationsSince(obsFile, 2);
     expect(result.rawLineCount).toBe(2);

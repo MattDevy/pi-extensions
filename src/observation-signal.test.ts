@@ -58,9 +58,7 @@ describe("scoreObservationBatch", () => {
   });
 
   it("scores user_prompt without prior error at +1", () => {
-    const lines = [
-      line({ event: "user_prompt" }),
-    ];
+    const lines = [line({ event: "user_prompt" })];
     const result = scoreObservationBatch(lines);
     expect(result.score).toBe(1);
     expect(result.userPrompts).toBe(1);
@@ -139,7 +137,7 @@ describe("isLowSignalBatch", () => {
 function makeFreqContext(
   prompts: Record<string, number>,
   minSessions = 3,
-  scoreBoost = 3
+  scoreBoost = 3,
 ): FrequencyBoostContext {
   const projectFrequency: PromptFrequencyTable = {};
   for (const [text, sessionCount] of Object.entries(prompts)) {
@@ -216,7 +214,11 @@ describe("scoreObservationBatch active instinct boost", () => {
   it("adds +1 per distinct active instinct on a clean session", () => {
     const lines = [
       line({ event: "user_prompt", active_instincts: ["inst-a"] }),
-      line({ event: "tool_complete", tool: "read", active_instincts: ["inst-a", "inst-b"] }),
+      line({
+        event: "tool_complete",
+        tool: "read",
+        active_instincts: ["inst-a", "inst-b"],
+      }),
       line({ event: "agent_end", active_instincts: ["inst-b"] }),
     ];
     const result = scoreObservationBatch(lines);
@@ -236,7 +238,12 @@ describe("scoreObservationBatch active instinct boost", () => {
 
   it("does not boost when errors are present", () => {
     const lines = [
-      line({ event: "tool_complete", tool: "bash", is_error: true, active_instincts: ["inst-a"] }),
+      line({
+        event: "tool_complete",
+        tool: "bash",
+        is_error: true,
+        active_instincts: ["inst-a"],
+      }),
       line({ event: "user_prompt" }),
     ];
     const result = scoreObservationBatch(lines);
@@ -245,7 +252,12 @@ describe("scoreObservationBatch active instinct boost", () => {
 
   it("does not boost when corrections are present", () => {
     const lines = [
-      line({ event: "tool_complete", tool: "bash", is_error: true, active_instincts: ["inst-a"] }),
+      line({
+        event: "tool_complete",
+        tool: "bash",
+        is_error: true,
+        active_instincts: ["inst-a"],
+      }),
       line({ event: "user_prompt", active_instincts: ["inst-a"] }), // correction
     ];
     const result = scoreObservationBatch(lines);
@@ -265,7 +277,11 @@ describe("scoreObservationBatch active instinct boost", () => {
   it("deduplicates the same instinct ID across multiple observations", () => {
     const lines = [
       line({ event: "user_prompt", active_instincts: ["inst-a"] }),
-      line({ event: "tool_complete", tool: "read", active_instincts: ["inst-a"] }),
+      line({
+        event: "tool_complete",
+        tool: "read",
+        active_instincts: ["inst-a"],
+      }),
       line({ event: "agent_end", active_instincts: ["inst-a"] }),
     ];
     const result = scoreObservationBatch(lines);

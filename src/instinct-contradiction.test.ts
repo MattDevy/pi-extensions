@@ -52,14 +52,16 @@ describe("OPPOSING_VERB_PAIRS", () => {
 
   it("includes the avoid/prefer pair", () => {
     const found = OPPOSING_VERB_PAIRS.some(
-      ([a, b]) => (a === "avoid" && b === "prefer") || (a === "prefer" && b === "avoid")
+      ([a, b]) =>
+        (a === "avoid" && b === "prefer") || (a === "prefer" && b === "avoid"),
     );
     expect(found).toBe(true);
   });
 
   it("includes the never/always pair", () => {
     const found = OPPOSING_VERB_PAIRS.some(
-      ([a, b]) => (a === "never" && b === "always") || (a === "always" && b === "never")
+      ([a, b]) =>
+        (a === "never" && b === "always") || (a === "always" && b === "never"),
     );
     expect(found).toBe(true);
   });
@@ -83,15 +85,15 @@ describe("hasOpposingAction", () => {
     expect(
       hasOpposingAction(
         "Prefer interfaces for dependency injection",
-        "Avoid interfaces, use concrete types instead"
-      )
+        "Avoid interfaces, use concrete types instead",
+      ),
     ).not.toBeNull();
   });
 
   it("detects 'always' vs 'never' as opposing", () => {
     const result = hasOpposingAction(
       "Always use strict mode in TypeScript",
-      "Never enable strict mode for legacy code"
+      "Never enable strict mode for legacy code",
     );
     expect(result).not.toBeNull();
   });
@@ -99,7 +101,7 @@ describe("hasOpposingAction", () => {
   it("detects 'use' vs 'avoid' as opposing", () => {
     const result = hasOpposingAction(
       "Use functional components with hooks",
-      "Avoid functional components, prefer class components"
+      "Avoid functional components, prefer class components",
     );
     expect(result).not.toBeNull();
   });
@@ -107,7 +109,7 @@ describe("hasOpposingAction", () => {
   it("returns the reason string including the detected pair", () => {
     const result = hasOpposingAction(
       "Prefer interfaces for dependency injection",
-      "Avoid interfaces, use concrete types"
+      "Avoid interfaces, use concrete types",
     );
     expect(result).toContain("prefer");
     expect(result).toContain("avoid");
@@ -117,17 +119,14 @@ describe("hasOpposingAction", () => {
     expect(
       hasOpposingAction(
         "PREFER interfaces for dependency injection",
-        "AVOID interfaces for simplicity"
-      )
+        "AVOID interfaces for simplicity",
+      ),
     ).not.toBeNull();
   });
 
   it("returns null when actions are not opposing", () => {
     expect(
-      hasOpposingAction(
-        "Use vitest for testing",
-        "Use jest for testing"
-      )
+      hasOpposingAction("Use vitest for testing", "Use jest for testing"),
     ).toBeNull();
   });
 
@@ -135,8 +134,8 @@ describe("hasOpposingAction", () => {
     expect(
       hasOpposingAction(
         "Prefer interfaces for dependency injection",
-        "Prefer interfaces for dependency injection"
-      )
+        "Prefer interfaces for dependency injection",
+      ),
     ).toBeNull();
   });
 
@@ -148,15 +147,15 @@ describe("hasOpposingAction", () => {
     expect(
       hasOpposingAction(
         "Skip linting on test files",
-        "Ensure linting runs on all files including tests"
-      )
+        "Ensure linting runs on all files including tests",
+      ),
     ).not.toBeNull();
   });
 
   it("detects 'don't' / 'do not' vs affirmative verb as opposing", () => {
     const result = hasOpposingAction(
       "Do not use any as a type in TypeScript",
-      "Use any when types are unknown"
+      "Use any when types are unknown",
     );
     expect(result).not.toBeNull();
   });
@@ -166,8 +165,8 @@ describe("hasOpposingAction", () => {
     expect(
       hasOpposingAction(
         "Prefer small functions under 50 lines",
-        "Keep functions small and focused"
-      )
+        "Keep functions small and focused",
+      ),
     ).toBeNull();
   });
 });

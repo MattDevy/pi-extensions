@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { preprocessObservation, preprocessObservations } from "./observation-preprocessor.js";
+import {
+  preprocessObservation,
+  preprocessObservations,
+} from "./observation-preprocessor.js";
 import type { Observation } from "./types.js";
 
 const base: Omit<Observation, "event"> = {
@@ -16,7 +19,12 @@ describe("preprocessObservation", () => {
   });
 
   it("drops tool_start events", () => {
-    const obs: Observation = { ...base, event: "tool_start", tool: "bash", input: "ls" };
+    const obs: Observation = {
+      ...base,
+      event: "tool_start",
+      tool: "bash",
+      input: "ls",
+    };
     expect(preprocessObservation(obs)).toBeNull();
   });
 
@@ -61,7 +69,11 @@ describe("preprocessObservation", () => {
   });
 
   it("passes through user_prompt unchanged", () => {
-    const obs: Observation = { ...base, event: "user_prompt", input: "fix the bug" };
+    const obs: Observation = {
+      ...base,
+      event: "user_prompt",
+      input: "fix the bug",
+    };
     expect(preprocessObservation(obs)).toEqual(obs);
   });
 
@@ -78,12 +90,21 @@ describe("preprocessObservation", () => {
   });
 
   it("passes through user_bash unchanged", () => {
-    const obs: Observation = { ...base, event: "user_bash", command: "npm test", cwd: "/project" };
+    const obs: Observation = {
+      ...base,
+      event: "user_bash",
+      command: "npm test",
+      cwd: "/project",
+    };
     expect(preprocessObservation(obs)).toEqual(obs);
   });
 
   it("passes through model_select unchanged", () => {
-    const obs: Observation = { ...base, event: "model_select", model: "claude-opus-4-5" };
+    const obs: Observation = {
+      ...base,
+      event: "model_select",
+      model: "claude-opus-4-5",
+    };
     expect(preprocessObservation(obs)).toEqual(obs);
   });
 
@@ -103,9 +124,27 @@ describe("preprocessObservations", () => {
     const batch: Observation[] = [
       { ...base, event: "turn_start", turn_index: 0 },
       { ...base, event: "tool_start", tool: "read", input: "/file" },
-      { ...base, event: "tool_complete", tool: "read", output: "content", is_error: false },
-      { ...base, event: "tool_complete", tool: "edit", output: "ENOENT", is_error: true },
-      { ...base, event: "turn_end", turn_index: 0, tool_count: 2, error_count: 1 },
+      {
+        ...base,
+        event: "tool_complete",
+        tool: "read",
+        output: "content",
+        is_error: false,
+      },
+      {
+        ...base,
+        event: "tool_complete",
+        tool: "edit",
+        output: "ENOENT",
+        is_error: true,
+      },
+      {
+        ...base,
+        event: "turn_end",
+        turn_index: 0,
+        tool_count: 2,
+        error_count: 1,
+      },
       { ...base, event: "user_bash", command: "git status" },
     ];
     const result = preprocessObservations(batch);

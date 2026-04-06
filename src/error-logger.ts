@@ -31,9 +31,7 @@ function formatError(context: string, error: unknown): string {
   const timestamp = new Date().toISOString();
   const message = error instanceof Error ? error.message : String(error);
   const stack =
-    error instanceof Error && error.stack
-      ? `\nStack: ${error.stack}`
-      : "";
+    error instanceof Error && error.stack ? `\nStack: ${error.stack}` : "";
   return `[${timestamp}] [${context}] Error: ${message}${stack}\n`;
 }
 
@@ -53,7 +51,7 @@ export function logError(
   projectId: string | null,
   context: string,
   error: unknown,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   const line = formatError(context, error);
 
@@ -82,7 +80,7 @@ export function logWarning(
   projectId: string | null,
   context: string,
   message: string,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   const timestamp = new Date().toISOString();
   const line = `[${timestamp}] [${context}] Warning: ${message}\n`;
@@ -111,7 +109,7 @@ export function logInfo(
   projectId: string | null,
   context: string,
   message: string,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   const timestamp = new Date().toISOString();
   const line = `[${timestamp}] [${context}] Info: ${message}\n`;

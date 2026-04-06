@@ -21,7 +21,7 @@ export interface ConsolidatePromptOptions {
  */
 export function buildConsolidateUserPrompt(
   instincts: readonly Instinct[],
-  options: ConsolidatePromptOptions = {}
+  options: ConsolidatePromptOptions = {},
 ): string {
   const {
     agentsMdProject = null,
@@ -51,7 +51,7 @@ export function buildConsolidateUserPrompt(
     instinctBlock,
     "",
     `Total instincts: ${instincts.length}`,
-    ""
+    "",
   );
 
   if (agentsMdProject != null || agentsMdGlobal != null) {
@@ -81,7 +81,7 @@ export function buildConsolidateUserPrompt(
     "4. Return a JSON change-set with your proposed modifications.",
     "5. Prefer conservative changes - only act when the improvement is clear.",
     "",
-    "Return ONLY the JSON object. No prose, no markdown fences."
+    "Return ONLY the JSON object. No prose, no markdown fences.",
   );
 
   return parts.join("\n");

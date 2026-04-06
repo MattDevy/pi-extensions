@@ -4,7 +4,13 @@
  * Path traversal prevention: instinct IDs must be kebab-case (no ".." possible).
  */
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  existsSync,
+  statSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { Instinct } from "./types.js";
 import { parseInstinct, serializeInstinct } from "./instinct-parser.js";
@@ -81,7 +87,7 @@ function listInstinctsCached(dir: string): Instinct[] {
 function assertNoPathTraversal(id: string): void {
   if (id.includes("..") || id.includes("/") || id.includes("\\")) {
     throw new Error(
-      `Invalid instinct ID "${id}": path traversal characters are not allowed.`
+      `Invalid instinct ID "${id}": path traversal characters are not allowed.`,
     );
   }
 }
@@ -134,7 +140,7 @@ export function listInstincts(dir: string): Instinct[] {
  */
 export function loadProjectInstincts(
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): Instinct[] {
   const dir = getProjectInstinctsDir(projectId, "personal", baseDir);
   return listInstinctsCached(dir);

@@ -28,7 +28,7 @@ export const ACTIVE_INSTINCT_BOOST_CAP = 3;
 
 export function scoreObservationBatch(
   lines: string[],
-  freqContext?: FrequencyBoostContext
+  freqContext?: FrequencyBoostContext,
 ): ScoreResult {
   let score = 0;
   let errors = 0;
@@ -93,16 +93,26 @@ export function scoreObservationBatch(
   // Implicit confirmation boost: clean session with active instincts
   let activeInstinctBoost = 0;
   if (errors === 0 && corrections === 0 && seenActiveInstincts.size > 0) {
-    activeInstinctBoost = Math.min(seenActiveInstincts.size, ACTIVE_INSTINCT_BOOST_CAP);
+    activeInstinctBoost = Math.min(
+      seenActiveInstincts.size,
+      ACTIVE_INSTINCT_BOOST_CAP,
+    );
     score += activeInstinctBoost;
   }
 
-  return { score, errors, corrections, userPrompts, recurringPrompts, activeInstinctBoost };
+  return {
+    score,
+    errors,
+    corrections,
+    userPrompts,
+    recurringPrompts,
+    activeInstinctBoost,
+  };
 }
 
 export function isLowSignalBatch(
   lines: string[],
-  freqContext?: FrequencyBoostContext
+  freqContext?: FrequencyBoostContext,
 ): boolean {
   const { score } = scoreObservationBatch(lines, freqContext);
   return score < LOW_SIGNAL_THRESHOLD;

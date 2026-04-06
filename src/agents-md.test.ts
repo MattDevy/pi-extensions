@@ -66,7 +66,11 @@ describe("readAgentsMd", () => {
 
 describe("formatInstinctAsAgentsMdEntry", () => {
   it("formats instinct as a markdown section", () => {
-    const inst = makeInstinct({ title: "Use TDD", trigger: "before writing code", action: "Write tests first." });
+    const inst = makeInstinct({
+      title: "Use TDD",
+      trigger: "before writing code",
+      action: "Write tests first.",
+    });
     const result = formatInstinctAsAgentsMdEntry(inst);
     expect(result).toContain("### Use TDD");
     expect(result).toContain("**When:** before writing code");
@@ -97,7 +101,8 @@ describe("generateAgentsMdDiff", () => {
   });
 
   it("appends to existing Graduated Instincts section", () => {
-    const existing = "# My Project\n\n## Graduated Instincts\n\n### Old Entry\n\nOld content.";
+    const existing =
+      "# My Project\n\n## Graduated Instincts\n\n### Old Entry\n\nOld content.";
     const inst = makeInstinct({ title: "New Entry" });
     const result = generateAgentsMdDiff(existing, [inst]);
     expect(result).toContain("### Old Entry");

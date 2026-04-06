@@ -60,7 +60,7 @@ export function parseExportArgs(args: string): ExportArgs {
 export function filterInstinctsForExport(
   instincts: Instinct[],
   scope: InstinctScope | null,
-  domain: string | null
+  domain: string | null,
 ): Instinct[] {
   return instincts.filter((instinct) => {
     if (scope !== null && instinct.scope !== scope) return false;
@@ -97,7 +97,7 @@ export function buildExportFilename(now: Date = new Date()): string {
  */
 export function loadAllInstinctsForExport(
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Instinct[] {
   const projectInstincts =
     projectId != null ? loadProjectInstincts(projectId, baseDir) : [];
@@ -117,7 +117,7 @@ export async function handleInstinctExport(
   args: string,
   ctx: ExtensionCommandContext,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Promise<void> {
   const { scope, domain } = parseExportArgs(args);
 
@@ -131,7 +131,7 @@ export async function handleInstinctExport(
 
   ctx.ui.notify(
     `Exported ${filtered.length} instinct${filtered.length !== 1 ? "s" : ""} to ${outputPath}`,
-    "info"
+    "info",
   );
 }
 

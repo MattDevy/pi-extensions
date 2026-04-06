@@ -11,7 +11,11 @@
 import { unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Instinct, Config } from "./types.js";
-import { listInstincts, saveInstinct, invalidateCache } from "./instinct-store.js";
+import {
+  listInstincts,
+  saveInstinct,
+  invalidateCache,
+} from "./instinct-store.js";
 import {
   getBaseDir,
   getProjectInstinctsDir,
@@ -51,7 +55,7 @@ function deleteInstinctFile(instinct: Instinct, dir: string): boolean {
  */
 export function cleanupFlaggedInstincts(
   dir: string,
-  flaggedCleanupDays: number
+  flaggedCleanupDays: number,
 ): number {
   const instincts = listInstincts(dir);
   let deleted = 0;
@@ -78,7 +82,7 @@ export function cleanupFlaggedInstincts(
  */
 export function cleanupZeroConfirmedInstincts(
   dir: string,
-  ttlDays: number
+  ttlDays: number,
 ): number {
   const instincts = listInstincts(dir);
   let deleted = 0;
@@ -198,17 +202,27 @@ export interface CleanupResult {
 export function cleanupDir(
   dir: string,
   config: Config,
-  maxCount: number
+  maxCount: number,
 ): CleanupResult {
-  const flaggedDeleted = cleanupFlaggedInstincts(dir, config.flagged_cleanup_days);
+  const flaggedDeleted = cleanupFlaggedInstincts(
+    dir,
+    config.flagged_cleanup_days,
+  );
   const zeroConfirmedDeleted = cleanupZeroConfirmedInstincts(
     dir,
-    config.instinct_ttl_days
+    config.instinct_ttl_days,
   );
   const contradictionsFlagged = cleanupContradictions(dir);
   const capDeleted = enforceInstinctCap(dir, maxCount);
-  const total = flaggedDeleted + zeroConfirmedDeleted + contradictionsFlagged + capDeleted;
-  return { flaggedDeleted, zeroConfirmedDeleted, contradictionsFlagged, capDeleted, total };
+  const total =
+    flaggedDeleted + zeroConfirmedDeleted + contradictionsFlagged + capDeleted;
+  return {
+    flaggedDeleted,
+    zeroConfirmedDeleted,
+    contradictionsFlagged,
+    capDeleted,
+    total,
+  };
 }
 
 /**
@@ -223,7 +237,7 @@ export function cleanupDir(
 export function runCleanupPass(
   projectId: string | null | undefined,
   config: Config,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): CleanupResult {
   const result: CleanupResult = {
     flaggedDeleted: 0,
@@ -238,7 +252,7 @@ export function runCleanupPass(
     const projectResult = cleanupDir(
       projectDir,
       config,
-      config.max_total_instincts_per_project
+      config.max_total_instincts_per_project,
     );
     result.flaggedDeleted += projectResult.flaggedDeleted;
     result.zeroConfirmedDeleted += projectResult.zeroConfirmedDeleted;
@@ -251,7 +265,7 @@ export function runCleanupPass(
   const globalResult = cleanupDir(
     globalDir,
     config,
-    config.max_total_instincts_global
+    config.max_total_instincts_global,
   );
   result.flaggedDeleted += globalResult.flaggedDeleted;
   result.zeroConfirmedDeleted += globalResult.zeroConfirmedDeleted;

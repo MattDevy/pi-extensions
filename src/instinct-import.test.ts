@@ -87,7 +87,9 @@ describe("validateImportObject", () => {
   });
 
   it("returns error for non-object", () => {
-    expect(validateImportObject("string", 0)?.reason).toContain("not an object");
+    expect(validateImportObject("string", 0)?.reason).toContain(
+      "not an object",
+    );
     expect(validateImportObject(42, 1)?.reason).toContain("not an object");
     expect(validateImportObject(null, 2)?.reason).toContain("not an object");
     expect(validateImportObject([1, 2], 3)?.reason).toContain("not an object");
@@ -130,7 +132,10 @@ describe("validateImportObject", () => {
 
 describe("loadImportFile", () => {
   it("loads valid instinct array", () => {
-    const instincts = [makeInstinct({ id: "first-inst" }), makeInstinct({ id: "second-inst" })];
+    const instincts = [
+      makeInstinct({ id: "first-inst" }),
+      makeInstinct({ id: "second-inst" }),
+    ];
     const filePath = join(tmpDir, "import.json");
     writeImportFile(filePath, instincts);
 
@@ -222,7 +227,7 @@ describe("partitionByDuplicates", () => {
       "projects",
       project.id,
       "instincts",
-      "inherited"
+      "inherited",
     );
     mkdirSync(projectDir, { recursive: true });
 
@@ -323,7 +328,7 @@ describe("handleInstinctImport", () => {
       "projects",
       project.id,
       "instincts",
-      "inherited"
+      "inherited",
     );
     const filePath = join(expectedDir, "proj-import.md");
     const { existsSync } = await import("node:fs");
@@ -389,7 +394,12 @@ describe("handleInstinctImport", () => {
 
   it("notifies error when file does not exist", async () => {
     const { ctx, notifyMock } = makeMockCtx(tmpDir);
-    await handleInstinctImport("/nonexistent/path.json", ctx, project.id, tmpDir);
+    await handleInstinctImport(
+      "/nonexistent/path.json",
+      ctx,
+      project.id,
+      tmpDir,
+    );
 
     const [msg, level] = notifyMock.calls[0] ?? ["", ""];
     expect(level).toBe("error");

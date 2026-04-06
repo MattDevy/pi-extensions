@@ -12,7 +12,10 @@ const GLOBAL_PROJECT_ID = "global";
 const HASH_LENGTH = 12;
 
 function hashString(input: string): string {
-  return createHash("sha256").update(input).digest("hex").substring(0, HASH_LENGTH);
+  return createHash("sha256")
+    .update(input)
+    .digest("hex")
+    .substring(0, HASH_LENGTH);
 }
 
 /**
@@ -25,13 +28,15 @@ function hashString(input: string): string {
  */
 export async function detectProject(
   pi: ExtensionAPI,
-  cwd: string
+  cwd: string,
 ): Promise<ProjectEntry> {
   const now = new Date().toISOString();
   const name = basename(cwd);
 
   // 1. Try remote URL
-  const remoteResult = await pi.exec("git", ["remote", "get-url", "origin"], { cwd });
+  const remoteResult = await pi.exec("git", ["remote", "get-url", "origin"], {
+    cwd,
+  });
   if (remoteResult.code === 0) {
     const remote = remoteResult.stdout.trim();
     return {
@@ -45,7 +50,9 @@ export async function detectProject(
   }
 
   // 2. Fallback: repo root path (no remote)
-  const rootResult = await pi.exec("git", ["rev-parse", "--show-toplevel"], { cwd });
+  const rootResult = await pi.exec("git", ["rev-parse", "--show-toplevel"], {
+    cwd,
+  });
   if (rootResult.code === 0) {
     const root = rootResult.stdout.trim();
     return {

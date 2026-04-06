@@ -31,6 +31,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want `/instinct-evolve` to identify which instincts (individually or as a cluster) have enough depth and coherence to be formalized into a Pi skill file, so I know what behaviors are mature enough to extract.
 
 **Acceptance Criteria:**
+
 - [ ] `/instinct-evolve` output includes a "Skill Promotion Candidates" section when qualifying instincts exist
 - [ ] A suggestion is shown for any individual instinct with confidence >= 0.8 whose `domain` maps to a recognized skill domain (testing, git, debugging, workflow, etc.)
 - [ ] A suggestion is also shown for any merge-candidate cluster where all member instincts have confidence >= 0.7 and together span a coherent domain
@@ -46,6 +47,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want the background Haiku analyzer to read existing AGENTS.md content before creating new instincts, so I don't accumulate instincts that just repeat project or global guidelines.
 
 **Acceptance Criteria:**
+
 - [ ] At analysis time, the project's local AGENTS.md (if it exists at the project root) is read and appended to the analyzer user prompt
 - [ ] The global AGENTS.md (`~/.pi/agent/AGENTS.md`) is also read and appended to the analyzer user prompt
 - [ ] The analyzer system prompt includes a "Avoid Duplicating Guidelines" section instructing Haiku to check both AGENTS.md texts before creating any instinct
@@ -62,6 +64,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want `/instinct-evolve` to compare all existing instincts against AGENTS.md content and flag any that duplicate guidelines already written there, so I can clean up the instinct store.
 
 **Acceptance Criteria:**
+
 - [ ] `/instinct-evolve` reads both the project's local AGENTS.md and the global AGENTS.md at command run time
 - [ ] For each instinct, it checks whether the instinct's `trigger` + `action` text is semantically covered by any AGENTS.md section (keyword/phrase overlap check - no LLM call)
 - [ ] Flagged instincts appear in a new "Duplicates AGENTS.md" section in the output
@@ -78,6 +81,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want `/instinct-evolve` to suggest what I could add to my project or global AGENTS.md, based on high-confidence instincts, so I can graduate stable behaviors into permanent guidelines.
 
 **Acceptance Criteria:**
+
 - [ ] `/instinct-evolve` output includes two sub-sections: "Suggested Project AGENTS.md Additions" and "Suggested Global AGENTS.md Additions"
 - [ ] A suggestion appears for any project-scoped instinct with confidence >= 0.75 that is NOT already flagged as duplicating AGENTS.md (US-003)
 - [ ] A suggestion appears for any global-scoped instinct with confidence >= 0.8 that is NOT already in global AGENTS.md
@@ -92,6 +96,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want both the analyzer and `/instinct-evolve` to know which Pi skills are installed so they don't create or retain instincts that duplicate installed skill behaviors.
 
 **Acceptance Criteria:**
+
 - [ ] At `session_start`, `index.ts` reads the list of installed skills from the Pi ExtensionAPI (e.g., `pi.getInstalledSkills()` or equivalent - to be confirmed against Pi SDK). If no such API exists, fall back to scanning known Pi package skill directories
 - [ ] The installed skill list (name + description) is passed to `buildAnalyzerUserPrompt` as an `installedSkills` parameter
 - [ ] The analyzer system prompt includes an "Avoid Duplicating Installed Skills" section instructing Haiku not to create instincts for behaviors already in a named skill
@@ -108,6 +113,7 @@ This PRD extends `/instinct-evolve` and the background Haiku analyzer with five 
 **Description:** As a Pi user, I want `/instinct-evolve` to surface semantically redundant instincts beyond trigger-similarity, comparing `action` text and `evidence` to catch pairs where the actual recommended behavior is the same, so I can keep the instinct store concise.
 
 **Acceptance Criteria:**
+
 - [ ] Existing trigger-similarity merge candidates (Jaccard >= 0.3) remain unchanged
 - [ ] A second deduplication pass compares `action` text between all instinct pairs using Jaccard token similarity (same algorithm, threshold 0.4 on action tokens)
 - [ ] Pairs identified by action similarity but NOT already caught by trigger similarity appear as additional merge candidates

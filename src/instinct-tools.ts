@@ -10,19 +10,18 @@ import {
   saveInstinct,
   loadInstinct,
 } from "./instinct-store.js";
-import {
-  getProjectInstinctsDir,
-  getGlobalInstinctsDir,
-} from "./storage.js";
+import { getProjectInstinctsDir, getGlobalInstinctsDir } from "./storage.js";
 import { validateInstinct, findSimilarInstinct } from "./instinct-validator.js";
 
 function getInstinctsDir(
   scope: "project" | "global",
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): string | null {
   if (scope === "project") {
-    return projectId ? getProjectInstinctsDir(projectId, "personal", baseDir) : null;
+    return projectId
+      ? getProjectInstinctsDir(projectId, "personal", baseDir)
+      : null;
   }
   return getGlobalInstinctsDir("personal", baseDir);
 }
@@ -30,7 +29,7 @@ function getInstinctsDir(
 function findInstinctFile(
   id: string,
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): { path: string; scope: "project" | "global" } | null {
   if (projectId) {
     const projDir = getProjectInstinctsDir(projectId, "personal", baseDir);
@@ -49,7 +48,11 @@ function formatInstinct(i: Instinct): string {
 
 const ListParams = Type.Object({
   scope: Type.Optional(StringEnum(["project", "global", "all"] as const)),
-  domain: Type.Optional(Type.String({ description: "Filter by domain (e.g. typescript, git, workflow)" })),
+  domain: Type.Optional(
+    Type.String({
+      description: "Filter by domain (e.g. typescript, git, workflow)",
+    }),
+  ),
 });
 
 const ReadParams = Type.Object({
@@ -73,9 +76,12 @@ const WriteParams = Type.Object({
 
 const DeleteParams = Type.Object({
   id: Type.String({ description: "Instinct ID to delete" }),
-  scope: Type.Optional(StringEnum(["project", "global"] as const, {
-    description: "Target scope. If omitted, falls back to priority order (project first, then global).",
-  })),
+  scope: Type.Optional(
+    StringEnum(["project", "global"] as const, {
+      description:
+        "Target scope. If omitted, falls back to priority order (project first, then global).",
+    }),
+  ),
 });
 
 const MergeParams = Type.Object({
@@ -89,14 +95,24 @@ const MergeParams = Type.Object({
     scope: StringEnum(["project", "global"] as const),
     evidence: Type.Optional(Type.Array(Type.String())),
   }),
-  delete_ids: Type.Array(Type.String(), { description: "IDs of source instincts to remove after merge (uses priority lookup)" }),
-  delete_scoped_ids: Type.Optional(Type.Array(
-    Type.Object({
-      id: Type.String({ description: "Instinct ID" }),
-      scope: StringEnum(["project", "global"] as const, { description: "Scope of the copy to delete" }),
-    }),
-    { description: "Scope-aware deletions: [{id, scope}] to target a specific copy" }
-  )),
+  delete_ids: Type.Array(Type.String(), {
+    description:
+      "IDs of source instincts to remove after merge (uses priority lookup)",
+  }),
+  delete_scoped_ids: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String({ description: "Instinct ID" }),
+        scope: StringEnum(["project", "global"] as const, {
+          description: "Scope of the copy to delete",
+        }),
+      }),
+      {
+        description:
+          "Scope-aware deletions: [{id, scope}] to target a specific copy",
+      },
+    ),
+  ),
 });
 
 export type InstinctListInput = Static<typeof ListParams>;
@@ -108,20 +124,21 @@ export type InstinctMergeInput = Static<typeof MergeParams>;
 export function createInstinctWriteTool(
   projectId: string | null,
   projectName: string | null,
-  baseDir?: string
+  baseDir?: string,
 ) {
   return {
     name: "instinct_write" as const,
     label: "Write Instinct",
     description: "Create or update a learned behavior instinct",
-    promptSnippet: "Create or update a learned behavior instinct (trigger + action pattern)",
+    promptSnippet:
+      "Create or update a learned behavior instinct (trigger + action pattern)",
     parameters: WriteParams,
     async execute(
       _toolCallId: string,
       params: InstinctWriteInput,
       _signal: AbortSignal | undefined,
       _onUpdate: unknown,
-      _ctx: unknown
+      _ctx: unknown,
     ) {
       const validation = validateInstinct({
         action: params.action,
@@ -134,7 +151,9 @@ export function createInstinctWriteTool(
 
       const dir = getInstinctsDir(params.scope, projectId, baseDir);
       if (!dir) {
-        throw new Error("Cannot write project-scoped instinct: no project detected");
+        throw new Error(
+          "Cannot write project-scoped instinct: no project detected",
+        );
       }
 
       // Dedup check: reject if semantically similar to an existing instinct
@@ -145,11 +164,11 @@ export function createInstinctWriteTool(
       const similar = findSimilarInstinct(
         { trigger: params.trigger, action: params.action },
         allInstincts,
-        params.id // skip self on updates
+        params.id, // skip self on updates
       );
       if (similar) {
         throw new Error(
-          `Similar instinct already exists: "${similar.instinct.id}" (similarity: ${(similar.similarity * 100).toFixed(0)}%). Update that instinct instead of creating a duplicate.`
+          `Similar instinct already exists: "${similar.instinct.id}" (similarity: ${(similar.similarity * 100).toFixed(0)}%). Update that instinct instead of creating a duplicate.`,
         );
       }
 
@@ -165,8 +184,12 @@ export function createInstinctWriteTool(
         domain: params.domain,
         source: "personal",
         scope: params.scope,
-        ...(params.scope === "project" && projectId ? { project_id: projectId } : {}),
-        ...(params.scope === "project" && projectName ? { project_name: projectName } : {}),
+        ...(params.scope === "project" && projectId
+          ? { project_id: projectId }
+          : {}),
+        ...(params.scope === "project" && projectName
+          ? { project_name: projectName }
+          : {}),
         created_at: existing ? loadInstinct(existing.path).created_at : now,
         updated_at: now,
         observation_count: params.observation_count ?? 1,
@@ -179,7 +202,12 @@ export function createInstinctWriteTool(
       saveInstinct(instinct, dir);
 
       return {
-        content: [{ type: "text" as const, text: `${existing ? "Updated" : "Created"} instinct: ${params.id}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `${existing ? "Updated" : "Created"} instinct: ${params.id}`,
+          },
+        ],
         details: { id: params.id, action: existing ? "updated" : "created" },
       };
     },
@@ -188,7 +216,7 @@ export function createInstinctWriteTool(
 
 export function createInstinctReadTool(
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ) {
   return {
     name: "instinct_read" as const,
@@ -201,7 +229,7 @@ export function createInstinctReadTool(
       params: InstinctReadInput,
       _signal: AbortSignal | undefined,
       _onUpdate: unknown,
-      _ctx: unknown
+      _ctx: unknown,
     ) {
       const found = findInstinctFile(params.id, projectId, baseDir);
       if (!found) {
@@ -218,20 +246,21 @@ export function createInstinctReadTool(
 
 export function createInstinctListTool(
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ) {
   return {
     name: "instinct_list" as const,
     label: "List Instincts",
     description: "List learned behavior instincts with optional filters",
-    promptSnippet: "List all learned instincts, optionally filtered by scope or domain",
+    promptSnippet:
+      "List all learned instincts, optionally filtered by scope or domain",
     parameters: ListParams,
     async execute(
       _toolCallId: string,
       params: InstinctListInput,
       _signal: AbortSignal | undefined,
       _onUpdate: unknown,
-      _ctx: unknown
+      _ctx: unknown,
     ) {
       const scope = params.scope ?? "all";
       let instincts: Instinct[] = [];
@@ -252,14 +281,24 @@ export function createInstinctListTool(
 
       if (instincts.length === 0) {
         return {
-          content: [{ type: "text" as const, text: "No instincts found matching the given filters." }],
+          content: [
+            {
+              type: "text" as const,
+              text: "No instincts found matching the given filters.",
+            },
+          ],
           details: { count: 0 },
         };
       }
 
       const text = instincts.map(formatInstinct).join("\n\n");
       return {
-        content: [{ type: "text" as const, text: `${instincts.length} instinct(s):\n\n${text}` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `${instincts.length} instinct(s):\n\n${text}`,
+          },
+        ],
         details: { count: instincts.length },
       };
     },
@@ -268,7 +307,7 @@ export function createInstinctListTool(
 
 export function createInstinctDeleteTool(
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ) {
   return {
     name: "instinct_delete" as const,
@@ -281,7 +320,7 @@ export function createInstinctDeleteTool(
       params: InstinctDeleteInput,
       _signal: AbortSignal | undefined,
       _onUpdate: unknown,
-      _ctx: unknown
+      _ctx: unknown,
     ) {
       if (params.scope) {
         const dir = getInstinctsDir(params.scope, projectId, baseDir);
@@ -290,11 +329,18 @@ export function createInstinctDeleteTool(
         }
         const path = join(dir, `${params.id}.md`);
         if (!existsSync(path)) {
-          throw new Error(`Instinct not found: ${params.id} in ${params.scope} scope`);
+          throw new Error(
+            `Instinct not found: ${params.id} in ${params.scope} scope`,
+          );
         }
         unlinkSync(path);
         return {
-          content: [{ type: "text" as const, text: `Deleted instinct: ${params.id} (${params.scope}-scoped)` }],
+          content: [
+            {
+              type: "text" as const,
+              text: `Deleted instinct: ${params.id} (${params.scope}-scoped)`,
+            },
+          ],
           details: { id: params.id, scope: params.scope },
         };
       }
@@ -305,7 +351,12 @@ export function createInstinctDeleteTool(
       }
       unlinkSync(found.path);
       return {
-        content: [{ type: "text" as const, text: `Deleted instinct: ${params.id} (was ${found.scope}-scoped)` }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Deleted instinct: ${params.id} (was ${found.scope}-scoped)`,
+          },
+        ],
         details: { id: params.id, scope: found.scope },
       };
     },
@@ -315,33 +366,40 @@ export function createInstinctDeleteTool(
 export function createInstinctMergeTool(
   projectId: string | null,
   projectName: string | null,
-  baseDir?: string
+  baseDir?: string,
 ) {
   return {
     name: "instinct_merge" as const,
     label: "Merge Instincts",
     description: "Merge multiple instincts into one, removing the originals",
-    promptSnippet: "Merge multiple related instincts into a single consolidated instinct",
+    promptSnippet:
+      "Merge multiple related instincts into a single consolidated instinct",
     parameters: MergeParams,
     async execute(
       _toolCallId: string,
       params: InstinctMergeInput,
       _signal: AbortSignal | undefined,
       _onUpdate: unknown,
-      _ctx: unknown
+      _ctx: unknown,
     ) {
       const { merged, delete_ids } = params;
       const dir = getInstinctsDir(merged.scope, projectId, baseDir);
       if (!dir) {
-        throw new Error("Cannot write project-scoped instinct: no project detected");
+        throw new Error(
+          "Cannot write project-scoped instinct: no project detected",
+        );
       }
 
       const now = new Date().toISOString();
       const instinct: Instinct = {
         ...merged,
         source: "personal",
-        ...(merged.scope === "project" && projectId ? { project_id: projectId } : {}),
-        ...(merged.scope === "project" && projectName ? { project_name: projectName } : {}),
+        ...(merged.scope === "project" && projectId
+          ? { project_id: projectId }
+          : {}),
+        ...(merged.scope === "project" && projectName
+          ? { project_name: projectName }
+          : {}),
         created_at: now,
         updated_at: now,
         observation_count: 0,
@@ -379,10 +437,12 @@ export function createInstinctMergeTool(
       }
 
       return {
-        content: [{
-          type: "text" as const,
-          text: `Merged into ${merged.id}. Deleted ${deleted.length} source instinct(s): ${deleted.join(", ")}`,
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Merged into ${merged.id}. Deleted ${deleted.length} source instinct(s): ${deleted.join(", ")}`,
+          },
+        ],
         details: { mergedId: merged.id, deleted },
       };
     },
@@ -393,15 +453,30 @@ export function registerAllTools(
   pi: ExtensionAPI,
   projectId: string | null,
   projectName: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   const guidelines = [
     "Use instinct tools when the user asks about learned behaviors, patterns, or instincts.",
   ];
 
-  pi.registerTool({ ...createInstinctListTool(projectId, baseDir), promptGuidelines: guidelines });
-  pi.registerTool({ ...createInstinctReadTool(projectId, baseDir), promptGuidelines: guidelines });
-  pi.registerTool({ ...createInstinctWriteTool(projectId, projectName, baseDir), promptGuidelines: guidelines });
-  pi.registerTool({ ...createInstinctDeleteTool(projectId, baseDir), promptGuidelines: guidelines });
-  pi.registerTool({ ...createInstinctMergeTool(projectId, projectName, baseDir), promptGuidelines: guidelines });
+  pi.registerTool({
+    ...createInstinctListTool(projectId, baseDir),
+    promptGuidelines: guidelines,
+  });
+  pi.registerTool({
+    ...createInstinctReadTool(projectId, baseDir),
+    promptGuidelines: guidelines,
+  });
+  pi.registerTool({
+    ...createInstinctWriteTool(projectId, projectName, baseDir),
+    promptGuidelines: guidelines,
+  });
+  pi.registerTool({
+    ...createInstinctDeleteTool(projectId, baseDir),
+    promptGuidelines: guidelines,
+  });
+  pi.registerTool({
+    ...createInstinctMergeTool(projectId, projectName, baseDir),
+    promptGuidelines: guidelines,
+  });
 }

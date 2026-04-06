@@ -53,12 +53,13 @@ export function handleToolStart(
   event: ToolExecutionStartEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     if (shouldSkipObservation()) return;
 
-    const raw = typeof event.args === "string" ? event.args : JSON.stringify(event.args);
+    const raw =
+      typeof event.args === "string" ? event.args : JSON.stringify(event.args);
     const input = truncate(scrubSecrets(raw), MAX_TOOL_INPUT_LENGTH);
 
     const observation: Observation = {
@@ -86,13 +87,15 @@ export function handleToolEnd(
   event: ToolExecutionEndEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     if (shouldSkipObservation()) return;
 
     const raw =
-      typeof event.result === "string" ? event.result : JSON.stringify(event.result);
+      typeof event.result === "string"
+        ? event.result
+        : JSON.stringify(event.result);
     const output = truncate(scrubSecrets(raw), MAX_TOOL_OUTPUT_LENGTH);
 
     const observation: Observation = {

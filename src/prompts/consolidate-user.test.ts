@@ -43,13 +43,10 @@ describe("buildConsolidateUserPrompt", () => {
   });
 
   it("includes AGENTS.md when provided", () => {
-    const prompt = buildConsolidateUserPrompt(
-      [makeInstinct()],
-      {
-        agentsMdProject: "# Project Rules\nUse strict mode",
-        agentsMdGlobal: "# Global Rules\nConventional commits",
-      }
-    );
+    const prompt = buildConsolidateUserPrompt([makeInstinct()], {
+      agentsMdProject: "# Project Rules\nUse strict mode",
+      agentsMdGlobal: "# Global Rules\nConventional commits",
+    });
     expect(prompt).toContain("Use strict mode");
     expect(prompt).toContain("Conventional commits");
     expect(prompt).toContain("Project AGENTS.md");
@@ -57,19 +54,18 @@ describe("buildConsolidateUserPrompt", () => {
   });
 
   it("includes installed skills when provided", () => {
-    const prompt = buildConsolidateUserPrompt(
-      [makeInstinct()],
-      { installedSkills: [{ name: "git-workflow", description: "Git helper" }] }
-    );
+    const prompt = buildConsolidateUserPrompt([makeInstinct()], {
+      installedSkills: [{ name: "git-workflow", description: "Git helper" }],
+    });
     expect(prompt).toContain("git-workflow");
     expect(prompt).toContain("Git helper");
   });
 
   it("includes project context when provided", () => {
-    const prompt = buildConsolidateUserPrompt(
-      [makeInstinct()],
-      { projectId: "abc123", projectName: "my-project" }
-    );
+    const prompt = buildConsolidateUserPrompt([makeInstinct()], {
+      projectId: "abc123",
+      projectName: "my-project",
+    });
     expect(prompt).toContain("abc123");
     expect(prompt).toContain("my-project");
   });

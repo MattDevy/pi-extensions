@@ -4,7 +4,8 @@ import { scrubSecrets, REDACTED } from "./scrubber.js";
 describe("scrubSecrets", () => {
   describe("authorization headers", () => {
     it("scrubs Authorization: Bearer header", () => {
-      const input = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+      const input =
+        "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
       expect(scrubSecrets(input)).toBe(REDACTED);
     });
 
@@ -121,7 +122,8 @@ describe("scrubSecrets", () => {
     });
 
     it("scrubs AWS key embedded in JSON", () => {
-      const input = '{"access_key_id": "AKIAIOSFODNN7EXAMPLE", "region": "us-east-1"}';
+      const input =
+        '{"access_key_id": "AKIAIOSFODNN7EXAMPLE", "region": "us-east-1"}';
       const result = scrubSecrets(input);
       expect(result).not.toContain("AKIAIOSFODNN7EXAMPLE");
       expect(result).toContain(REDACTED);
@@ -132,7 +134,9 @@ describe("scrubSecrets", () => {
 
   describe("OpenAI / Anthropic keys", () => {
     it("scrubs OpenAI API key (sk- prefix)", () => {
-      const result = scrubSecrets("sk-abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLM");
+      const result = scrubSecrets(
+        "sk-abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLM",
+      );
       expect(result).toBe(REDACTED);
     });
 
@@ -153,7 +157,8 @@ describe("scrubSecrets", () => {
     });
 
     it("preserves surrounding non-secret text", () => {
-      const input = "Calling endpoint https://api.example.com with api_key=secret123 and retries=3";
+      const input =
+        "Calling endpoint https://api.example.com with api_key=secret123 and retries=3";
       const result = scrubSecrets(input);
       expect(result).toContain("https://api.example.com");
       expect(result).toContain("retries=3");
@@ -163,7 +168,8 @@ describe("scrubSecrets", () => {
 
   describe("no false positives on normal code", () => {
     it("does not modify plain function names", () => {
-      const code = "function calculateTotal(items) { return items.reduce((a, b) => a + b, 0); }";
+      const code =
+        "function calculateTotal(items) { return items.reduce((a, b) => a + b, 0); }";
       expect(scrubSecrets(code)).toBe(code);
     });
 
@@ -178,7 +184,8 @@ describe("scrubSecrets", () => {
     });
 
     it("does not modify git log output", () => {
-      const log = "commit abc123def456\nAuthor: Alice <alice@example.com>\nDate: Mon Mar 25 2026";
+      const log =
+        "commit abc123def456\nAuthor: Alice <alice@example.com>\nDate: Mon Mar 25 2026";
       expect(scrubSecrets(log)).toBe(log);
     });
 

@@ -25,7 +25,10 @@ export interface SkillScaffold {
 // ---------------------------------------------------------------------------
 
 function toSkillName(domain: string): string {
-  return domain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return domain
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function formatInstinctAsSection(instinct: Instinct, index: number): string {
@@ -49,13 +52,16 @@ function formatInstinctAsSection(instinct: Instinct, index: number): string {
 export function generateSkillScaffold(cluster: DomainCluster): SkillScaffold {
   const name = toSkillName(cluster.domain);
   const sortedInstincts = [...cluster.instincts].sort(
-    (a, b) => b.confidence - a.confidence
+    (a, b) => b.confidence - a.confidence,
   );
 
-  const description = `Learned ${cluster.domain} patterns from coding sessions. ` +
+  const description =
+    `Learned ${cluster.domain} patterns from coding sessions. ` +
     `Covers ${sortedInstincts.length} practices distilled from instinct observations.`;
 
-  const sections = sortedInstincts.map((inst, i) => formatInstinctAsSection(inst, i));
+  const sections = sortedInstincts.map((inst, i) =>
+    formatInstinctAsSection(inst, i),
+  );
 
   const content = [
     `# ${cluster.domain} Skill`,
@@ -84,7 +90,7 @@ export function generateSkillScaffold(cluster: DomainCluster): SkillScaffold {
  * Generates skill scaffolds for all qualifying clusters.
  */
 export function generateAllSkillScaffolds(
-  clusters: DomainCluster[]
+  clusters: DomainCluster[],
 ): SkillScaffold[] {
   return clusters.map(generateSkillScaffold);
 }

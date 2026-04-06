@@ -1,8 +1,19 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { clearActiveInstincts, setCurrentActiveInstincts } from "./active-instincts.js";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
+import {
+  clearActiveInstincts,
+  setCurrentActiveInstincts,
+} from "./active-instincts.js";
 import { ensureStorageLayout } from "./storage.js";
 import {
   handleTurnStart,
@@ -23,11 +34,18 @@ function makeCtx(sessionId = "test-session-020") {
     sessionManager: {
       getSessionId: () => sessionId,
     },
-    getContextUsage: () => ({ tokens: 5000, contextWindow: 200000, percent: 2.5 }),
+    getContextUsage: () => ({
+      tokens: 5000,
+      contextWindow: 200000,
+      percent: 2.5,
+    }),
   } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
 }
 
-function readObservations(projectId: string, baseDir: string): Record<string, unknown>[] {
+function readObservations(
+  projectId: string,
+  baseDir: string,
+): Record<string, unknown>[] {
   const filePath = join(baseDir, "projects", projectId, "observations.jsonl");
   const raw = readFileSync(filePath, "utf-8").trim();
   return raw
@@ -73,7 +91,11 @@ afterEach(() => {
 
 describe("handleTurnStart", () => {
   it("records a turn_start observation with turn_index", () => {
-    const event: TurnStartEvent = { type: "turn_start", turnIndex: 3, timestamp: Date.now() };
+    const event: TurnStartEvent = {
+      type: "turn_start",
+      turnIndex: 3,
+      timestamp: Date.now(),
+    };
     handleTurnStart(event, makeCtx(), PROJECT, tmpDir);
 
     const last = lastObs(PROJECT.id, tmpDir);
@@ -85,7 +107,11 @@ describe("handleTurnStart", () => {
 
   it("includes active_instincts when set", () => {
     setCurrentActiveInstincts(["inst-a"]);
-    const event: TurnStartEvent = { type: "turn_start", turnIndex: 0, timestamp: Date.now() };
+    const event: TurnStartEvent = {
+      type: "turn_start",
+      turnIndex: 0,
+      timestamp: Date.now(),
+    };
     handleTurnStart(event, makeCtx(), PROJECT, tmpDir);
 
     const last = lastObs(PROJECT.id, tmpDir);
@@ -157,7 +183,8 @@ describe("handleUserBash", () => {
   it("scrubs secrets from commands", () => {
     const event: UserBashEvent = {
       type: "user_bash",
-      command: "curl -H 'Authorization: Bearer sk-secret123' https://api.example.com",
+      command:
+        "curl -H 'Authorization: Bearer sk-secret123' https://api.example.com",
       excludeFromContext: false,
       cwd: "/tmp",
     };

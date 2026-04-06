@@ -72,7 +72,10 @@ export function getConsumedPath(projectId: string, baseDir?: string): string {
  * Skips writing if nothing changed (all arrays empty).
  * Creates the parent directory if needed.
  */
-export function appendAnalysisEvent(event: AnalysisEvent, baseDir?: string): void {
+export function appendAnalysisEvent(
+  event: AnalysisEvent,
+  baseDir?: string,
+): void {
   if (
     event.created.length === 0 &&
     event.updated.length === 0 &&
@@ -104,7 +107,7 @@ export function appendAnalysisEvent(event: AnalysisEvent, baseDir?: string): voi
  */
 export function consumeAnalysisEvents(
   projectId: string,
-  baseDir?: string
+  baseDir?: string,
 ): readonly AnalysisEvent[] {
   const eventsPath = getEventsPath(projectId, baseDir);
   const consumedPath = getConsumedPath(projectId, baseDir);

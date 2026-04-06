@@ -2,10 +2,17 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AnalyzeLogger, type ProjectRunStats, type RunSummary } from "./analyze-logger.js";
+import {
+  AnalyzeLogger,
+  type ProjectRunStats,
+  type RunSummary,
+} from "./analyze-logger.js";
 
 function makeTmpDir(): string {
-  const dir = join(tmpdir(), `pi-cl-analyze-logger-test-${Date.now()}-${Math.random()}`);
+  const dir = join(
+    tmpdir(),
+    `pi-cl-analyze-logger-test-${Date.now()}-${Math.random()}`,
+  );
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -220,7 +227,9 @@ describe("AnalyzeLogger", () => {
 
   describe("fallback to stderr", () => {
     it("writes to stderr when log file is not writable", () => {
-      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const stderrSpy = vi
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
       const logger = new AnalyzeLogger("/no-such-root-dir/test.log");
       logger.info("fallback test");
 
@@ -253,7 +262,9 @@ describe("AnalyzeLogger", () => {
   describe("never throws", () => {
     it("does not throw for any method call", () => {
       const logger = new AnalyzeLogger("/no-such-root-dir/test.log");
-      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const stderrSpy = vi
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
 
       expect(() => logger.info("msg")).not.toThrow();
       expect(() => logger.warn("msg")).not.toThrow();

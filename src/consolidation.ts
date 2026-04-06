@@ -54,7 +54,7 @@ export interface ConsolidationGateResult {
  * 2. At least `minSessions` new sessions since last consolidation
  */
 export function checkConsolidationGate(
-  input: ConsolidationGateInput
+  input: ConsolidationGateInput,
 ): ConsolidationGateResult {
   const {
     meta,
@@ -133,14 +133,14 @@ const CONSOLIDATION_META_FILENAME = "consolidation.json";
 
 export function getConsolidationMetaPath(
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): string {
   return join(baseDir, "projects", projectId, CONSOLIDATION_META_FILENAME);
 }
 
 export function loadConsolidationMeta(
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): ConsolidationMeta {
   const metaPath = getConsolidationMetaPath(projectId, baseDir);
   if (!existsSync(metaPath)) return {};
@@ -154,7 +154,7 @@ export function loadConsolidationMeta(
 export function saveConsolidationMeta(
   projectId: string,
   meta: ConsolidationMeta,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): void {
   const metaPath = getConsolidationMetaPath(projectId, baseDir);
   mkdirSync(dirname(metaPath), { recursive: true });

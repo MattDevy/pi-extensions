@@ -20,7 +20,9 @@ import {
  * Aggregates multiple analysis events into a single summary line.
  * Returns null when no changes occurred.
  */
-export function formatNotification(events: readonly AnalysisEvent[]): string | null {
+export function formatNotification(
+  events: readonly AnalysisEvent[],
+): string | null {
   if (events.length === 0) return null;
 
   let created = 0;
@@ -66,7 +68,7 @@ export function formatNotification(events: readonly AnalysisEvent[]): string | n
 export function checkAnalysisNotifications(
   ctx: ExtensionContext,
   projectId: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   if (!projectId) return;
 

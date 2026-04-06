@@ -7,8 +7,16 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { Instinct } from "./types.js";
-import { saveInstinct, loadGlobalInstincts, loadProjectInstincts } from "./instinct-store.js";
-import { getProjectInstinctsDir, getGlobalInstinctsDir, getProjectsRegistryPath } from "./storage.js";
+import {
+  saveInstinct,
+  loadGlobalInstincts,
+  loadProjectInstincts,
+} from "./instinct-store.js";
+import {
+  getProjectInstinctsDir,
+  getGlobalInstinctsDir,
+  getProjectsRegistryPath,
+} from "./storage.js";
 import {
   COMMAND_NAME,
   AUTO_PROMOTE_MIN_CONFIDENCE,
@@ -32,7 +40,6 @@ beforeEach(() => {
   baseDir = mkdtempSync(join(tmpdir(), "promote-test-"));
 });
 
-
 function makeInstinct(overrides: Partial<Instinct> = {}): Instinct {
   return {
     id: "test-instinct",
@@ -55,15 +62,23 @@ function makeInstinct(overrides: Partial<Instinct> = {}): Instinct {
   };
 }
 
-function populateProjectRegistry(
-  projectIds: string[],
-  base: string
-): void {
+function populateProjectRegistry(projectIds: string[], base: string): void {
   const registry: Record<string, unknown> = {};
   for (const id of projectIds) {
-    registry[id] = { id, name: `project-${id}`, root: `/repos/${id}`, remote: `https://github.com/user/${id}`, created_at: "2026-01-01T00:00:00.000Z", last_seen: "2026-01-15T00:00:00.000Z" };
+    registry[id] = {
+      id,
+      name: `project-${id}`,
+      root: `/repos/${id}`,
+      remote: `https://github.com/user/${id}`,
+      created_at: "2026-01-01T00:00:00.000Z",
+      last_seen: "2026-01-15T00:00:00.000Z",
+    };
   }
-  writeFileSync(getProjectsRegistryPath(base), JSON.stringify(registry, null, 2), "utf-8");
+  writeFileSync(
+    getProjectsRegistryPath(base),
+    JSON.stringify(registry, null, 2),
+    "utf-8",
+  );
 }
 
 function makeCtx(notify = vi.fn()): ExtensionCommandContext {
@@ -113,7 +128,11 @@ describe("toGlobalInstinct", () => {
   });
 
   it("preserves all other fields", () => {
-    const inst = makeInstinct({ confidence: 0.85, domain: "typescript", title: "Keep This" });
+    const inst = makeInstinct({
+      confidence: 0.85,
+      domain: "typescript",
+      title: "Keep This",
+    });
     const promoted = toGlobalInstinct(inst);
     expect(promoted.confidence).toBe(0.85);
     expect(promoted.domain).toBe("typescript");
@@ -198,7 +217,10 @@ describe("findCrossProjectInstincts", () => {
     for (const projectId of ["p1", "p2"]) {
       const dir = getProjectInstinctsDir(projectId, "personal", baseDir);
       mkdirSync(dir, { recursive: true });
-      saveInstinct(makeInstinct({ id: "shared-instinct", project_id: projectId }), dir);
+      saveInstinct(
+        makeInstinct({ id: "shared-instinct", project_id: projectId }),
+        dir,
+      );
     }
     const dir2 = getProjectInstinctsDir("p2", "personal", baseDir);
     saveInstinct(makeInstinct({ id: "only-p2", project_id: "p2" }), dir2);
@@ -235,7 +257,14 @@ describe("autoPromoteInstincts", () => {
     for (const pid of ["p1", "p2"]) {
       const dir = getProjectInstinctsDir(pid, "personal", baseDir);
       mkdirSync(dir, { recursive: true });
-      saveInstinct(makeInstinct({ id: "low-confidence", confidence: 0.6, project_id: pid }), dir);
+      saveInstinct(
+        makeInstinct({
+          id: "low-confidence",
+          confidence: 0.6,
+          project_id: pid,
+        }),
+        dir,
+      );
     }
 
     const result = autoPromoteInstincts(baseDir);
@@ -247,7 +276,10 @@ describe("autoPromoteInstincts", () => {
     for (const pid of ["p1", "p2"]) {
       const dir = getProjectInstinctsDir(pid, "personal", baseDir);
       mkdirSync(dir, { recursive: true });
-      saveInstinct(makeInstinct({ id: "qualifies", confidence: 0.85, project_id: pid }), dir);
+      saveInstinct(
+        makeInstinct({ id: "qualifies", confidence: 0.85, project_id: pid }),
+        dir,
+      );
     }
 
     const result = autoPromoteInstincts(baseDir);
@@ -261,12 +293,22 @@ describe("autoPromoteInstincts", () => {
     for (const pid of ["p1", "p2"]) {
       const dir = getProjectInstinctsDir(pid, "personal", baseDir);
       mkdirSync(dir, { recursive: true });
-      saveInstinct(makeInstinct({ id: "already-global", confidence: 0.85, project_id: pid }), dir);
+      saveInstinct(
+        makeInstinct({
+          id: "already-global",
+          confidence: 0.85,
+          project_id: pid,
+        }),
+        dir,
+      );
     }
 
     const globalDir = getGlobalInstinctsDir("personal", baseDir);
     mkdirSync(globalDir, { recursive: true });
-    saveInstinct(makeInstinct({ id: "already-global", scope: "global" }), globalDir);
+    saveInstinct(
+      makeInstinct({ id: "already-global", scope: "global" }),
+      globalDir,
+    );
 
     const result = autoPromoteInstincts(baseDir);
     expect(result).toEqual([]);
@@ -286,7 +328,7 @@ describe("handleInstinctPromote - manual by ID", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("no active project"),
-      "error"
+      "error",
     );
   });
 
@@ -298,14 +340,17 @@ describe("handleInstinctPromote - manual by ID", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining('"missing-id" not found'),
-      "error"
+      "error",
     );
   });
 
   it("notifies success after manual promotion", async () => {
     const projectDir = getProjectInstinctsDir("proj123", "personal", baseDir);
     mkdirSync(projectDir, { recursive: true });
-    saveInstinct(makeInstinct({ id: "promote-me", title: "My Instinct" }), projectDir);
+    saveInstinct(
+      makeInstinct({ id: "promote-me", title: "My Instinct" }),
+      projectDir,
+    );
 
     const notify = vi.fn();
     const ctx = makeCtx(notify);
@@ -314,11 +359,11 @@ describe("handleInstinctPromote - manual by ID", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining('"promote-me"'),
-      "info"
+      "info",
     );
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("global scope"),
-      "info"
+      "info",
     );
   });
 });
@@ -336,7 +381,7 @@ describe("handleInstinctPromote - auto-promotion", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("No instincts qualify"),
-      "info"
+      "info",
     );
   });
 
@@ -346,8 +391,13 @@ describe("handleInstinctPromote - auto-promotion", () => {
       const dir = getProjectInstinctsDir(pid, "personal", baseDir);
       mkdirSync(dir, { recursive: true });
       saveInstinct(
-        makeInstinct({ id: "auto-candidate", confidence: 0.85, project_id: pid, title: "Auto Instinct" }),
-        dir
+        makeInstinct({
+          id: "auto-candidate",
+          confidence: 0.85,
+          project_id: pid,
+          title: "Auto Instinct",
+        }),
+        dir,
       );
     }
 
@@ -358,11 +408,11 @@ describe("handleInstinctPromote - auto-promotion", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("Auto-promoted 1 instinct"),
-      "info"
+      "info",
     );
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("auto-candidate"),
-      "info"
+      "info",
     );
   });
 });

@@ -40,10 +40,11 @@ export function getTrendArrow(instinct: Instinct): string {
 export function formatInstinct(instinct: Instinct): string {
   const confidence = `[${instinct.confidence.toFixed(2)}]`;
   const trend = getTrendArrow(instinct);
-  const feedbackRatio =
-    `✓${instinct.confirmed_count} ✗${instinct.contradicted_count} ○${instinct.inactive_count}`;
+  const feedbackRatio = `✓${instinct.confirmed_count} ✗${instinct.contradicted_count} ○${instinct.inactive_count}`;
 
-  const parts = [`  ${confidence} ${instinct.title} ${trend} (${feedbackRatio})`];
+  const parts = [
+    `  ${confidence} ${instinct.title} ${trend} (${feedbackRatio})`,
+  ];
   if (instinct.flagged_for_removal) {
     parts.push(`    ${FLAG_REMOVAL}`);
   }
@@ -53,7 +54,9 @@ export function formatInstinct(instinct: Instinct): string {
 /**
  * Groups instincts by domain. Returns a sorted record (sorted by domain name).
  */
-export function groupByDomain(instincts: Instinct[]): Record<string, Instinct[]> {
+export function groupByDomain(
+  instincts: Instinct[],
+): Record<string, Instinct[]> {
   const groups: Record<string, Instinct[]> = {};
   for (const instinct of instincts) {
     const domain = instinct.domain || "uncategorized";
@@ -90,7 +93,9 @@ export function formatStatusOutput(instincts: Instinct[]): string {
 
   const total = instincts.length;
   const flagged = instincts.filter((i) => i.flagged_for_removal).length;
-  lines.push(`Total: ${total} instinct${total !== 1 ? "s" : ""} (${flagged} flagged for removal)`);
+  lines.push(
+    `Total: ${total} instinct${total !== 1 ? "s" : ""} (${flagged} flagged for removal)`,
+  );
 
   return lines.join("\n");
 }
@@ -105,7 +110,7 @@ export function formatStatusOutput(instincts: Instinct[]): string {
  */
 export function loadAllInstincts(
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Instinct[] {
   const projectInstincts =
     projectId != null ? loadProjectInstincts(projectId, baseDir) : [];
@@ -125,7 +130,7 @@ export async function handleInstinctStatus(
   _args: string,
   ctx: ExtensionCommandContext,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Promise<void> {
   const instincts = loadAllInstincts(projectId, baseDir);
   const output = formatStatusOutput(instincts);

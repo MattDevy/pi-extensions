@@ -2,7 +2,11 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { filterInstincts, loadAndFilterInstincts, loadAndFilterFromConfig } from "./instinct-loader.js";
+import {
+  filterInstincts,
+  loadAndFilterInstincts,
+  loadAndFilterFromConfig,
+} from "./instinct-loader.js";
 import { saveInstinct, invalidateCache } from "./instinct-store.js";
 import { getProjectInstinctsDir, getGlobalInstinctsDir } from "./storage.js";
 import type { Instinct, Config } from "./types.js";
@@ -28,10 +32,13 @@ function makeInstinct(overrides: Partial<Instinct> = {}): Instinct {
     contradicted_count: overrides.contradicted_count ?? 0,
     inactive_count: overrides.inactive_count ?? 0,
   };
-  if (overrides.project_id !== undefined) base.project_id = overrides.project_id;
-  if (overrides.project_name !== undefined) base.project_name = overrides.project_name;
+  if (overrides.project_id !== undefined)
+    base.project_id = overrides.project_id;
+  if (overrides.project_name !== undefined)
+    base.project_name = overrides.project_name;
   if (overrides.evidence !== undefined) base.evidence = overrides.evidence;
-  if (overrides.flagged_for_removal !== undefined) base.flagged_for_removal = overrides.flagged_for_removal;
+  if (overrides.flagged_for_removal !== undefined)
+    base.flagged_for_removal = overrides.flagged_for_removal;
   return base;
 }
 
@@ -79,7 +86,11 @@ describe("filterInstincts", () => {
   it("excludes instincts flagged_for_removal", () => {
     const instincts = [
       makeInstinct({ id: "normal", confidence: 0.8 }),
-      makeInstinct({ id: "flagged", confidence: 0.9, flagged_for_removal: true }),
+      makeInstinct({
+        id: "flagged",
+        confidence: 0.9,
+        flagged_for_removal: true,
+      }),
     ];
     const result = filterInstincts(instincts, 0.1, 20);
     const ids = result.map((i) => i.id);
@@ -101,7 +112,7 @@ describe("filterInstincts", () => {
 
   it("caps results to maxInstincts", () => {
     const instincts = Array.from({ length: 10 }, (_, i) =>
-      makeInstinct({ id: `inst-${i}`, confidence: 0.5 + i * 0.01 })
+      makeInstinct({ id: `inst-${i}`, confidence: 0.5 + i * 0.01 }),
     );
     const result = filterInstincts(instincts, 0.1, 3);
     expect(result).toHaveLength(3);
@@ -142,7 +153,9 @@ describe("loadAndFilterInstincts", () => {
   beforeAll(() => {
     baseDir = mkdtempSync(join(tmpdir(), "pi-cl-test-"));
     // Create required directories
-    mkdirSync(getProjectInstinctsDir(projectId, "personal", baseDir), { recursive: true });
+    mkdirSync(getProjectInstinctsDir(projectId, "personal", baseDir), {
+      recursive: true,
+    });
     mkdirSync(getGlobalInstinctsDir("personal", baseDir), { recursive: true });
   });
 
@@ -161,7 +174,10 @@ describe("loadAndFilterInstincts", () => {
       scope: "project",
       project_id: projectId,
     });
-    saveInstinct(instinct, getProjectInstinctsDir(projectId, "personal", baseDir));
+    saveInstinct(
+      instinct,
+      getProjectInstinctsDir(projectId, "personal", baseDir),
+    );
 
     const result = loadAndFilterInstincts({ projectId, baseDir });
     expect(result.some((i) => i.id === "proj-instinct")).toBe(true);
@@ -194,15 +210,27 @@ describe("loadAndFilterInstincts", () => {
 
   it("filters by minConfidence option", () => {
     // Save a low-confidence global instinct
-    const low = makeInstinct({ id: "low-conf", confidence: 0.3, scope: "global" });
+    const low = makeInstinct({
+      id: "low-conf",
+      confidence: 0.3,
+      scope: "global",
+    });
     saveInstinct(low, getGlobalInstinctsDir("personal", baseDir));
 
-    const result = loadAndFilterInstincts({ projectId: null, minConfidence: 0.5, baseDir });
+    const result = loadAndFilterInstincts({
+      projectId: null,
+      minConfidence: 0.5,
+      baseDir,
+    });
     expect(result.some((i) => i.id === "low-conf")).toBe(false);
   });
 
   it("respects maxInstincts cap", () => {
-    const result = loadAndFilterInstincts({ projectId, maxInstincts: 1, baseDir });
+    const result = loadAndFilterInstincts({
+      projectId,
+      maxInstincts: 1,
+      baseDir,
+    });
     expect(result.length).toBeLessThanOrEqual(1);
   });
 
@@ -248,7 +276,11 @@ describe("loadAndFilterFromConfig", () => {
     });
     saveInstinct(instinct, getGlobalInstinctsDir("personal", baseDir));
 
-    const config: Config = { ...BASE_CONFIG, min_confidence: 0.7, max_instincts: 5 };
+    const config: Config = {
+      ...BASE_CONFIG,
+      min_confidence: 0.7,
+      max_instincts: 5,
+    };
     const result = loadAndFilterFromConfig(config, null, baseDir);
     // confidence 0.6 < 0.7 threshold - should be filtered out
     expect(result.some((i) => i.id === "config-test-instinct")).toBe(false);
@@ -262,7 +294,11 @@ describe("loadAndFilterFromConfig", () => {
     });
     saveInstinct(instinct, getGlobalInstinctsDir("personal", baseDir));
 
-    const config: Config = { ...BASE_CONFIG, min_confidence: 0.5, max_instincts: 20 };
+    const config: Config = {
+      ...BASE_CONFIG,
+      min_confidence: 0.5,
+      max_instincts: 20,
+    };
     const result = loadAndFilterFromConfig(config, null, baseDir);
     expect(result.some((i) => i.id === "config-meets-threshold")).toBe(true);
   });

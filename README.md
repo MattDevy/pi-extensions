@@ -50,27 +50,27 @@ To analyze observations and create/update instincts, you need to run the analyze
 
 ### Slash Commands
 
-| Command | Description |
-|---------|-------------|
-| `/instinct-status` | Show all instincts grouped by domain with confidence scores and feedback stats |
-| `/instinct-evolve` | LLM-powered analysis of instincts: suggests merges, promotions, and cleanup |
-| `/instinct-export` | Export instincts to a JSON file (filterable by scope/domain) |
-| `/instinct-import <path>` | Import instincts from a JSON file |
-| `/instinct-promote [id]` | Promote project instincts to global scope |
-| `/instinct-graduate` | Graduate mature instincts to AGENTS.md, skills, or commands |
-| `/instinct-projects` | List all known projects and their instinct counts |
+| Command                   | Description                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `/instinct-status`        | Show all instincts grouped by domain with confidence scores and feedback stats |
+| `/instinct-evolve`        | LLM-powered analysis of instincts: suggests merges, promotions, and cleanup    |
+| `/instinct-export`        | Export instincts to a JSON file (filterable by scope/domain)                   |
+| `/instinct-import <path>` | Import instincts from a JSON file                                              |
+| `/instinct-promote [id]`  | Promote project instincts to global scope                                      |
+| `/instinct-graduate`      | Graduate mature instincts to AGENTS.md, skills, or commands                    |
+| `/instinct-projects`      | List all known projects and their instinct counts                              |
 
 ### LLM Tools
 
 The extension registers tools that the LLM can use during conversation:
 
-| Tool | Description |
-|------|-------------|
-| `instinct_list` | List instincts with optional scope/domain filters |
-| `instinct_read` | Read a specific instinct by ID |
-| `instinct_write` | Create or update an instinct |
-| `instinct_delete` | Remove an instinct by ID |
-| `instinct_merge` | Merge multiple instincts into one |
+| Tool              | Description                                       |
+| ----------------- | ------------------------------------------------- |
+| `instinct_list`   | List instincts with optional scope/domain filters |
+| `instinct_read`   | Read a specific instinct by ID                    |
+| `instinct_write`  | Create or update an instinct                      |
+| `instinct_delete` | Remove an instinct by ID                          |
+| `instinct_merge`  | Merge multiple instincts into one                 |
 
 You can ask Pi things like "show me my instincts", "merge these two instincts", or "delete low-confidence instincts" and it will use these tools.
 
@@ -85,6 +85,7 @@ pi-cl-analyze
 ```
 
 The script:
+
 1. Iterates all projects in `~/.pi/continuous-learning/projects.json`
 2. Skips projects with no new observations since last analysis
 3. Skips projects with fewer than 20 observations (configurable)
@@ -92,6 +93,7 @@ The script:
 5. Records a cursor so only new observations are processed on subsequent runs
 
 **Safety features:**
+
 - **Lockfile guard:** Only one instance can run at a time. Subsequent invocations exit immediately with code 0.
 - **Global timeout:** The process exits after 5 minutes regardless of progress.
 - **Stale lock detection:** If a previous run crashed, the lockfile is automatically cleaned up after 10 minutes or if the owning process is no longer alive.
@@ -241,7 +243,6 @@ confirmed_count: 5
 contradicted_count: 1
 inactive_count: 12
 ---
-
 Always search with grep to find relevant context before editing files.
 ```
 
@@ -262,12 +263,12 @@ Every instinct write (from the LLM tools or the background analyzer) is validate
 
 ### Content Validation
 
-| Rule | Details |
-|---|---|
-| Non-empty fields | `action` and `trigger` cannot be `undefined`, `null`, `"null"`, `"none"`, or empty |
-| Minimum length | Both fields must be >= 10 characters |
-| Known domain | `domain` must be in the known set: `git`, `testing`, `debugging`, `workflow`, `typescript`, `javascript`, `python`, `go`, `css`, `design`, `security`, `performance`, `documentation`, `react`, `node`, `database`, `api`, `devops`, `architecture`, or `other` |
-| Verb heuristic | `action` should start with an imperative verb - a warning is logged but the write is not rejected |
+| Rule             | Details                                                                                                                                                                                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Non-empty fields | `action` and `trigger` cannot be `undefined`, `null`, `"null"`, `"none"`, or empty                                                                                                                                                                              |
+| Minimum length   | Both fields must be >= 10 characters                                                                                                                                                                                                                            |
+| Known domain     | `domain` must be in the known set: `git`, `testing`, `debugging`, `workflow`, `typescript`, `javascript`, `python`, `go`, `css`, `design`, `security`, `performance`, `documentation`, `react`, `node`, `database`, `api`, `devops`, `architecture`, or `other` |
+| Verb heuristic   | `action` should start with an imperative verb - a warning is logged but the write is not rejected                                                                                                                                                               |
 
 ### Semantic Deduplication
 
@@ -290,12 +291,14 @@ The analyzer also checks AGENTS.md content before creating instincts - if a patt
 Confidence comes from two sources:
 
 **Discovery** (initial, based on observation count):
+
 - 1-2 observations: 0.3 (tentative)
 - 3-5: 0.5 (moderate)
 - 6-10: 0.7 (strong)
 - 11+: 0.85 (very strong)
 
 **Feedback** (ongoing, based on real outcomes):
+
 - Confirmed (behavior aligned with instinct): +0.05
 - Contradicted (behavior went against instinct): -0.15
 - Inactive (instinct irrelevant to the turn): no change
@@ -314,15 +317,16 @@ Observation -> Instinct (days) -> AGENTS.md / Skill / Command (1-2 weeks)
 
 ### Graduation Targets
 
-| Target | When | What happens |
-|--------|------|--------------|
-| **AGENTS.md** | Single mature instinct | Appended as a guideline entry to your project or global AGENTS.md |
-| **Skill** | 3+ related instincts in the same domain | Scaffolded into a `SKILL.md` file |
-| **Command** | 3+ workflow instincts in the same domain | Scaffolded into a slash command specification |
+| Target        | When                                     | What happens                                                      |
+| ------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| **AGENTS.md** | Single mature instinct                   | Appended as a guideline entry to your project or global AGENTS.md |
+| **Skill**     | 3+ related instincts in the same domain  | Scaffolded into a `SKILL.md` file                                 |
+| **Command**   | 3+ workflow instincts in the same domain | Scaffolded into a slash command specification                     |
 
 ### Maturity Criteria
 
 An instinct qualifies for graduation when all of these are met:
+
 - Age >= 7 days
 - Confidence >= 0.75
 - Confirmed >= 3 times
@@ -332,6 +336,7 @@ An instinct qualifies for graduation when all of these are met:
 ### TTL Enforcement
 
 Instincts that don't graduate within 28 days are subject to TTL enforcement:
+
 - **Confidence < 0.3**: Deleted outright
 - **Confidence >= 0.3**: Aggressively decayed (confidence halved, flagged for removal)
 
@@ -368,19 +373,19 @@ Optional. Defaults work out of the box. Override at `~/.pi/continuous-learning/c
 
 Only include the fields you want to change — missing fields use the defaults above.
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `run_interval_minutes` | 5 | How often the analyzer is expected to run (informational, used for decay calculations) |
-| `min_observations_to_analyze` | 20 | Minimum observations before analysis triggers |
-| `min_confidence` | 0.5 | Instincts below this are not injected into prompts |
-| `max_instincts` | 20 | Maximum instincts injected per turn |
-| `max_injection_chars` | 4000 | Character budget for the injection block (~1000 tokens) |
-| `model` | `claude-haiku-4-5` | Model for the background analyzer (lightweight models recommended to minimize cost) |
-| `timeout_seconds` | 120 | Per-project timeout for the analyzer LLM session |
-| `active_hours_start` | 8 | Hour (0-23) at which the active observation window starts |
-| `active_hours_end` | 23 | Hour (0-23) at which the active observation window ends |
-| `max_idle_seconds` | 1800 | Seconds of inactivity before a session is considered idle |
-| `log_path` | `~/.pi/continuous-learning/analyzer.log` | Path to the analyzer log file |
+| Field                         | Default                                  | Description                                                                            |
+| ----------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `run_interval_minutes`        | 5                                        | How often the analyzer is expected to run (informational, used for decay calculations) |
+| `min_observations_to_analyze` | 20                                       | Minimum observations before analysis triggers                                          |
+| `min_confidence`              | 0.5                                      | Instincts below this are not injected into prompts                                     |
+| `max_instincts`               | 20                                       | Maximum instincts injected per turn                                                    |
+| `max_injection_chars`         | 4000                                     | Character budget for the injection block (~1000 tokens)                                |
+| `model`                       | `claude-haiku-4-5`                       | Model for the background analyzer (lightweight models recommended to minimize cost)    |
+| `timeout_seconds`             | 120                                      | Per-project timeout for the analyzer LLM session                                       |
+| `active_hours_start`          | 8                                        | Hour (0-23) at which the active observation window starts                              |
+| `active_hours_end`            | 23                                       | Hour (0-23) at which the active observation window ends                                |
+| `max_idle_seconds`            | 1800                                     | Seconds of inactivity before a session is considered idle                              |
+| `log_path`                    | `~/.pi/continuous-learning/analyzer.log` | Path to the analyzer log file                                                          |
 
 ## Storage
 

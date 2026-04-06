@@ -6,7 +6,10 @@
  * a followUp message for the LLM to review with the user.
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 import type { InstalledSkill } from "./types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -27,7 +30,7 @@ export async function handleInstinctDream(
   projectId?: string | null,
   baseDir?: string,
   projectRoot?: string | null,
-  installedSkills?: InstalledSkill[]
+  installedSkills?: InstalledSkill[],
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
   const projectInstincts = projectId
@@ -37,26 +40,28 @@ export async function handleInstinctDream(
   const allInstincts = filterInstincts(
     [...projectInstincts, ...globalInstincts],
     0.1,
-    MAX_DREAM_INSTINCTS
+    MAX_DREAM_INSTINCTS,
   );
 
   if (allInstincts.length === 0) {
     ctx.ui.notify(
       "No instincts to consolidate. Keep using pi to accumulate instincts first.",
-      "info"
+      "info",
     );
     return;
   }
 
   const agentsMdProject =
     projectRoot != null ? readAgentsMd(join(projectRoot, "AGENTS.md")) : null;
-  const agentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+  const agentsMdGlobal = readAgentsMd(
+    join(homedir(), ".pi", "agent", "AGENTS.md"),
+  );
 
   const prompt = buildDreamPrompt(
     allInstincts,
     agentsMdProject,
     agentsMdGlobal,
-    installedSkills
+    installedSkills,
   );
   pi.sendUserMessage(prompt, { deliverAs: "followUp" });
 }

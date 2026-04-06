@@ -6,7 +6,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { ProjectEntry } from "./types.js";
-import { getProjectsRegistryPath, getProjectInstinctsDir, getBaseDir } from "./storage.js";
+import {
+  getProjectsRegistryPath,
+  getProjectInstinctsDir,
+  getBaseDir,
+} from "./storage.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -22,13 +26,18 @@ const NO_PROJECTS_MSG = "No projects found.";
 /**
  * Reads the projects.json registry. Returns an empty record on missing/invalid file.
  */
-export function readProjectsRegistry(baseDir?: string): Record<string, ProjectEntry> {
+export function readProjectsRegistry(
+  baseDir?: string,
+): Record<string, ProjectEntry> {
   const registryPath = getProjectsRegistryPath(baseDir ?? getBaseDir());
   if (!existsSync(registryPath)) {
     return {};
   }
   try {
-    return JSON.parse(readFileSync(registryPath, "utf-8")) as Record<string, ProjectEntry>;
+    return JSON.parse(readFileSync(registryPath, "utf-8")) as Record<
+      string,
+      ProjectEntry
+    >;
   } catch {
     return {};
   }
@@ -38,8 +47,15 @@ export function readProjectsRegistry(baseDir?: string): Record<string, ProjectEn
  * Counts .md files in a project's personal instincts directory.
  * Returns 0 if the directory does not exist.
  */
-export function countProjectInstincts(projectId: string, baseDir?: string): number {
-  const dir = getProjectInstinctsDir(projectId, "personal", baseDir ?? getBaseDir());
+export function countProjectInstincts(
+  projectId: string,
+  baseDir?: string,
+): number {
+  const dir = getProjectInstinctsDir(
+    projectId,
+    "personal",
+    baseDir ?? getBaseDir(),
+  );
   if (!existsSync(dir)) {
     return 0;
   }
@@ -73,7 +89,7 @@ export function formatDate(isoDate: string): string {
  */
 export function formatProjectsOutput(
   registry: Record<string, ProjectEntry>,
-  baseDir?: string
+  baseDir?: string,
 ): string {
   const entries = Object.values(registry);
   if (entries.length === 0) {
@@ -81,7 +97,7 @@ export function formatProjectsOutput(
   }
 
   const sorted = [...entries].sort((a, b) =>
-    b.last_seen.localeCompare(a.last_seen)
+    b.last_seen.localeCompare(a.last_seen),
   );
 
   const lines: string[] = ["=== Known Projects ===", ""];
@@ -111,7 +127,7 @@ export function formatProjectsOutput(
 export async function handleInstinctProjects(
   _args: string,
   ctx: ExtensionCommandContext,
-  baseDir?: string
+  baseDir?: string,
 ): Promise<void> {
   const registry = readProjectsRegistry(baseDir);
   const output = formatProjectsOutput(registry, baseDir);

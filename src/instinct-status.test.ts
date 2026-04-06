@@ -53,22 +53,34 @@ function makeInstinct(overrides: Partial<Instinct> = {}): Instinct {
 
 describe("getTrendArrow", () => {
   it("returns ↑ when confirmed > contradicted", () => {
-    const instinct = makeInstinct({ confirmed_count: 5, contradicted_count: 2 });
+    const instinct = makeInstinct({
+      confirmed_count: 5,
+      contradicted_count: 2,
+    });
     expect(getTrendArrow(instinct)).toBe("↑");
   });
 
   it("returns ↓ when contradicted > confirmed", () => {
-    const instinct = makeInstinct({ confirmed_count: 1, contradicted_count: 4 });
+    const instinct = makeInstinct({
+      confirmed_count: 1,
+      contradicted_count: 4,
+    });
     expect(getTrendArrow(instinct)).toBe("↓");
   });
 
   it("returns → when confirmed equals contradicted", () => {
-    const instinct = makeInstinct({ confirmed_count: 3, contradicted_count: 3 });
+    const instinct = makeInstinct({
+      confirmed_count: 3,
+      contradicted_count: 3,
+    });
     expect(getTrendArrow(instinct)).toBe("→");
   });
 
   it("returns → when both are zero", () => {
-    const instinct = makeInstinct({ confirmed_count: 0, contradicted_count: 0 });
+    const instinct = makeInstinct({
+      confirmed_count: 0,
+      contradicted_count: 0,
+    });
     expect(getTrendArrow(instinct)).toBe("→");
   });
 });
@@ -163,10 +175,7 @@ describe("formatStatusOutput", () => {
   });
 
   it("includes total count summary", () => {
-    const instincts = [
-      makeInstinct({ id: "a" }),
-      makeInstinct({ id: "b" }),
-    ];
+    const instincts = [makeInstinct({ id: "a" }), makeInstinct({ id: "b" })];
     const output = formatStatusOutput(instincts);
     expect(output).toContain("Total: 2 instincts");
   });
@@ -236,7 +245,7 @@ describe("handleInstinctStatus", () => {
       "projects",
       project.id,
       "instincts",
-      "personal"
+      "personal",
     );
     saveInstinct(instinct, instinctsDir);
 

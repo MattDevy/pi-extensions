@@ -37,7 +37,7 @@ export function buildDreamPrompt(
   instincts: Instinct[],
   agentsMdProject?: string | null,
   agentsMdGlobal?: string | null,
-  installedSkills?: InstalledSkill[]
+  installedSkills?: InstalledSkill[],
 ): string {
   const parts: string[] = [
     "Perform a holistic consolidation review of my learned instincts.",

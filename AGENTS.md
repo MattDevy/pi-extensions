@@ -5,11 +5,13 @@ A Pi extension that observes coding sessions, records events, and distills patte
 ## Commands
 
 After ANY code change, run:
+
 ```bash
 npx vitest run && npx eslint src/ && npx tsc --noEmit
 ```
 
 Individual commands:
+
 - `npx vitest run` - Run tests
 - `npx eslint src/` - Lint code
 - `npx tsc --noEmit` - Type check
@@ -91,6 +93,7 @@ pi-continuous-learning/
 ## Documentation
 
 After any code change, update relevant docs before committing:
+
 - `docs/internals.md` - update when changing architecture, data flow, config defaults, module responsibilities, or file formats
 - `docs/specification.md` - update only when changing fundamental design decisions or data models
 - `AGENTS.md` directory structure - update when adding or removing source files

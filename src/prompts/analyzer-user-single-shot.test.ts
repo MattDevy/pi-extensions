@@ -101,7 +101,9 @@ describe("buildSingleShotUserPrompt", () => {
   });
 
   it("omits installed skills section when list is empty", () => {
-    const prompt = buildSingleShotUserPrompt(project, [], [], { installedSkills: [] });
+    const prompt = buildSingleShotUserPrompt(project, [], [], {
+      installedSkills: [],
+    });
     expect(prompt).not.toContain("## Installed Skills");
   });
 

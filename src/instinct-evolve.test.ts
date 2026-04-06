@@ -6,7 +6,10 @@ import type { Instinct } from "./types.js";
 import { COMMAND_NAME, handleInstinctEvolve } from "./instinct-evolve.js";
 import { ensureStorageLayout } from "./storage.js";
 import { saveInstinct } from "./instinct-store.js";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 
 let tmpDir: string;
 
@@ -103,7 +106,7 @@ describe("instinct-evolve", () => {
     await handleInstinctEvolve("", ctx, pi, "nonexistent", tmpDir);
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining("No instincts"),
-      "info"
+      "info",
     );
     expect(pi.sendUserMessage).not.toHaveBeenCalled();
   });
@@ -119,17 +122,25 @@ describe("instinct-evolve", () => {
         created_at: "2026-01-01T00:00:00.000Z",
         last_seen: "2026-01-01T00:00:00.000Z",
       },
-      tmpDir
+      tmpDir,
     );
-    const instinct = makeInstinct({ id: "test-one", scope: "project", project_id: projectId });
-    saveInstinct(instinct, join(tmpDir, "projects", projectId, "instincts", "personal"));
+    const instinct = makeInstinct({
+      id: "test-one",
+      scope: "project",
+      project_id: projectId,
+    });
+    saveInstinct(
+      instinct,
+      join(tmpDir, "projects", projectId, "instincts", "personal"),
+    );
 
     const ctx = makeMockCtx();
     const pi = makeMockPi();
     await handleInstinctEvolve("", ctx, pi, projectId, tmpDir, null, []);
 
     expect(pi.sendUserMessage).toHaveBeenCalledTimes(1);
-    const [prompt, options] = (pi.sendUserMessage as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { deliverAs: string }];
+    const [prompt, options] = (pi.sendUserMessage as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [string, { deliverAs: string }];
     expect(prompt).toContain("test-one");
     expect(prompt).toContain("Merge candidates");
     expect(options).toEqual({ deliverAs: "followUp" });

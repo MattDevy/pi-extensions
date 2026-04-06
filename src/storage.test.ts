@@ -34,47 +34,51 @@ afterAll(() => {
 
 describe("path helpers", () => {
   it("getProjectDir returns correct path", () => {
-    expect(getProjectDir("proj1", testBase)).toBe(join(testBase, "projects", "proj1"));
+    expect(getProjectDir("proj1", testBase)).toBe(
+      join(testBase, "projects", "proj1"),
+    );
   });
 
   it("getObservationsPath returns correct path", () => {
     expect(getObservationsPath("proj1", testBase)).toBe(
-      join(testBase, "projects", "proj1", "observations.jsonl")
+      join(testBase, "projects", "proj1", "observations.jsonl"),
     );
   });
 
   it("getArchiveDir returns correct path", () => {
     expect(getArchiveDir("proj1", testBase)).toBe(
-      join(testBase, "projects", "proj1", "observations.archive")
+      join(testBase, "projects", "proj1", "observations.archive"),
     );
   });
 
   it("getProjectInstinctsDir returns correct path for personal", () => {
     expect(getProjectInstinctsDir("proj1", "personal", testBase)).toBe(
-      join(testBase, "projects", "proj1", "instincts", "personal")
+      join(testBase, "projects", "proj1", "instincts", "personal"),
     );
   });
 
   it("getProjectInstinctsDir returns correct path for inherited", () => {
     expect(getProjectInstinctsDir("proj1", "inherited", testBase)).toBe(
-      join(testBase, "projects", "proj1", "instincts", "inherited")
+      join(testBase, "projects", "proj1", "instincts", "inherited"),
     );
   });
 
   it("getGlobalInstinctsDir returns correct path for personal", () => {
     expect(getGlobalInstinctsDir("personal", testBase)).toBe(
-      join(testBase, "instincts", "personal")
+      join(testBase, "instincts", "personal"),
     );
   });
 
   it("getGlobalInstinctsDir returns correct path for inherited", () => {
     expect(getGlobalInstinctsDir("inherited", testBase)).toBe(
-      join(testBase, "instincts", "inherited")
+      join(testBase, "instincts", "inherited"),
     );
   });
 
   it("getProjectsRegistryPath returns correct path", () => {
-    expect(getProjectsRegistryPath(testBase)).toBe(join(testBase, "projects.json"));
+    expect(getProjectsRegistryPath(testBase)).toBe(
+      join(testBase, "projects.json"),
+    );
   });
 });
 
@@ -96,10 +100,17 @@ describe("ensureStorageLayout", () => {
     const base = join(testBase, "project-json-test");
     ensureStorageLayout(SAMPLE_PROJECT, base);
 
-    const projectJsonPath = join(base, "projects", SAMPLE_PROJECT.id, "project.json");
+    const projectJsonPath = join(
+      base,
+      "projects",
+      SAMPLE_PROJECT.id,
+      "project.json",
+    );
     expect(existsSync(projectJsonPath)).toBe(true);
 
-    const written = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as ProjectEntry;
+    const written = JSON.parse(
+      readFileSync(projectJsonPath, "utf-8"),
+    ) as ProjectEntry;
     expect(written.id).toBe(SAMPLE_PROJECT.id);
     expect(written.name).toBe(SAMPLE_PROJECT.name);
     expect(written.remote).toBe(SAMPLE_PROJECT.remote);
@@ -109,7 +120,12 @@ describe("ensureStorageLayout", () => {
     const base = join(testBase, "no-overwrite-test");
     ensureStorageLayout(SAMPLE_PROJECT, base);
 
-    const projectJsonPath = join(base, "projects", SAMPLE_PROJECT.id, "project.json");
+    const projectJsonPath = join(
+      base,
+      "projects",
+      SAMPLE_PROJECT.id,
+      "project.json",
+    );
     const originalContent = readFileSync(projectJsonPath, "utf-8");
 
     // Call again with updated last_seen
@@ -149,21 +165,31 @@ describe("ensureStorageLayout", () => {
     ensureStorageLayout(updated, base);
 
     const registry = JSON.parse(
-      readFileSync(join(base, "projects.json"), "utf-8")
+      readFileSync(join(base, "projects.json"), "utf-8"),
     ) as Record<string, ProjectEntry>;
-    expect(registry[SAMPLE_PROJECT.id]!.last_seen).toBe("2026-06-01T00:00:00.000Z");
+    expect(registry[SAMPLE_PROJECT.id]!.last_seen).toBe(
+      "2026-06-01T00:00:00.000Z",
+    );
   });
 
   it("preserves existing registry entries when adding a new project", () => {
     const base = join(testBase, "registry-preserve-test");
-    const projectA: ProjectEntry = { ...SAMPLE_PROJECT, id: "aaaaaaaaaa01", name: "proj-a" };
-    const projectB: ProjectEntry = { ...SAMPLE_PROJECT, id: "bbbbbbbbbb02", name: "proj-b" };
+    const projectA: ProjectEntry = {
+      ...SAMPLE_PROJECT,
+      id: "aaaaaaaaaa01",
+      name: "proj-a",
+    };
+    const projectB: ProjectEntry = {
+      ...SAMPLE_PROJECT,
+      id: "bbbbbbbbbb02",
+      name: "proj-b",
+    };
 
     ensureStorageLayout(projectA, base);
     ensureStorageLayout(projectB, base);
 
     const registry = JSON.parse(
-      readFileSync(join(base, "projects.json"), "utf-8")
+      readFileSync(join(base, "projects.json"), "utf-8"),
     ) as Record<string, ProjectEntry>;
     expect(registry["aaaaaaaaaa01"]).toBeDefined();
     expect(registry["bbbbbbbbbb02"]).toBeDefined();

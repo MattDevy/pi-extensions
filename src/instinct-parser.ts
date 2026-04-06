@@ -49,7 +49,7 @@ function clampConfidence(value: number): number {
 function assertKebabCase(id: string): void {
   if (!KEBAB_RE.test(id)) {
     throw new Error(
-      `Invalid instinct ID "${id}": must be kebab-case (lowercase letters, numbers, hyphens only).`
+      `Invalid instinct ID "${id}": must be kebab-case (lowercase letters, numbers, hyphens only).`,
     );
   }
 }
@@ -62,7 +62,7 @@ function splitFrontmatter(content: string): {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) {
     throw new Error(
-      "Invalid instinct file: content must begin with YAML frontmatter delimiters (---)."
+      "Invalid instinct file: content must begin with YAML frontmatter delimiters (---).",
     );
   }
   return { frontmatterStr: match[1] ?? "", body: (match[2] ?? "").trim() };
@@ -83,12 +83,16 @@ export function parseInstinct(content: string): Instinct {
   const fm = parseYaml(frontmatterStr) as Record<string, unknown>;
 
   if (!fm || typeof fm !== "object") {
-    throw new Error("Invalid instinct file: frontmatter is not a valid YAML object.");
+    throw new Error(
+      "Invalid instinct file: frontmatter is not a valid YAML object.",
+    );
   }
 
   for (const field of REQUIRED_FIELDS) {
     if (fm[field] === null || fm[field] === undefined) {
-      throw new Error(`Invalid instinct file: missing required field "${field}".`);
+      throw new Error(
+        `Invalid instinct file: missing required field "${field}".`,
+      );
     }
   }
 
@@ -123,16 +127,24 @@ export function parseInstinct(content: string): Instinct {
   if (Array.isArray(fm["evidence"])) {
     instinct.evidence = (fm["evidence"] as unknown[]).map(String);
   }
-  if (fm["flagged_for_removal"] !== undefined && fm["flagged_for_removal"] !== null) {
+  if (
+    fm["flagged_for_removal"] !== undefined &&
+    fm["flagged_for_removal"] !== null
+  ) {
     instinct.flagged_for_removal = Boolean(fm["flagged_for_removal"]);
   }
   if (fm["graduated_to"] !== undefined && fm["graduated_to"] !== null) {
-    (instinct as { graduated_to: string }).graduated_to = String(fm["graduated_to"]);
+    (instinct as { graduated_to: string }).graduated_to = String(
+      fm["graduated_to"],
+    );
   }
   if (fm["graduated_at"] !== undefined && fm["graduated_at"] !== null) {
     instinct.graduated_at = String(fm["graduated_at"]);
   }
-  if (fm["last_confirmed_session"] !== undefined && fm["last_confirmed_session"] !== null) {
+  if (
+    fm["last_confirmed_session"] !== undefined &&
+    fm["last_confirmed_session"] !== null
+  ) {
     instinct.last_confirmed_session = String(fm["last_confirmed_session"]);
   }
 

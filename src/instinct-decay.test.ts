@@ -2,18 +2,8 @@
  * Tests for US-031: Passive Confidence Decay
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-} from "vitest";
-import {
-  mkdtempSync,
-  rmSync,
-  mkdirSync,
-} from "node:fs";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Instinct } from "./types.js";
@@ -76,7 +66,7 @@ describe("applyDecayToInstinct", () => {
     const result = applyDecayToInstinct(instinct);
     expect(result).not.toBeNull();
     // 2 weeks * 0.05/week = 0.10 decay; 0.7 - 0.10 = 0.60
-    expect(result!.confidence).toBeCloseTo(0.60, 2);
+    expect(result!.confidence).toBeCloseTo(0.6, 2);
   });
 
   it("sets updated_at to current time when a change is made", () => {
@@ -138,7 +128,10 @@ describe("applyDecayToInstinct", () => {
   it("returns null for recently updated instinct (well below decay threshold)", () => {
     // 5 minutes ago: decay ≈ 0.02 * (5 / (7*24*60)) ≈ 0.0000019 - below 0.001 threshold
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const instinct = makeInstinct({ confidence: 0.7, updated_at: fiveMinutesAgo });
+    const instinct = makeInstinct({
+      confidence: 0.7,
+      updated_at: fiveMinutesAgo,
+    });
     expect(applyDecayToInstinct(instinct)).toBeNull();
   });
 });
@@ -184,7 +177,7 @@ describe("applyDecayInDir", () => {
     const reloaded = listInstincts(tmpDir);
     expect(reloaded).toHaveLength(1);
     // 2 weeks * 0.05/week = 0.10; 0.7 - 0.10 = 0.60
-    expect(reloaded[0]!.confidence).toBeCloseTo(0.60, 2);
+    expect(reloaded[0]!.confidence).toBeCloseTo(0.6, 2);
   });
 
   it("handles mixed fresh and stale instincts correctly", () => {
@@ -210,7 +203,13 @@ describe("runDecayPass", () => {
   beforeEach(() => {
     baseDir = mkdtempSync(join(tmpdir(), "decay-pass-test-"));
     projectId = "proj-test-001";
-    projectPersonalDir = join(baseDir, "projects", projectId, "instincts", "personal");
+    projectPersonalDir = join(
+      baseDir,
+      "projects",
+      projectId,
+      "instincts",
+      "personal",
+    );
     globalPersonalDir = join(baseDir, "instincts", "personal");
     mkdirSync(projectPersonalDir, { recursive: true });
     mkdirSync(globalPersonalDir, { recursive: true });
@@ -226,7 +225,7 @@ describe("runDecayPass", () => {
     runDecayPass(projectId, baseDir);
     const reloaded = listInstincts(projectPersonalDir);
     // 2 weeks * 0.05/week = 0.10; 0.7 - 0.10 = 0.60
-    expect(reloaded[0]!.confidence).toBeCloseTo(0.60, 2);
+    expect(reloaded[0]!.confidence).toBeCloseTo(0.6, 2);
   });
 
   it("applies decay to global personal instincts", () => {
@@ -239,8 +238,14 @@ describe("runDecayPass", () => {
   });
 
   it("applies decay to both project and global when projectId is provided", () => {
-    const projStale = makeInstinct({ confidence: 0.7, updated_at: daysAgo(14) });
-    const globalStale = makeInstinct({ confidence: 0.8, updated_at: daysAgo(14) });
+    const projStale = makeInstinct({
+      confidence: 0.7,
+      updated_at: daysAgo(14),
+    });
+    const globalStale = makeInstinct({
+      confidence: 0.8,
+      updated_at: daysAgo(14),
+    });
     saveInstinct(projStale, projectPersonalDir);
     saveInstinct(globalStale, globalPersonalDir);
     const total = runDecayPass(projectId, baseDir);
@@ -248,8 +253,14 @@ describe("runDecayPass", () => {
   });
 
   it("skips project decay when projectId is null", () => {
-    const projStale = makeInstinct({ confidence: 0.7, updated_at: daysAgo(14) });
-    const globalStale = makeInstinct({ confidence: 0.8, updated_at: daysAgo(14) });
+    const projStale = makeInstinct({
+      confidence: 0.7,
+      updated_at: daysAgo(14),
+    });
+    const globalStale = makeInstinct({
+      confidence: 0.8,
+      updated_at: daysAgo(14),
+    });
     saveInstinct(projStale, projectPersonalDir);
     saveInstinct(globalStale, globalPersonalDir);
     const total = runDecayPass(null, baseDir);

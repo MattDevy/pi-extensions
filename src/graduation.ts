@@ -73,12 +73,15 @@ export function getAgeDays(instinct: Instinct, now = Date.now()): number {
 export function checkMaturity(
   instinct: Instinct,
   agentsMdContent: string | null,
-  now = Date.now()
+  now = Date.now(),
 ): MaturityCheck {
   const reasons: string[] = [];
 
   if (instinct.graduated_to !== undefined) {
-    return { eligible: false, reasons: [`Already graduated to ${instinct.graduated_to}`] };
+    return {
+      eligible: false,
+      reasons: [`Already graduated to ${instinct.graduated_to}`],
+    };
   }
 
   if (instinct.flagged_for_removal) {
@@ -88,25 +91,25 @@ export function checkMaturity(
   const ageDays = getAgeDays(instinct, now);
   if (ageDays < GRADUATION_MIN_AGE_DAYS) {
     reasons.push(
-      `Age ${ageDays.toFixed(1)}d < ${GRADUATION_MIN_AGE_DAYS}d minimum`
+      `Age ${ageDays.toFixed(1)}d < ${GRADUATION_MIN_AGE_DAYS}d minimum`,
     );
   }
 
   if (instinct.confidence < GRADUATION_MIN_CONFIDENCE) {
     reasons.push(
-      `Confidence ${instinct.confidence.toFixed(2)} < ${GRADUATION_MIN_CONFIDENCE} minimum`
+      `Confidence ${instinct.confidence.toFixed(2)} < ${GRADUATION_MIN_CONFIDENCE} minimum`,
     );
   }
 
   if (instinct.confirmed_count < GRADUATION_MIN_CONFIRMED) {
     reasons.push(
-      `Confirmed ${instinct.confirmed_count} < ${GRADUATION_MIN_CONFIRMED} minimum`
+      `Confirmed ${instinct.confirmed_count} < ${GRADUATION_MIN_CONFIRMED} minimum`,
     );
   }
 
   if (instinct.contradicted_count > GRADUATION_MAX_CONTRADICTED) {
     reasons.push(
-      `Contradicted ${instinct.contradicted_count} > ${GRADUATION_MAX_CONTRADICTED} maximum`
+      `Contradicted ${instinct.contradicted_count} > ${GRADUATION_MAX_CONTRADICTED} maximum`,
     );
   }
 
@@ -133,7 +136,7 @@ export function checkMaturity(
 export function findAgentsMdCandidates(
   instincts: Instinct[],
   agentsMdContent: string | null,
-  now = Date.now()
+  now = Date.now(),
 ): GraduationCandidate[] {
   const candidates: GraduationCandidate[] = [];
 
@@ -156,7 +159,7 @@ export function findAgentsMdCandidates(
  */
 export function findDomainClusters(
   instincts: Instinct[],
-  minSize: number
+  minSize: number,
 ): DomainCluster[] {
   const byDomain = new Map<string, Instinct[]>();
 
@@ -201,10 +204,7 @@ export function findCommandCandidates(instincts: Instinct[]): DomainCluster[] {
  * - Instincts with confidence < cull threshold are marked for outright deletion
  * - Others are marked for aggressive decay
  */
-export function enforceTtl(
-  instincts: Instinct[],
-  now = Date.now()
-): TtlResult {
+export function enforceTtl(instincts: Instinct[], now = Date.now()): TtlResult {
   const toCull: Instinct[] = [];
   const toDecay: Instinct[] = [];
 
@@ -232,7 +232,7 @@ export function enforceTtl(
 export function markGraduated(
   instinct: Instinct,
   target: GraduationTarget,
-  now = new Date()
+  now = new Date(),
 ): Instinct {
   return {
     ...instinct,

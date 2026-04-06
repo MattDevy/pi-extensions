@@ -38,7 +38,7 @@ function archiveFile(observationsPath: string, archiveDir: string): void {
 export function appendObservation(
   observation: Observation,
   projectId: string,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   const observationsPath = getObservationsPath(projectId, baseDir);
   const archiveDir = getArchiveDir(projectId, baseDir);

@@ -6,7 +6,10 @@ import type { Instinct } from "./types.js";
 import { COMMAND_NAME, handleInstinctDream } from "./instinct-dream.js";
 import { ensureStorageLayout } from "./storage.js";
 import { saveInstinct } from "./instinct-store.js";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 
 let tmpDir: string;
 
@@ -103,7 +106,7 @@ describe("instinct-dream", () => {
     await handleInstinctDream("", ctx, pi, "nonexistent", tmpDir);
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining("No instincts"),
-      "info"
+      "info",
     );
     expect(pi.sendUserMessage).not.toHaveBeenCalled();
   });
@@ -119,7 +122,7 @@ describe("instinct-dream", () => {
         created_at: "2026-01-01T00:00:00.000Z",
         last_seen: "2026-01-01T00:00:00.000Z",
       },
-      tmpDir
+      tmpDir,
     );
     const instinct = makeInstinct({
       id: "dream-one",
@@ -128,7 +131,7 @@ describe("instinct-dream", () => {
     });
     saveInstinct(
       instinct,
-      join(tmpDir, "projects", projectId, "instincts", "personal")
+      join(tmpDir, "projects", projectId, "instincts", "personal"),
     );
 
     const ctx = makeMockCtx();
@@ -136,9 +139,8 @@ describe("instinct-dream", () => {
     await handleInstinctDream("", ctx, pi, projectId, tmpDir, null, []);
 
     expect(pi.sendUserMessage).toHaveBeenCalledTimes(1);
-    const [prompt, options] = (
-      pi.sendUserMessage as ReturnType<typeof vi.fn>
-    ).mock.calls[0] as [string, { deliverAs: string }];
+    const [prompt, options] = (pi.sendUserMessage as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [string, { deliverAs: string }];
     expect(prompt).toContain("dream-one");
     expect(prompt).toContain("Merge candidates");
     expect(prompt).toContain("Contradictions");

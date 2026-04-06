@@ -56,7 +56,7 @@ export interface ValidationError {
  */
 export function validateImportObject(
   obj: unknown,
-  index: number
+  index: number,
 ): ValidationError | null {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
     return { index, reason: "not an object" };
@@ -96,7 +96,9 @@ export function loadImportFile(filePath: string): LoadResult {
   const parsed: unknown = JSON.parse(content);
 
   if (!Array.isArray(parsed)) {
-    throw new Error("Import file must contain a JSON array of instinct objects.");
+    throw new Error(
+      "Import file must contain a JSON array of instinct objects.",
+    );
   }
 
   const valid: Instinct[] = [];
@@ -130,7 +132,7 @@ export interface PartitionResult {
 export function partitionByDuplicates(
   instincts: Instinct[],
   projectId: string | null | undefined,
-  baseDir: string
+  baseDir: string,
 ): PartitionResult {
   const existingIds = new Set<string>();
 
@@ -172,7 +174,7 @@ export function partitionByDuplicates(
 export function getTargetDir(
   instinct: Instinct,
   projectId: string | null | undefined,
-  baseDir: string
+  baseDir: string,
 ): string {
   if (instinct.scope === "project" && projectId != null) {
     return getProjectInstinctsDir(projectId, "inherited", baseDir);
@@ -193,7 +195,7 @@ export async function handleInstinctImport(
   args: string,
   ctx: ExtensionCommandContext,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
   const filePath = resolve(ctx.cwd, args.trim());
@@ -217,7 +219,7 @@ export async function handleInstinctImport(
   const { toImport, duplicates } = partitionByDuplicates(
     valid,
     projectId,
-    effectiveBase
+    effectiveBase,
   );
 
   // Ensure target dirs exist before writing
@@ -228,7 +230,7 @@ export async function handleInstinctImport(
     const projectInheritedDir = getProjectInstinctsDir(
       projectId,
       "inherited",
-      effectiveBase
+      effectiveBase,
     );
     mkdirSync(projectInheritedDir, { recursive: true });
   }
@@ -246,13 +248,13 @@ export async function handleInstinctImport(
 
   if (duplicates.length > 0) {
     lines.push(
-      `Skipped ${duplicates.length} duplicate${duplicates.length !== 1 ? "s" : ""}: ${duplicates.join(", ")}`
+      `Skipped ${duplicates.length} duplicate${duplicates.length !== 1 ? "s" : ""}: ${duplicates.join(", ")}`,
     );
   }
 
   if (invalid.length > 0) {
     lines.push(
-      `Skipped ${invalid.length} invalid entr${invalid.length !== 1 ? "ies" : "y"}: ${invalid.map((e) => `[${e.index}] ${e.reason}`).join("; ")}`
+      `Skipped ${invalid.length} invalid entr${invalid.length !== 1 ? "ies" : "y"}: ${invalid.map((e) => `[${e.index}] ${e.reason}`).join("; ")}`,
     );
   }
 

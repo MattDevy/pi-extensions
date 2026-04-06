@@ -129,7 +129,8 @@ describe("checkMaturity", () => {
       title: "Use Strict Mode",
       trigger: "when configuring TypeScript",
     });
-    const agentsMd = "# Guidelines\n\n## Use Strict Mode\n\nWhen configuring TypeScript, always use strict.";
+    const agentsMd =
+      "# Guidelines\n\n## Use Strict Mode\n\nWhen configuring TypeScript, always use strict.";
     const result = checkMaturity(inst, agentsMd, NOW);
     expect(result.eligible).toBe(false);
     expect(result.reasons.some((r) => r.includes("duplicate"))).toBe(true);
@@ -213,10 +214,10 @@ describe("findDomainClusters", () => {
   it("sorts clusters by size descending", () => {
     const instincts = [
       ...Array.from({ length: 3 }, (_, i) =>
-        makeInstinct({ id: `ts-${i}`, domain: "typescript" })
+        makeInstinct({ id: `ts-${i}`, domain: "typescript" }),
       ),
       ...Array.from({ length: 5 }, (_, i) =>
-        makeInstinct({ id: `git-${i}`, domain: "git" })
+        makeInstinct({ id: `git-${i}`, domain: "git" }),
       ),
     ];
     const result = findDomainClusters(instincts, 3);
@@ -228,7 +229,7 @@ describe("findDomainClusters", () => {
 describe("findSkillCandidates", () => {
   it("delegates to findDomainClusters with skill threshold", () => {
     const instincts = Array.from({ length: 3 }, (_, i) =>
-      makeInstinct({ id: `inst-${i}`, domain: "git" })
+      makeInstinct({ id: `inst-${i}`, domain: "git" }),
     );
     const result = findSkillCandidates(instincts);
     expect(result).toHaveLength(1);
@@ -238,7 +239,7 @@ describe("findSkillCandidates", () => {
 describe("findCommandCandidates", () => {
   it("delegates to findDomainClusters with command threshold", () => {
     const instincts = Array.from({ length: 3 }, (_, i) =>
-      makeInstinct({ id: `inst-${i}`, domain: "workflow" })
+      makeInstinct({ id: `inst-${i}`, domain: "workflow" }),
     );
     const result = findCommandCandidates(instincts);
     expect(result).toHaveLength(1);
@@ -251,7 +252,9 @@ describe("findCommandCandidates", () => {
 
 describe("enforceTtl", () => {
   it("returns empty when no instincts exceed TTL", () => {
-    const inst = makeInstinct({ created_at: new Date(NOW - 10 * MS_PER_DAY).toISOString() });
+    const inst = makeInstinct({
+      created_at: new Date(NOW - 10 * MS_PER_DAY).toISOString(),
+    });
     const result = enforceTtl([inst], NOW);
     expect(result.toCull).toEqual([]);
     expect(result.toDecay).toEqual([]);

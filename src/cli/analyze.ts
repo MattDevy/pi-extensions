@@ -40,7 +40,10 @@ import {
   buildInstinctFromChange,
   estimateTokens,
 } from "./analyze-single-shot.js";
-import { isLowSignalBatch, type FrequencyBoostContext } from "../observation-signal.js";
+import {
+  isLowSignalBatch,
+  type FrequencyBoostContext,
+} from "../observation-signal.js";
 import {
   loadProjectFrequencyTable,
   saveProjectFrequencyTable,
@@ -60,7 +63,11 @@ import {
 } from "../instinct-store.js";
 import { readAgentsMd } from "../agents-md.js";
 import { homedir } from "node:os";
-import { AnalyzeLogger, type ProjectRunStats, type RunSummary } from "./analyze-logger.js";
+import {
+  AnalyzeLogger,
+  type ProjectRunStats,
+  type RunSummary,
+} from "./analyze-logger.js";
 
 // ---------------------------------------------------------------------------
 // Lockfile guard - ensures only one instance runs at a time
@@ -99,7 +106,7 @@ function acquireLock(baseDir: string): boolean {
   writeFileSync(
     lockPath,
     JSON.stringify({ pid: process.pid, started_at: new Date().toISOString() }),
-    "utf-8"
+    "utf-8",
   );
   return true;
 }
@@ -161,7 +168,10 @@ function loadProjectsRegistry(baseDir: string): Record<string, ProjectEntry> {
   const path = getProjectsRegistryPath(baseDir);
   if (!existsSync(path)) return {};
   try {
-    return JSON.parse(readFileSync(path, "utf-8")) as Record<string, ProjectEntry>;
+    return JSON.parse(readFileSync(path, "utf-8")) as Record<
+      string,
+      ProjectEntry
+    >;
   } catch {
     return {};
   }
@@ -177,12 +187,20 @@ function loadProjectMeta(projectId: string, baseDir: string): ProjectMeta {
   }
 }
 
-function saveProjectMeta(projectId: string, meta: ProjectMeta, baseDir: string): void {
+function saveProjectMeta(
+  projectId: string,
+  meta: ProjectMeta,
+  baseDir: string,
+): void {
   const metaPath = join(getProjectDir(projectId, baseDir), "project.json");
   writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf-8");
 }
 
-function hasNewObservations(projectId: string, meta: ProjectMeta, baseDir: string): boolean {
+function hasNewObservations(
+  projectId: string,
+  meta: ProjectMeta,
+  baseDir: string,
+): boolean {
   const obsPath = getObservationsPath(projectId, baseDir);
   if (!existsSync(obsPath)) return false;
 
@@ -205,7 +223,7 @@ async function analyzeProject(
   project: ProjectEntry,
   config: ReturnType<typeof loadConfig>,
   baseDir: string,
-  logger: AnalyzeLogger
+  logger: AnalyzeLogger,
 ): Promise<AnalyzeResult> {
   const meta = loadProjectMeta(project.id, baseDir);
 
@@ -215,13 +233,17 @@ async function analyzeProject(
 
   const obsPath = getObservationsPath(project.id, baseDir);
   const sinceLineCount = meta.last_observation_line_count ?? 0;
-  const { lines: newObsLines, totalLineCount, rawLineCount } = tailObservationsSince(
-    obsPath,
-    sinceLineCount
-  );
+  const {
+    lines: newObsLines,
+    totalLineCount,
+    rawLineCount,
+  } = tailObservationsSince(obsPath, sinceLineCount);
 
   if (newObsLines.length === 0) {
-    return { ran: false, skippedReason: "no new observation lines after preprocessing" };
+    return {
+      ran: false,
+      skippedReason: "no new observation lines after preprocessing",
+    };
   }
 
   // Update prompt frequency tables before signal check so counts accumulate
@@ -229,7 +251,11 @@ async function analyzeProject(
   const projectFreqTable = loadProjectFrequencyTable(project.id, baseDir);
   const globalFreqTable = loadGlobalFrequencyTable(baseDir);
   const { project: updatedProjectFreq, global: updatedGlobalFreq } =
-    updateFrequencyTablesFromLines(newObsLines, projectFreqTable, globalFreqTable);
+    updateFrequencyTablesFromLines(
+      newObsLines,
+      projectFreqTable,
+      globalFreqTable,
+    );
   saveProjectFrequencyTable(updatedProjectFreq, project.id, baseDir);
   saveGlobalFrequencyTable(updatedGlobalFreq, baseDir);
 
@@ -240,12 +266,19 @@ async function analyzeProject(
   };
 
   if (isLowSignalBatch(newObsLines, freqContext)) {
-    return { ran: false, skippedReason: "low-signal batch (no errors, corrections, or user redirections)" };
+    return {
+      ran: false,
+      skippedReason:
+        "low-signal batch (no errors, corrections, or user redirections)",
+    };
   }
 
   const obsCount = countObservations(project.id, baseDir);
   if (obsCount < config.min_observations_to_analyze) {
-    return { ran: false, skippedReason: `below threshold (${obsCount}/${config.min_observations_to_analyze})` };
+    return {
+      ran: false,
+      skippedReason: `below threshold (${obsCount}/${config.min_observations_to_analyze})`,
+    };
   }
 
   const startTime = Date.now();
@@ -261,10 +294,16 @@ async function analyzeProject(
 
   // Load AGENTS.md, skipping if content hash is unchanged since last run.
   const rawAgentsMdProject = readAgentsMd(join(project.root, "AGENTS.md"));
-  const rawAgentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+  const rawAgentsMdGlobal = readAgentsMd(
+    join(homedir(), ".pi", "agent", "AGENTS.md"),
+  );
 
-  const projectMdHash = rawAgentsMdProject ? hashContent(rawAgentsMdProject) : null;
-  const globalMdHash = rawAgentsMdGlobal ? hashContent(rawAgentsMdGlobal) : null;
+  const projectMdHash = rawAgentsMdProject
+    ? hashContent(rawAgentsMdProject)
+    : null;
+  const globalMdHash = rawAgentsMdGlobal
+    ? hashContent(rawAgentsMdGlobal)
+    : null;
 
   const agentsMdProject =
     rawAgentsMdProject && projectMdHash !== meta.agents_md_project_hash
@@ -279,10 +318,12 @@ async function analyzeProject(
   try {
     const { loadSkills } = await import("@mariozechner/pi-coding-agent");
     const result = loadSkills({ cwd: project.root });
-    installedSkills = result.skills.map((s: { name: string; description: string }) => ({
-      name: s.name,
-      description: s.description,
-    }));
+    installedSkills = result.skills.map(
+      (s: { name: string; description: string }) => ({
+        name: s.name,
+        description: s.description,
+      }),
+    );
   } catch {
     // Skills loading is best-effort - continue without them
   }
@@ -291,11 +332,16 @@ async function analyzeProject(
   let promptAgentsMdProject = agentsMdProject;
   let promptAgentsMdGlobal = agentsMdGlobal;
 
-  const userPrompt = buildSingleShotUserPrompt(project, allInstincts, promptObsLines, {
-    agentsMdProject: promptAgentsMdProject,
-    agentsMdGlobal: promptAgentsMdGlobal,
-    installedSkills,
-  });
+  const userPrompt = buildSingleShotUserPrompt(
+    project,
+    allInstincts,
+    promptObsLines,
+    {
+      agentsMdProject: promptAgentsMdProject,
+      agentsMdGlobal: promptAgentsMdGlobal,
+      installedSkills,
+    },
+  );
 
   // Estimate token budget and apply fallbacks if over limit.
   const systemPromptTokens = estimateTokens(buildSingleShotSystemPrompt());
@@ -303,7 +349,7 @@ async function analyzeProject(
 
   if (estimatedTotal > PROMPT_TOKEN_BUDGET) {
     logger.warn(
-      `Prompt over budget (${estimatedTotal} est. tokens > ${PROMPT_TOKEN_BUDGET}). Applying fallbacks.`
+      `Prompt over budget (${estimatedTotal} est. tokens > ${PROMPT_TOKEN_BUDGET}). Applying fallbacks.`,
     );
 
     // Fallback 1: truncate AGENTS.md to headers only.
@@ -321,37 +367,57 @@ async function analyzeProject(
         project,
         allInstincts,
         promptObsLines,
-        { agentsMdProject: promptAgentsMdProject, agentsMdGlobal: promptAgentsMdGlobal, installedSkills }
+        {
+          agentsMdProject: promptAgentsMdProject,
+          agentsMdGlobal: promptAgentsMdGlobal,
+          installedSkills,
+        },
       );
       estimatedTotal = systemPromptTokens + estimateTokens(trimmedPrompt);
       if (estimatedTotal <= PROMPT_TOKEN_BUDGET) break;
-      promptObsLines = promptObsLines.slice(Math.floor(promptObsLines.length / 2));
+      promptObsLines = promptObsLines.slice(
+        Math.floor(promptObsLines.length / 2),
+      );
     }
   }
 
-  const finalUserPrompt = buildSingleShotUserPrompt(project, allInstincts, promptObsLines, {
-    agentsMdProject: promptAgentsMdProject,
-    agentsMdGlobal: promptAgentsMdGlobal,
-    installedSkills,
-  });
+  const finalUserPrompt = buildSingleShotUserPrompt(
+    project,
+    allInstincts,
+    promptObsLines,
+    {
+      agentsMdProject: promptAgentsMdProject,
+      agentsMdGlobal: promptAgentsMdGlobal,
+      installedSkills,
+    },
+  );
 
   const authStorage = AuthStorage.create();
-  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<typeof getModel>[1];
+  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<
+    typeof getModel
+  >[1];
   const model = getModel("anthropic", modelId);
   const apiKey = await authStorage.getApiKey("anthropic");
 
   if (!apiKey) {
-    throw new Error("No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.");
+    throw new Error(
+      "No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.",
+    );
   }
 
   const context = {
     systemPrompt: buildSingleShotSystemPrompt(),
     messages: [
-      { role: "user" as const, content: finalUserPrompt, timestamp: Date.now() },
+      {
+        role: "user" as const,
+        content: finalUserPrompt,
+        timestamp: Date.now(),
+      },
     ],
   };
 
-  const timeoutMs = (config.timeout_seconds ?? DEFAULT_CONFIG.timeout_seconds) * 1000;
+  const timeoutMs =
+    (config.timeout_seconds ?? DEFAULT_CONFIG.timeout_seconds) * 1000;
   const abortController = new AbortController();
   const timeoutHandle = setTimeout(() => abortController.abort(), timeoutMs);
 
@@ -359,23 +425,35 @@ async function analyzeProject(
   const createdSummaries: InstinctChangeSummary[] = [];
   const updatedSummaries: InstinctChangeSummary[] = [];
   const deletedSummaries: InstinctChangeSummary[] = [];
-  const projectInstinctsDir = getProjectInstinctsDir(project.id, "personal", baseDir);
+  const projectInstinctsDir = getProjectInstinctsDir(
+    project.id,
+    "personal",
+    baseDir,
+  );
   const globalInstinctsDir = getGlobalInstinctsDir("personal", baseDir);
 
   let singleShotMessage;
   try {
-    const result = await runSingleShot(context, model, apiKey, abortController.signal);
+    const result = await runSingleShot(
+      context,
+      model,
+      apiKey,
+      abortController.signal,
+    );
     singleShotMessage = result.message;
 
     // Enforce creation rate limit: only the first N create actions per run are applied.
-    const maxNewInstincts = config.max_new_instincts_per_run ?? DEFAULT_CONFIG.max_new_instincts_per_run;
+    const maxNewInstincts =
+      config.max_new_instincts_per_run ??
+      DEFAULT_CONFIG.max_new_instincts_per_run;
     let createsRemaining = maxNewInstincts;
 
     for (const change of result.changes) {
       if (change.action === "delete") {
         const id = change.id;
         if (!id) continue;
-        const dir = change.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          change.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
         const filePath = join(dir, `${id}.md`);
         if (existsSync(filePath)) {
           unlinkSync(filePath);
@@ -388,11 +466,20 @@ async function analyzeProject(
         }
       } else if (change.action === "create") {
         if (createsRemaining <= 0) continue; // rate limit reached
-        const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
+        const existing =
+          allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
+        const instinct = buildInstinctFromChange(
+          change,
+          existing,
+          project.id,
+          allInstincts,
+        );
         if (!instinct) continue;
 
-        const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          instinct.scope === "global"
+            ? globalInstinctsDir
+            : projectInstinctsDir;
         saveInstinct(instinct, dir);
         instinctCounts.created++;
         createsRemaining--;
@@ -405,11 +492,20 @@ async function analyzeProject(
         });
       } else {
         // update
-        const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
+        const existing =
+          allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
+        const instinct = buildInstinctFromChange(
+          change,
+          existing,
+          project.id,
+          allInstincts,
+        );
         if (!instinct) continue;
 
-        const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          instinct.scope === "global"
+            ? globalInstinctsDir
+            : projectInstinctsDir;
         saveInstinct(instinct, dir);
         instinctCounts.updated++;
         const delta = existing
@@ -468,10 +564,14 @@ async function analyzeProject(
       last_analyzed_at: new Date().toISOString(),
       last_observation_line_count: totalLineCount,
       // Update AGENTS.md hashes only when the content was actually sent.
-      ...(agentsMdProject && projectMdHash ? { agents_md_project_hash: projectMdHash } : {}),
-      ...(agentsMdGlobal && globalMdHash ? { agents_md_global_hash: globalMdHash } : {}),
+      ...(agentsMdProject && projectMdHash
+        ? { agents_md_project_hash: projectMdHash }
+        : {}),
+      ...(agentsMdGlobal && globalMdHash
+        ? { agents_md_global_hash: globalMdHash }
+        : {}),
     },
-    baseDir
+    baseDir,
   );
 
   return { ran: true, stats };
@@ -486,7 +586,7 @@ async function consolidateProject(
   config: ReturnType<typeof loadConfig>,
   baseDir: string,
   logger: AnalyzeLogger,
-  force: boolean
+  force: boolean,
 ): Promise<AnalyzeResult> {
   const obsPath = getObservationsPath(project.id, baseDir);
   const sessionCount = countDistinctSessions(obsPath);
@@ -496,12 +596,19 @@ async function consolidateProject(
     const gate = checkConsolidationGate({
       meta,
       currentSessionCount: sessionCount,
-      intervalDays: config.consolidation_interval_days ?? DEFAULT_CONFIG.consolidation_interval_days,
-      minSessions: config.consolidation_min_sessions ?? DEFAULT_CONFIG.consolidation_min_sessions,
+      intervalDays:
+        config.consolidation_interval_days ??
+        DEFAULT_CONFIG.consolidation_interval_days,
+      minSessions:
+        config.consolidation_min_sessions ??
+        DEFAULT_CONFIG.consolidation_min_sessions,
     });
 
     if (!gate.eligible) {
-      return { ran: false, skippedReason: `consolidation gate: ${gate.reason}` };
+      return {
+        ran: false,
+        skippedReason: `consolidation gate: ${gate.reason}`,
+      };
     }
   }
 
@@ -528,16 +635,20 @@ async function consolidateProject(
 
   // Load AGENTS.md for deduplication
   const agentsMdProject = readAgentsMd(join(project.root, "AGENTS.md"));
-  const agentsMdGlobal = readAgentsMd(join(homedir(), ".pi", "agent", "AGENTS.md"));
+  const agentsMdGlobal = readAgentsMd(
+    join(homedir(), ".pi", "agent", "AGENTS.md"),
+  );
 
   let installedSkills: InstalledSkill[] = [];
   try {
     const { loadSkills } = await import("@mariozechner/pi-coding-agent");
     const result = loadSkills({ cwd: project.root });
-    installedSkills = result.skills.map((s: { name: string; description: string }) => ({
-      name: s.name,
-      description: s.description,
-    }));
+    installedSkills = result.skills.map(
+      (s: { name: string; description: string }) => ({
+        name: s.name,
+        description: s.description,
+      }),
+    );
   } catch {
     // Best effort
   }
@@ -552,12 +663,16 @@ async function consolidateProject(
   });
 
   const authStorage = AuthStorage.create();
-  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<typeof getModel>[1];
+  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<
+    typeof getModel
+  >[1];
   const model = getModel("anthropic", modelId);
   const apiKey = await authStorage.getApiKey("anthropic");
 
   if (!apiKey) {
-    throw new Error("No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.");
+    throw new Error(
+      "No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.",
+    );
   }
 
   const context = {
@@ -567,7 +682,8 @@ async function consolidateProject(
     ],
   };
 
-  const timeoutMs = (config.timeout_seconds ?? DEFAULT_CONFIG.timeout_seconds) * 1000;
+  const timeoutMs =
+    (config.timeout_seconds ?? DEFAULT_CONFIG.timeout_seconds) * 1000;
   const abortController = new AbortController();
   const timeoutHandle = setTimeout(() => abortController.abort(), timeoutMs);
 
@@ -575,36 +691,61 @@ async function consolidateProject(
   const createdSummaries: InstinctChangeSummary[] = [];
   const updatedSummaries: InstinctChangeSummary[] = [];
   const deletedSummaries: InstinctChangeSummary[] = [];
-  const projectInstinctsDir = getProjectInstinctsDir(project.id, "personal", baseDir);
+  const projectInstinctsDir = getProjectInstinctsDir(
+    project.id,
+    "personal",
+    baseDir,
+  );
   const globalInstinctsDir = getGlobalInstinctsDir("personal", baseDir);
 
   let singleShotMessage;
   try {
-    const result = await runSingleShot(context, model, apiKey, abortController.signal);
+    const result = await runSingleShot(
+      context,
+      model,
+      apiKey,
+      abortController.signal,
+    );
     singleShotMessage = result.message;
 
     // Consolidation allows more creates than normal analysis (merges produce new instincts)
-    const maxNewInstincts = (config.max_new_instincts_per_run ?? DEFAULT_CONFIG.max_new_instincts_per_run) * 2;
+    const maxNewInstincts =
+      (config.max_new_instincts_per_run ??
+        DEFAULT_CONFIG.max_new_instincts_per_run) * 2;
     let createsRemaining = maxNewInstincts;
 
     for (const change of result.changes) {
       if (change.action === "delete") {
         const id = change.id;
         if (!id) continue;
-        const dir = change.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          change.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
         const filePath = join(dir, `${id}.md`);
         if (existsSync(filePath)) {
           unlinkSync(filePath);
           instinctCounts.deleted++;
-          deletedSummaries.push({ id, title: id, scope: change.scope ?? "project" });
+          deletedSummaries.push({
+            id,
+            title: id,
+            scope: change.scope ?? "project",
+          });
         }
       } else if (change.action === "create") {
         if (createsRemaining <= 0) continue;
-        const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
+        const existing =
+          allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
+        const instinct = buildInstinctFromChange(
+          change,
+          existing,
+          project.id,
+          allInstincts,
+        );
         if (!instinct) continue;
 
-        const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          instinct.scope === "global"
+            ? globalInstinctsDir
+            : projectInstinctsDir;
         saveInstinct(instinct, dir);
         instinctCounts.created++;
         createsRemaining--;
@@ -616,14 +757,25 @@ async function consolidateProject(
           action: instinct.action,
         });
       } else {
-        const existing = allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
-        const instinct = buildInstinctFromChange(change, existing, project.id, allInstincts);
+        const existing =
+          allInstincts.find((i) => i.id === change.instinct?.id) ?? null;
+        const instinct = buildInstinctFromChange(
+          change,
+          existing,
+          project.id,
+          allInstincts,
+        );
         if (!instinct) continue;
 
-        const dir = instinct.scope === "global" ? globalInstinctsDir : projectInstinctsDir;
+        const dir =
+          instinct.scope === "global"
+            ? globalInstinctsDir
+            : projectInstinctsDir;
         saveInstinct(instinct, dir);
         instinctCounts.updated++;
-        const delta = existing ? instinct.confidence - existing.confidence : undefined;
+        const delta = existing
+          ? instinct.confidence - existing.confidence
+          : undefined;
         updatedSummaries.push({
           id: instinct.id,
           title: instinct.title,
@@ -677,7 +829,7 @@ async function consolidateProject(
       last_consolidation_at: new Date().toISOString(),
       last_consolidation_session_count: sessionCount,
     },
-    baseDir
+    baseDir,
   );
 
   return { ran: true, stats };
@@ -723,14 +875,24 @@ async function main(): Promise<void> {
       // --consolidate: manual trigger, consolidation only, skip gates
       for (const project of projects) {
         try {
-          const result = await consolidateProject(project, config, baseDir, logger, true);
+          const result = await consolidateProject(
+            project,
+            config,
+            baseDir,
+            logger,
+            true,
+          );
           if (result.ran && result.stats) {
             processed++;
             allProjectStats.push(result.stats);
           } else {
             skipped++;
             if (result.skippedReason) {
-              logger.projectSkipped(project.id, project.name, result.skippedReason);
+              logger.projectSkipped(
+                project.id,
+                project.name,
+                result.skippedReason,
+              );
             }
           }
         } catch (err) {
@@ -749,7 +911,11 @@ async function main(): Promise<void> {
           } else {
             skipped++;
             if (result.skippedReason) {
-              logger.projectSkipped(project.id, project.name, result.skippedReason);
+              logger.projectSkipped(
+                project.id,
+                project.name,
+                result.skippedReason,
+              );
             }
           }
         } catch (err) {
@@ -762,12 +928,22 @@ async function main(): Promise<void> {
       if (config.dreaming_enabled) {
         for (const project of projects) {
           try {
-            const result = await consolidateProject(project, config, baseDir, logger, false);
+            const result = await consolidateProject(
+              project,
+              config,
+              baseDir,
+              logger,
+              false,
+            );
             if (result.ran && result.stats) {
               processed++;
               allProjectStats.push(result.stats);
             } else if (result.skippedReason) {
-              logger.projectSkipped(project.id, project.name, result.skippedReason);
+              logger.projectSkipped(
+                project.id,
+                project.name,
+                result.skippedReason,
+              );
             }
           } catch (err) {
             logger.projectError(project.id, project.name, err);
@@ -784,9 +960,18 @@ async function main(): Promise<void> {
       projects_total: projects.length,
       total_tokens: allProjectStats.reduce((sum, s) => sum + s.tokens_total, 0),
       total_cost_usd: allProjectStats.reduce((sum, s) => sum + s.cost_usd, 0),
-      total_instincts_created: allProjectStats.reduce((sum, s) => sum + s.instincts_created, 0),
-      total_instincts_updated: allProjectStats.reduce((sum, s) => sum + s.instincts_updated, 0),
-      total_instincts_deleted: allProjectStats.reduce((sum, s) => sum + s.instincts_deleted, 0),
+      total_instincts_created: allProjectStats.reduce(
+        (sum, s) => sum + s.instincts_created,
+        0,
+      ),
+      total_instincts_updated: allProjectStats.reduce(
+        (sum, s) => sum + s.instincts_updated,
+        0,
+      ),
+      total_instincts_deleted: allProjectStats.reduce(
+        (sum, s) => sum + s.instincts_deleted,
+        0,
+      ),
       project_stats: allProjectStats,
     };
 

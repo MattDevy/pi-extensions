@@ -67,17 +67,19 @@ export function filterInstincts(
   instincts: Instinct[],
   minConfidence: number,
   maxInstincts: number,
-  relevantDomains?: Set<string>
+  relevantDomains?: Set<string>,
 ): Instinct[] {
   const eligible = instincts.filter(
-    (i) => !i.flagged_for_removal && i.confidence >= minConfidence
+    (i) => !i.flagged_for_removal && i.confidence >= minConfidence,
   );
 
   const sorted = [...eligible].sort((a, b) => {
     // When relevantDomains are provided, prioritize domain-matched instincts
     if (relevantDomains && relevantDomains.size > 0) {
-      const aRelevant = relevantDomains.has(a.domain) || UNIVERSAL_DOMAINS.has(a.domain);
-      const bRelevant = relevantDomains.has(b.domain) || UNIVERSAL_DOMAINS.has(b.domain);
+      const aRelevant =
+        relevantDomains.has(a.domain) || UNIVERSAL_DOMAINS.has(a.domain);
+      const bRelevant =
+        relevantDomains.has(b.domain) || UNIVERSAL_DOMAINS.has(b.domain);
       if (aRelevant && !bRelevant) return -1;
       if (!aRelevant && bRelevant) return 1;
     }
@@ -99,7 +101,7 @@ export function filterInstincts(
  * instincts and global instincts. Otherwise loads only global instincts.
  */
 export function loadAndFilterInstincts(
-  options: LoadInstinctsOptions = {}
+  options: LoadInstinctsOptions = {},
 ): Instinct[] {
   const {
     projectId,
@@ -110,9 +112,7 @@ export function loadAndFilterInstincts(
   } = options;
 
   const projectInstincts =
-    projectId != null
-      ? loadProjectInstincts(projectId, baseDir)
-      : [];
+    projectId != null ? loadProjectInstincts(projectId, baseDir) : [];
 
   const globalInstincts = loadGlobalInstincts(baseDir);
 
@@ -133,7 +133,7 @@ export function loadAndFilterFromConfig(
   config: Config,
   projectId?: string | null,
   baseDir?: string,
-  relevantDomains?: Set<string>
+  relevantDomains?: Set<string>,
 ): Instinct[] {
   const opts: LoadInstinctsOptions = {
     minConfidence: config.min_confidence,

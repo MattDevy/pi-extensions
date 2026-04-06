@@ -124,7 +124,10 @@ describe("validateInstinct", () => {
   });
 
   it("checks action before trigger (action error takes priority)", () => {
-    const result = validateInstinct({ action: "undefined", trigger: "undefined" });
+    const result = validateInstinct({
+      action: "undefined",
+      trigger: "undefined",
+    });
     expect(result.valid).toBe(false);
     expect(result.reason).toContain("action");
   });
@@ -311,13 +314,15 @@ describe("findSimilarInstinct", () => {
   const readBeforeEdit = makeInstinct({
     id: "read-before-edit",
     trigger: "Before making edits to an existing file",
-    action: "Read the file content first to understand current state and context before making edits",
+    action:
+      "Read the file content first to understand current state and context before making edits",
   });
 
   const verifyEditContext = makeInstinct({
     id: "verify-edit-context",
     trigger: "When using the edit tool to modify a file after reading it",
-    action: "Ensure the oldText in the edit tool matches the exact file content and context",
+    action:
+      "Ensure the oldText in the edit tool matches the exact file content and context",
   });
 
   const useTdd = makeInstinct({
@@ -328,16 +333,22 @@ describe("findSimilarInstinct", () => {
 
   it("returns null when no existing instincts", () => {
     const result = findSimilarInstinct(
-      { trigger: "When editing a file", action: "Read file content before editing" },
-      []
+      {
+        trigger: "When editing a file",
+        action: "Read file content before editing",
+      },
+      [],
     );
     expect(result).toBeNull();
   });
 
   it("returns null when no instinct exceeds threshold", () => {
     const result = findSimilarInstinct(
-      { trigger: "When writing Python code", action: "Use type hints for all function parameters" },
-      [readBeforeEdit, verifyEditContext, useTdd]
+      {
+        trigger: "When writing Python code",
+        action: "Use type hints for all function parameters",
+      },
+      [readBeforeEdit, verifyEditContext, useTdd],
     );
     expect(result).toBeNull();
   });
@@ -346,7 +357,8 @@ describe("findSimilarInstinct", () => {
     // This is very similar to readBeforeEdit
     const candidate = {
       trigger: "Before making edits to a file that exists",
-      action: "Read the file content to understand the current state before editing",
+      action:
+        "Read the file content to understand the current state before editing",
     };
     const result = findSimilarInstinct(candidate, [readBeforeEdit, useTdd]);
     expect(result).not.toBeNull();
@@ -357,10 +369,15 @@ describe("findSimilarInstinct", () => {
   it("respects skipId to avoid matching the instinct being updated", () => {
     const candidate = {
       trigger: "Before making edits to a file that exists",
-      action: "Read the file content to understand the current state before editing",
+      action:
+        "Read the file content to understand the current state before editing",
     };
     // Skip the similar instinct - simulates updating read-before-edit itself
-    const result = findSimilarInstinct(candidate, [readBeforeEdit, useTdd], "read-before-edit");
+    const result = findSimilarInstinct(
+      candidate,
+      [readBeforeEdit, useTdd],
+      "read-before-edit",
+    );
     expect(result).toBeNull();
   });
 
@@ -368,7 +385,8 @@ describe("findSimilarInstinct", () => {
     const veryClose = makeInstinct({
       id: "read-file-first",
       trigger: "Before making edits to any existing file",
-      action: "Read the file content first to understand the current state and context",
+      action:
+        "Read the file content first to understand the current state and context",
     });
     const lessSimilar = makeInstinct({
       id: "check-file-exists",
@@ -378,7 +396,8 @@ describe("findSimilarInstinct", () => {
 
     const candidate = {
       trigger: "Before making edits to an existing file in the codebase",
-      action: "Read the file content to understand the current state before making edits",
+      action:
+        "Read the file content to understand the current state before making edits",
     };
 
     const result = findSimilarInstinct(candidate, [veryClose, lessSimilar]);
@@ -393,11 +412,21 @@ describe("findSimilarInstinct", () => {
       action: "Read the file content before editing",
     };
     // With very high threshold (0.95), should not match
-    const highThreshold = findSimilarInstinct(candidate, [readBeforeEdit], undefined, 0.95);
+    const highThreshold = findSimilarInstinct(
+      candidate,
+      [readBeforeEdit],
+      undefined,
+      0.95,
+    );
     expect(highThreshold).toBeNull();
 
     // With low threshold (0.3), should match
-    const lowThreshold = findSimilarInstinct(candidate, [readBeforeEdit], undefined, 0.3);
+    const lowThreshold = findSimilarInstinct(
+      candidate,
+      [readBeforeEdit],
+      undefined,
+      0.3,
+    );
     expect(lowThreshold).not.toBeNull();
   });
 });

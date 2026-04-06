@@ -13,29 +13,38 @@ export function getBaseDir(): string {
   return join(homedir(), ".pi", "continuous-learning");
 }
 
-export function getProjectDir(projectId: string, baseDir = getBaseDir()): string {
+export function getProjectDir(
+  projectId: string,
+  baseDir = getBaseDir(),
+): string {
   return join(baseDir, "projects", projectId);
 }
 
-export function getObservationsPath(projectId: string, baseDir = getBaseDir()): string {
+export function getObservationsPath(
+  projectId: string,
+  baseDir = getBaseDir(),
+): string {
   return join(getProjectDir(projectId, baseDir), "observations.jsonl");
 }
 
-export function getArchiveDir(projectId: string, baseDir = getBaseDir()): string {
+export function getArchiveDir(
+  projectId: string,
+  baseDir = getBaseDir(),
+): string {
   return join(getProjectDir(projectId, baseDir), "observations.archive");
 }
 
 export function getProjectInstinctsDir(
   projectId: string,
   source: "personal" | "inherited",
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): string {
   return join(getProjectDir(projectId, baseDir), "instincts", source);
 }
 
 export function getGlobalInstinctsDir(
   source: "personal" | "inherited",
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): string {
   return join(baseDir, "instincts", source);
 }
@@ -48,12 +57,17 @@ function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true });
 }
 
-function readProjectsRegistry(registryPath: string): Record<string, ProjectEntry> {
+function readProjectsRegistry(
+  registryPath: string,
+): Record<string, ProjectEntry> {
   if (!existsSync(registryPath)) {
     return {};
   }
   try {
-    return JSON.parse(readFileSync(registryPath, "utf-8")) as Record<string, ProjectEntry>;
+    return JSON.parse(readFileSync(registryPath, "utf-8")) as Record<
+      string,
+      ProjectEntry
+    >;
   } catch {
     return {};
   }
@@ -66,7 +80,10 @@ function readProjectsRegistry(registryPath: string): Record<string, ProjectEntry
  * @param project - Project entry with metadata
  * @param baseDir - Base directory (defaults to ~/.pi/continuous-learning/)
  */
-export function ensureStorageLayout(project: ProjectEntry, baseDir = getBaseDir()): void {
+export function ensureStorageLayout(
+  project: ProjectEntry,
+  baseDir = getBaseDir(),
+): void {
   // Global instinct directories
   ensureDir(join(baseDir, "instincts", "personal"));
   ensureDir(join(baseDir, "instincts", "inherited"));

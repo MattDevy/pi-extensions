@@ -168,28 +168,36 @@ describe("applyPassiveDecay", () => {
   });
 
   it("applies -0.05 for one week of decay", () => {
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const oneWeekAgo = new Date(
+      Date.now() - 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const result = applyPassiveDecay(0.5, oneWeekAgo);
     expect(result.confidence).toBeCloseTo(0.45, 5);
     expect(result.flaggedForRemoval).toBe(false);
   });
 
   it("applies -0.10 for two weeks of decay", () => {
-    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const twoWeeksAgo = new Date(
+      Date.now() - 14 * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const result = applyPassiveDecay(0.5, twoWeeksAgo);
-    expect(result.confidence).toBeCloseTo(0.40, 5);
+    expect(result.confidence).toBeCloseTo(0.4, 5);
     expect(result.flaggedForRemoval).toBe(false);
   });
 
   it("clamps at 0.1 minimum after decay", () => {
     // at 0.05/week: 0.5 confidence needs 8 weeks to reach 0.1; use 70 days to be safe
-    const longAgo = new Date(Date.now() - 70 * 24 * 60 * 60 * 1000).toISOString();
+    const longAgo = new Date(
+      Date.now() - 70 * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const result = applyPassiveDecay(0.5, longAgo);
     expect(result.confidence).toBe(0.1);
   });
 
   it("flags for removal when decay would push below 0.1", () => {
-    const longAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+    const longAgo = new Date(
+      Date.now() - 100 * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const result = applyPassiveDecay(0.1, longAgo);
     expect(result.confidence).toBe(0.1);
     expect(result.flaggedForRemoval).toBe(true);

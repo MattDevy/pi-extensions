@@ -181,7 +181,10 @@ export function validateInstinct(fields: {
 
   // Domain validation
   if (fields.domain !== undefined) {
-    if (typeof fields.domain !== "string" || !KNOWN_DOMAINS.has(fields.domain.toLowerCase().trim())) {
+    if (
+      typeof fields.domain !== "string" ||
+      !KNOWN_DOMAINS.has(fields.domain.toLowerCase().trim())
+    ) {
       return {
         valid: false,
         reason: `domain "${String(fields.domain)}" is not in the known set. Use one of: ${[...KNOWN_DOMAINS].join(", ")}`,
@@ -194,7 +197,7 @@ export function validateInstinct(fields: {
   const firstWord = action.split(/\s+/)[0]?.toLowerCase() ?? "";
   if (firstWord && !KNOWN_VERBS.has(firstWord)) {
     warnings.push(
-      `action should start with an imperative verb (got "${firstWord}"). Consider rewriting as a clear instruction.`
+      `action should start with an imperative verb (got "${firstWord}"). Consider rewriting as a clear instruction.`,
     );
   }
 
@@ -206,12 +209,62 @@ export function validateInstinct(fields: {
 // ---------------------------------------------------------------------------
 
 const STOP_WORDS = new Set([
-  "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
-  "have", "has", "had", "do", "does", "did", "will", "would", "should",
-  "could", "may", "might", "shall", "can", "of", "in", "on", "at", "to",
-  "for", "with", "by", "from", "up", "about", "into", "it", "its", "this",
-  "that", "these", "those", "and", "or", "but", "if", "as", "when", "where",
-  "how", "what", "which", "who", "not", "no", "so",
+  "a",
+  "an",
+  "the",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "should",
+  "could",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "of",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "with",
+  "by",
+  "from",
+  "up",
+  "about",
+  "into",
+  "it",
+  "its",
+  "this",
+  "that",
+  "these",
+  "those",
+  "and",
+  "or",
+  "but",
+  "if",
+  "as",
+  "when",
+  "where",
+  "how",
+  "what",
+  "which",
+  "who",
+  "not",
+  "no",
+  "so",
 ]);
 
 /**
@@ -223,7 +276,7 @@ export function tokenize(text: string): Set<string> {
     text
       .toLowerCase()
       .split(/[^a-z0-9]+/)
-      .filter((t) => t.length > 2 && !STOP_WORDS.has(t))
+      .filter((t) => t.length > 2 && !STOP_WORDS.has(t)),
   );
 }
 
@@ -264,7 +317,7 @@ export function findSimilarInstinct(
   candidate: { trigger: string; action: string },
   existing: Instinct[],
   skipId?: string,
-  threshold = 0.6
+  threshold = 0.6,
 ): SimilarityMatch | null {
   const candidateTokens = tokenize(`${candidate.trigger} ${candidate.action}`);
 

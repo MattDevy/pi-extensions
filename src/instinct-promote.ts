@@ -87,7 +87,7 @@ export function getKnownProjectIds(baseDir: string): string[] {
 export function promoteById(
   id: string,
   projectId: string,
-  baseDir: string
+  baseDir: string,
 ): Instinct | null {
   const projectInstincts = loadProjectInstincts(projectId, baseDir);
   const found = projectInstincts.find((i) => i.id === id);
@@ -111,7 +111,7 @@ export function promoteById(
  */
 export function findCrossProjectInstincts(
   projectIds: string[],
-  baseDir: string
+  baseDir: string,
 ): Map<string, Instinct[]> {
   const byId = new Map<string, Instinct[]>();
 
@@ -181,7 +181,7 @@ export async function handleInstinctPromote(
   args: string,
   ctx: ExtensionCommandContext,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
   const id = args.trim();
@@ -191,7 +191,7 @@ export async function handleInstinctPromote(
     if (projectId == null) {
       ctx.ui.notify(
         "Cannot promote by ID: no active project detected.",
-        "error"
+        "error",
       );
       return;
     }
@@ -200,14 +200,14 @@ export async function handleInstinctPromote(
     if (!promoted) {
       ctx.ui.notify(
         `Instinct "${id}" not found in project instincts.`,
-        "error"
+        "error",
       );
       return;
     }
 
     ctx.ui.notify(
       `Promoted instinct "${promoted.id}" ("${promoted.title}") to global scope.`,
-      "info"
+      "info",
     );
     return;
   }
@@ -218,14 +218,16 @@ export async function handleInstinctPromote(
   if (promoted.length === 0) {
     ctx.ui.notify(
       `No instincts qualify for auto-promotion (confidence >= ${AUTO_PROMOTE_MIN_CONFIDENCE}, present in ${AUTO_PROMOTE_MIN_PROJECTS}+ projects).`,
-      "info"
+      "info",
     );
     return;
   }
 
   const lines = [
     `Auto-promoted ${promoted.length} instinct${promoted.length !== 1 ? "s" : ""} to global scope:`,
-    ...promoted.map((i) => `  - ${i.id} (${i.confidence.toFixed(2)}): ${i.title}`),
+    ...promoted.map(
+      (i) => `  - ${i.id} (${i.confidence.toFixed(2)}): ${i.title}`,
+    ),
   ];
   ctx.ui.notify(lines.join("\n"), "info");
 }

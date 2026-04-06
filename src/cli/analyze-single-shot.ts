@@ -12,7 +12,10 @@ import { serializeInstinct } from "../instinct-parser.js";
 
 /** Chars-per-token heuristic for prompt size estimation. */
 const CHARS_PER_TOKEN = 4;
-import { validateInstinct, findSimilarInstinct } from "../instinct-validator.js";
+import {
+  validateInstinct,
+  findSimilarInstinct,
+} from "../instinct-validator.js";
 import { confirmationDelta } from "../confidence.js";
 
 export interface InstinctChangePayload {
@@ -60,7 +63,7 @@ export function parseChanges(raw: string): InstinctChange[] {
     parsed = JSON.parse(stripped);
   } catch (e) {
     throw new Error(
-      `Analyzer returned invalid JSON: ${String(e)}\nRaw: ${raw.slice(0, 200)}`
+      `Analyzer returned invalid JSON: ${String(e)}\nRaw: ${raw.slice(0, 200)}`,
     );
   }
 
@@ -70,7 +73,7 @@ export function parseChanges(raw: string): InstinctChange[] {
     !Array.isArray((parsed as { changes?: unknown }).changes)
   ) {
     throw new Error(
-      `Analyzer response missing 'changes' array. Got: ${JSON.stringify(parsed).slice(0, 200)}`
+      `Analyzer response missing 'changes' array. Got: ${JSON.stringify(parsed).slice(0, 200)}`,
     );
   }
 
@@ -91,7 +94,7 @@ export function buildInstinctFromChange(
   change: InstinctChange,
   existing: Instinct | null,
   projectId: string,
-  allInstincts: Instinct[] = []
+  allInstincts: Instinct[] = [],
 ): Instinct | null {
   if (change.action === "delete" || !change.instinct) {
     return null;
@@ -113,7 +116,7 @@ export function buildInstinctFromChange(
     const similar = findSimilarInstinct(
       { trigger: payload.trigger, action: payload.action },
       allInstincts,
-      payload.id
+      payload.id,
     );
     if (similar) {
       return null;
@@ -126,8 +129,10 @@ export function buildInstinctFromChange(
   // 1. Per-session deduplication: only one confirmation per unique session_id
   // 2. Diminishing returns: each additional confirmation yields a smaller delta
   let resolvedConfidence: number;
-  let resolvedConfirmedCount = payload.confirmed_count ?? existing?.confirmed_count ?? 0;
-  let resolvedLastConfirmedSession = payload.last_confirmed_session ?? existing?.last_confirmed_session;
+  let resolvedConfirmedCount =
+    payload.confirmed_count ?? existing?.confirmed_count ?? 0;
+  let resolvedLastConfirmedSession =
+    payload.last_confirmed_session ?? existing?.last_confirmed_session;
 
   if (change.action === "update" && existing !== null) {
     const prevConfirmedCount = existing.confirmed_count;
@@ -251,7 +256,7 @@ export async function runSingleShot(
   context: Context,
   model: Parameters<typeof complete>[0],
   apiKey: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<SingleShotResult> {
   const opts: Parameters<typeof complete>[2] = { apiKey };
   if (signal !== undefined) opts.signal = signal;

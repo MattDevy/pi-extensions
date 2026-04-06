@@ -26,7 +26,7 @@ export function buildEvolvePrompt(
   instincts: Instinct[],
   agentsMdProject?: string | null,
   agentsMdGlobal?: string | null,
-  installedSkills?: InstalledSkill[]
+  installedSkills?: InstalledSkill[],
 ): string {
   const parts: string[] = [
     "Analyze the following learned instincts and identify opportunities for improvement.",

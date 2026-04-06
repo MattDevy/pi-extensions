@@ -162,11 +162,7 @@ describe("consolidation meta persistence", () => {
     const projectId = "bad-json";
     const projectDir = join(tmpDir, "projects", projectId);
     mkdirSync(projectDir, { recursive: true });
-    writeFileSync(
-      join(projectDir, "consolidation.json"),
-      "not json",
-      "utf-8"
-    );
+    writeFileSync(join(projectDir, "consolidation.json"), "not json", "utf-8");
     const meta = loadConsolidationMeta(projectId, tmpDir);
     expect(meta).toEqual({});
   });

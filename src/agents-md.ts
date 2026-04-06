@@ -47,15 +47,12 @@ export function formatInstinctAsAgentsMdEntry(instinct: Instinct): string {
  */
 export function generateAgentsMdDiff(
   currentContent: string | null,
-  instincts: Instinct[]
+  instincts: Instinct[],
 ): string {
   const entries = instincts.map(formatInstinctAsAgentsMdEntry);
-  const graduatedSection = [
-    "",
-    "## Graduated Instincts",
-    "",
-    ...entries,
-  ].join("\n");
+  const graduatedSection = ["", "## Graduated Instincts", "", ...entries].join(
+    "\n",
+  );
 
   if (currentContent === null || currentContent.trim().length === 0) {
     return `# Project Guidelines\n${graduatedSection}\n`;
@@ -79,7 +76,7 @@ export function generateAgentsMdDiff(
  */
 export function appendToAgentsMd(
   filePath: string,
-  instincts: Instinct[]
+  instincts: Instinct[],
 ): string {
   if (instincts.length === 0) return readAgentsMd(filePath) ?? "";
 

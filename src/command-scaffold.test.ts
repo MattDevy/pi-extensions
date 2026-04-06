@@ -5,7 +5,10 @@
 import { describe, it, expect } from "vitest";
 import type { Instinct } from "./types.js";
 import type { DomainCluster } from "./graduation.js";
-import { generateCommandScaffold, generateAllCommandScaffolds } from "./command-scaffold.js";
+import {
+  generateCommandScaffold,
+  generateAllCommandScaffolds,
+} from "./command-scaffold.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,7 +43,7 @@ function makeCluster(domain: string, count: number): DomainCluster {
         title: `${domain} Step ${i}`,
         domain,
         confidence: 0.9 - i * 0.05,
-      })
+      }),
     ),
   };
 }

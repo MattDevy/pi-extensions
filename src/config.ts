@@ -39,7 +39,7 @@ export const CONFIG_PATH = path.join(
   os.homedir(),
   ".pi",
   "continuous-learning",
-  "config.json"
+  "config.json",
 );
 
 // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ const PartialConfigSchema = Type.Partial(
     consolidation_min_sessions: Type.Number(),
     recurring_prompt_min_sessions: Type.Number(),
     recurring_prompt_score_boost: Type.Number(),
-  })
+  }),
 );
 
 type PartialConfig = Static<typeof PartialConfigSchema>;
@@ -145,7 +145,9 @@ export function loadConfig(): Config {
   try {
     raw = fs.readFileSync(CONFIG_PATH, "utf-8") as string;
   } catch (err) {
-    console.warn(`[pi-continuous-learning] Failed to read config.json: ${String(err)}`);
+    console.warn(
+      `[pi-continuous-learning] Failed to read config.json: ${String(err)}`,
+    );
     return { ...DEFAULT_CONFIG };
   }
 
@@ -154,7 +156,7 @@ export function loadConfig(): Config {
     parsed = JSON.parse(raw);
   } catch (err) {
     console.warn(
-      `[pi-continuous-learning] Invalid JSON in config.json: ${String(err)}. Using defaults.`
+      `[pi-continuous-learning] Invalid JSON in config.json: ${String(err)}. Using defaults.`,
     );
     return { ...DEFAULT_CONFIG };
   }

@@ -140,4 +140,7 @@ export interface GlobalPromptFrequencyEntry extends PromptFrequencyEntry {
 }
 
 export type PromptFrequencyTable = Record<string, PromptFrequencyEntry>;
-export type GlobalPromptFrequencyTable = Record<string, GlobalPromptFrequencyEntry>;
+export type GlobalPromptFrequencyTable = Record<
+  string,
+  GlobalPromptFrequencyEntry
+>;

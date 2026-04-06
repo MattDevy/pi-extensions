@@ -25,7 +25,10 @@ export interface CommandScaffold {
 // ---------------------------------------------------------------------------
 
 function toCommandName(domain: string): string {
-  return domain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return domain
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function formatInstinctAsStep(instinct: Instinct, index: number): string {
@@ -46,13 +49,16 @@ function formatInstinctAsStep(instinct: Instinct, index: number): string {
  * The scaffold describes a slash command that encodes the workflow
  * distilled from the instinct cluster.
  */
-export function generateCommandScaffold(cluster: DomainCluster): CommandScaffold {
+export function generateCommandScaffold(
+  cluster: DomainCluster,
+): CommandScaffold {
   const name = toCommandName(cluster.domain);
   const sortedInstincts = [...cluster.instincts].sort(
-    (a, b) => b.confidence - a.confidence
+    (a, b) => b.confidence - a.confidence,
   );
 
-  const description = `Learned ${cluster.domain} workflow from coding sessions. ` +
+  const description =
+    `Learned ${cluster.domain} workflow from coding sessions. ` +
     `Encodes ${sortedInstincts.length} steps distilled from instinct observations.`;
 
   const steps = sortedInstincts.map((inst, i) => formatInstinctAsStep(inst, i));
@@ -99,7 +105,7 @@ export function generateCommandScaffold(cluster: DomainCluster): CommandScaffold
  * Generates command scaffolds for all qualifying clusters.
  */
 export function generateAllCommandScaffolds(
-  clusters: DomainCluster[]
+  clusters: DomainCluster[],
 ): CommandScaffold[] {
   return clusters.map(generateCommandScaffold);
 }

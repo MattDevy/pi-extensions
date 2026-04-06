@@ -108,7 +108,8 @@ Published as a pi-package with:
 ```
 
 No runtime dependencies needed - the analyzer runs via Pi CLI subprocess, reusing the user's existing subscription credentials.
-```
+
+````
 
 ---
 
@@ -129,7 +130,7 @@ interface Observation {
   is_error?: boolean;             // Whether tool result was an error
   active_instincts?: string[];    // IDs of instincts injected for this turn (feedback loop)
 }
-```
+````
 
 The `active_instincts` field is the key to closed-loop feedback. It is set on every observation during a turn where instincts were injected via `before_agent_start`. The analyzer uses this to cross-reference what was recommended against what actually happened.
 
@@ -166,25 +167,25 @@ Use functional patterns over classes when appropriate.
 
 ```typescript
 interface Instinct {
-  id: string;                     // kebab-case unique identifier
-  trigger: string;                // When this instinct applies
-  confidence: number;             // 0.3 - 0.9
-  domain: string;                 // code-style, testing, git, debugging, workflow, file-patterns, security
+  id: string; // kebab-case unique identifier
+  trigger: string; // When this instinct applies
+  confidence: number; // 0.3 - 0.9
+  domain: string; // code-style, testing, git, debugging, workflow, file-patterns, security
   source: "session-observation" | "repo-analysis" | "imported";
   scope: "project" | "global";
-  project_id?: string;            // Only for project-scoped
-  project_name?: string;          // Only for project-scoped
-  created_at: string;             // ISO 8601
-  updated_at: string;             // ISO 8601
-  observation_count: number;      // How many observations led to this instinct
-  confirmed_count: number;        // Times behavior aligned while instinct was active
-  contradicted_count: number;     // Times behavior contradicted while instinct was active
-  inactive_count: number;         // Times instinct was active but not relevant to the turn
-  title: string;                  // Human-readable title
-  action: string;                 // What to do
-  evidence: string[];             // Supporting evidence lines
-  graduated_to?: "agents-md" | "skill" | "command";  // Graduation target (set after graduation)
-  graduated_at?: string;          // ISO 8601 timestamp of graduation
+  project_id?: string; // Only for project-scoped
+  project_name?: string; // Only for project-scoped
+  created_at: string; // ISO 8601
+  updated_at: string; // ISO 8601
+  observation_count: number; // How many observations led to this instinct
+  confirmed_count: number; // Times behavior aligned while instinct was active
+  contradicted_count: number; // Times behavior contradicted while instinct was active
+  inactive_count: number; // Times instinct was active but not relevant to the turn
+  title: string; // Human-readable title
+  action: string; // What to do
+  evidence: string[]; // Supporting evidence lines
+  graduated_to?: "agents-md" | "skill" | "command"; // Graduation target (set after graduation)
+  graduated_at?: string; // ISO 8601 timestamp of graduation
 }
 ```
 
@@ -192,10 +193,10 @@ interface Instinct {
 
 ```typescript
 interface ProjectEntry {
-  id: string;                     // 12-char SHA256 hash
-  name: string;                   // Directory basename
-  root: string;                   // Absolute path to project root
-  remote: string;                 // Git remote URL (empty if none)
+  id: string; // 12-char SHA256 hash
+  name: string; // Directory basename
+  root: string; // Absolute path to project root
+  remote: string; // Git remote URL (empty if none)
   created_at: string;
   last_seen: string;
 }
@@ -229,25 +230,25 @@ interface ProjectEntry {
 
 ### Observation Collection
 
-| Pi Event | What We Capture |
-|----------|----------------|
-| `tool_call` | Tool name, input args (before execution) |
+| Pi Event      | What We Capture                                   |
+| ------------- | ------------------------------------------------- |
+| `tool_call`   | Tool name, input args (before execution)          |
 | `tool_result` | Tool name, output, isError flag (after execution) |
-| `agent_start` | Session start, user prompt text |
-| `agent_end` | Session end, messages from this prompt |
-| `turn_end` | Turn completion with tool results summary |
+| `agent_start` | Session start, user prompt text                   |
+| `agent_end`   | Session end, messages from this prompt            |
+| `turn_end`    | Turn completion with tool results summary         |
 
 ### System Prompt Injection
 
-| Pi Event | What We Do |
-|----------|-----------|
+| Pi Event             | What We Do                                        |
+| -------------------- | ------------------------------------------------- |
 | `before_agent_start` | Append high-confidence instincts to system prompt |
 
 ### Session Lifecycle
 
-| Pi Event | What We Do |
-|----------|-----------|
-| `session_start` | Start background analyzer timer, load instincts |
+| Pi Event           | What We Do                                                 |
+| ------------------ | ---------------------------------------------------------- |
+| `session_start`    | Start background analyzer timer, load instincts            |
 | `session_shutdown` | Stop background analyzer timer, flush pending observations |
 
 ---
@@ -269,6 +270,7 @@ interface ProjectEntry {
 ### Secret Scrubbing
 
 Before writing any observation, scrub common secret patterns:
+
 - API keys, tokens, passwords, authorization headers
 - Regex: `/(api[_-]?key|token|secret|password|authorization|credentials?|auth)(["'\s:=]+)([A-Za-z]+\s+)?([A-Za-z0-9_\-/.+=]{8,})/i`
 - Replace matched value with `[REDACTED]`
@@ -284,6 +286,7 @@ Before writing any observation, scrub common secret patterns:
 ## Project Detection (`project.ts`)
 
 Detection priority:
+
 1. `ctx.cwd` from the extension context
 2. `git remote get-url origin` - hash for portable cross-machine ID
 3. `git rev-parse --show-toplevel` - fallback using repo path
@@ -308,11 +311,11 @@ Uses `pi.exec()` for git commands.
 
 We considered three approaches:
 
-| Approach | Cost | Complexity | Subscription |
-|----------|------|-----------|-------------|
-| `@anthropic-ai/sdk` direct | Per-request pricing | Low | Needs separate API key |
-| Pi SDK (`createAgentSession`) | Subscription-included | Medium | Uses Pi's OAuth tokens |
-| Pi CLI subprocess (`pi -p`) | Subscription-included | Low | Uses Pi's OAuth tokens |
+| Approach                      | Cost                  | Complexity | Subscription           |
+| ----------------------------- | --------------------- | ---------- | ---------------------- |
+| `@anthropic-ai/sdk` direct    | Per-request pricing   | Low        | Needs separate API key |
+| Pi SDK (`createAgentSession`) | Subscription-included | Medium     | Uses Pi's OAuth tokens |
+| Pi CLI subprocess (`pi -p`)   | Subscription-included | Low        | Uses Pi's OAuth tokens |
 
 **Decision: Pi CLI subprocess.** Reasons:
 
@@ -323,6 +326,7 @@ We considered three approaches:
 5. **Self-observation prevention** - the subprocess runs with `--no-extensions --no-skills`, so our extension doesn't load in the analyzer process. No infinite loops.
 
 The Pi SDK (`createAgentSession`) was also viable but has downsides:
+
 - Runs in the same Node.js process - a hung analysis blocks the extension event loop
 - Requires more setup (AuthStorage, ModelRegistry, ResourceLoader, SessionManager)
 - Harder to timeout and kill cleanly
@@ -337,16 +341,20 @@ import { spawn } from "node:child_process";
 
 function runAnalysis(promptFile: string, cwd: string): Promise<AnalysisResult> {
   const args = [
-    "--mode", "json",           // Structured output we can parse
-    "-p",                       // Print mode (non-interactive, exit when done)
-    "--no-session",             // Ephemeral, don't save session history
-    "--model", "claude-haiku-4-5",  // Cheap, fast model
-    "--tools", "read,write",    // Only needs to read observations + write instincts
-    "--no-extensions",          // Prevent our extension from loading (no self-observation)
-    "--no-skills",              // No skill overhead
-    "--no-prompt-templates",    // No prompt template overhead
-    "--no-themes",              // No theme overhead
-    "--append-system-prompt", promptFile,  // Analysis instructions (file path)
+    "--mode",
+    "json", // Structured output we can parse
+    "-p", // Print mode (non-interactive, exit when done)
+    "--no-session", // Ephemeral, don't save session history
+    "--model",
+    "claude-haiku-4-5", // Cheap, fast model
+    "--tools",
+    "read,write", // Only needs to read observations + write instincts
+    "--no-extensions", // Prevent our extension from loading (no self-observation)
+    "--no-skills", // No skill overhead
+    "--no-prompt-templates", // No prompt template overhead
+    "--no-themes", // No theme overhead
+    "--append-system-prompt",
+    promptFile, // Analysis instructions (file path)
   ];
 
   // The user message tells Haiku what to analyze and where files are.
@@ -380,6 +388,7 @@ Rather than asking Haiku for structured JSON and doing file I/O ourselves, we gi
 This is simpler than parsing structured output - Haiku writes the files, we just monitor for success/failure via the JSON event stream.
 
 The system prompt instructs Haiku on:
+
 - The exact instinct file format (YAML frontmatter + markdown)
 - Where to read observations from and write instincts to
 - Pattern detection heuristics for new instincts
@@ -424,12 +433,12 @@ field to its frontmatter. Do not delete it - the user can review via /instinct-s
 
 ### Pattern Detection
 
-| Pattern Type | Detection Method | Example |
-|-------------|-----------------|---------|
-| User corrections | User prompt follows tool error or undo | "No, use X instead" |
-| Error resolutions | Error tool_result followed by successful fix | Build error -> fix -> pass |
-| Repeated workflows | Same tool sequence 3+ times | Grep -> Read -> Edit |
-| Tool preferences | Consistent tool choice for similar tasks | Always uses grep before edit |
+| Pattern Type       | Detection Method                             | Example                      |
+| ------------------ | -------------------------------------------- | ---------------------------- |
+| User corrections   | User prompt follows tool error or undo       | "No, use X instead"          |
+| Error resolutions  | Error tool_result followed by successful fix | Build error -> fix -> pass   |
+| Repeated workflows | Same tool sequence 3+ times                  | Grep -> Read -> Edit         |
+| Tool preferences   | Consistent tool choice for similar tasks     | Always uses grep before edit |
 
 ### Confidence Scoring
 
@@ -440,23 +449,24 @@ Confidence has two sources: **discovery** (how the instinct was created) and **f
 Based on how many observations led to the instinct being created:
 
 | Observation Count | Initial Confidence |
-|------------------|--------------------|
-| 1-2 | 0.3 (tentative) |
-| 3-5 | 0.5 (moderate) |
-| 6-10 | 0.7 (strong) |
-| 11+ | 0.85 (very strong) |
+| ----------------- | ------------------ |
+| 1-2               | 0.3 (tentative)    |
+| 3-5               | 0.5 (moderate)     |
+| 6-10              | 0.7 (strong)       |
+| 11+               | 0.85 (very strong) |
 
 #### Feedback Adjustments (ongoing)
 
 Once an instinct exists and is being injected into sessions, the analyzer cross-references `active_instincts` on each observation against what actually happened. This produces three outcomes per analysis batch:
 
-| Outcome | Meaning | Confidence Change |
-|---------|---------|-------------------|
-| **Confirmed** | Behavior aligned with the instinct while it was active | +0.05 |
-| **Contradicted** | Behavior went against the instinct, or user corrected toward opposite | -0.15 |
-| **Inactive** | Instinct was active but turn wasn't relevant to its trigger | No change |
+| Outcome          | Meaning                                                               | Confidence Change |
+| ---------------- | --------------------------------------------------------------------- | ----------------- |
+| **Confirmed**    | Behavior aligned with the instinct while it was active                | +0.05             |
+| **Contradicted** | Behavior went against the instinct, or user corrected toward opposite | -0.15             |
+| **Inactive**     | Instinct was active but turn wasn't relevant to its trigger           | No change         |
 
 Additional adjustments:
+
 - -0.05 per week without any observation (passive decay; reaches 0.1 from 0.5 in ~8 weeks)
 - Cap: 0.9 maximum, 0.1 minimum (below 0.1 -> flagged for removal, auto-deleted after 7 days)
 
@@ -513,6 +523,7 @@ The following patterns have been learned from previous sessions. Apply them when
 Show all instincts (project + global) grouped by domain, with confidence scores and feedback stats.
 
 Displays for each instinct:
+
 - Confidence score and trend arrow (up/down/stable based on recent feedback)
 - Feedback ratio: `confirmed/contradicted/inactive` counts
 - Flagged instincts highlighted for review (confidence < 0.1)
@@ -522,6 +533,7 @@ Implementation: `pi.registerCommand("instinct-status", ...)`
 ### `/instinct-evolve`
 
 Cluster related instincts and suggest evolution into higher-order constructs:
+
 - Related instincts -> skill file
 - Workflow instincts -> command
 - Suggest promotions from project to global
@@ -533,11 +545,13 @@ Implementation: `pi.registerCommand("instinct-evolve", ...)`
 Graduate mature instincts into permanent knowledge. Scans for graduation candidates, presents proposals, and writes on user approval.
 
 Graduation targets:
+
 - **AGENTS.md** - Individual mature instincts become permanent guideline entries
 - **Skill** - Domain clusters of 3+ instincts scaffolded into a `SKILL.md`
 - **Command** - Workflow clusters of 3+ instincts scaffolded into a slash command specification
 
 Maturity criteria (all must be met):
+
 - Age >= 7 days
 - Confidence >= 0.75
 - Confirmed >= 3 times
@@ -545,6 +559,7 @@ Maturity criteria (all must be met):
 - Not a duplicate of existing AGENTS.md content
 
 TTL enforcement (28 days):
+
 - Instincts that don't graduate within 28 days are culled (confidence < 0.3) or aggressively decayed
 
 Graduated instincts are tracked with `graduated_to` and `graduated_at` fields.
@@ -619,7 +634,7 @@ Defaults are used when config file is absent. The extension reads config on `ses
 ```typescript
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
-export default function(pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI) {
   // 1. Register event handlers for observation
   // 2. Register before_agent_start for instinct injection
   // 3. Start background analyzer on session_start
@@ -652,16 +667,16 @@ export default function(pi: ExtensionAPI) {
 
 ## Scope Decision Guide
 
-| Pattern Type | Scope | Examples |
-|-------------|-------|---------|
-| Language/framework conventions | **project** | "Use React hooks", "Follow Django REST patterns" |
-| File structure preferences | **project** | "Tests in `__tests__`/", "Components in src/components/" |
-| Code style | **project** | "Use functional style", "Prefer dataclasses" |
-| Error handling strategies | **project** | "Use Result type for errors" |
-| Security practices | **global** | "Validate user input", "Sanitize SQL" |
-| General best practices | **global** | "Write tests first", "Always handle errors" |
-| Tool workflow preferences | **global** | "Grep before Edit", "Read before Write" |
-| Git practices | **global** | "Conventional commits", "Small focused commits" |
+| Pattern Type                   | Scope       | Examples                                                 |
+| ------------------------------ | ----------- | -------------------------------------------------------- |
+| Language/framework conventions | **project** | "Use React hooks", "Follow Django REST patterns"         |
+| File structure preferences     | **project** | "Tests in `__tests__`/", "Components in src/components/" |
+| Code style                     | **project** | "Use functional style", "Prefer dataclasses"             |
+| Error handling strategies      | **project** | "Use Result type for errors"                             |
+| Security practices             | **global**  | "Validate user input", "Sanitize SQL"                    |
+| General best practices         | **global**  | "Write tests first", "Always handle errors"              |
+| Tool workflow preferences      | **global**  | "Grep before Edit", "Read before Write"                  |
+| Git practices                  | **global**  | "Conventional commits", "Small focused commits"          |
 
 Default: **project** scope. Safer to be project-specific and promote later.
 
@@ -670,6 +685,7 @@ Default: **project** scope. Safer to be project-specific and promote later.
 ## Instinct Promotion Criteria
 
 Auto-promotion from project to global when:
+
 1. Same instinct ID exists in 2+ different projects
 2. Average confidence across projects >= 0.8
 3. Domain is in the global-friendly list (security, workflow, general-best-practices)
@@ -691,6 +707,7 @@ This is the same credential path that Pi uses for all model interactions. The ex
 ### Cost Estimate
 
 Each analysis run uses roughly:
+
 - ~500-2000 input tokens (observations + existing instincts + system prompt)
 - ~500-1000 output tokens (instinct file writes)
 - Running every 5 minutes during active sessions: ~12 runs/hour
@@ -741,17 +758,20 @@ Each analysis run uses roughly:
 ## Implementation Phases
 
 ### Phase 1: Core Infrastructure
+
 - Types, config, project detection
 - Storage layout creation
 - Instinct file CRUD (including feedback counters: confirmed/contradicted/inactive)
 
 ### Phase 2: Observation Collection
+
 - Event handlers for tool_call, tool_result, agent_start, agent_end
 - Secret scrubbing
 - JSONL file management with archival
 - `active_instincts` tagging on observations (reads from injector state)
 
 ### Phase 3: Background Analyzer
+
 - Pi CLI subprocess spawning (spawn `pi -p --mode json --model haiku`)
 - Analysis system prompt construction (pattern detection + feedback analysis)
 - JSON event stream parsing from subprocess stdout
@@ -759,12 +779,14 @@ Each analysis run uses roughly:
 - Timeout handling (SIGTERM after 120s)
 
 ### Phase 4: System Prompt Injection + Feedback Bridge
+
 - Load and filter instincts
 - Format injection block
 - `before_agent_start` handler
 - Store injected instinct IDs in shared state for the observer to read
 
 ### Phase 5: Commands
+
 - `/instinct-status` (with feedback stats and trend arrows)
 - `/instinct-evolve`
 - `/instinct-export` and `/instinct-import`
@@ -772,6 +794,7 @@ Each analysis run uses roughly:
 - `/instinct-projects`
 
 ### Phase 6: Polish
+
 - Session guardian (active hours, idle detection)
 - Passive confidence decay over time
 - Flagged-for-removal handling (instincts below 0.1 confidence)
@@ -779,6 +802,7 @@ Each analysis run uses roughly:
 - Error handling and logging
 
 ### Phase 7: Graduation Pipeline
+
 - Graduation maturity criteria as config constants
 - `/instinct-graduate` command with user approval flow
 - AGENTS.md writer (append graduated instinct entries)

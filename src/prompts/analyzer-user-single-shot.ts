@@ -25,9 +25,13 @@ export function buildSingleShotUserPrompt(
   project: ProjectEntry,
   existingInstincts: Instinct[],
   observationLines: string[],
-  options: SingleShotPromptOptions = {}
+  options: SingleShotPromptOptions = {},
 ): string {
-  const { agentsMdProject = null, agentsMdGlobal = null, installedSkills = [] } = options;
+  const {
+    agentsMdProject = null,
+    agentsMdGlobal = null,
+    installedSkills = [],
+  } = options;
 
   const observationBlock =
     observationLines.length > 0
@@ -92,7 +96,7 @@ export function buildSingleShotUserPrompt(
     "8. Check existing instincts for contradictions (similar triggers, opposing actions).",
     "   Resolve by deleting the weaker instinct or merging into a nuanced one.",
     "",
-    "Return ONLY the JSON object. No prose, no markdown fences."
+    "Return ONLY the JSON object. No prose, no markdown fences.",
   );
 
   return parts.join("\n");

@@ -20,7 +20,7 @@ const MAX_TAIL_ENTRIES = 500;
  */
 export function tailObservations(
   observationsPath: string,
-  maxEntries = MAX_TAIL_ENTRIES
+  maxEntries = MAX_TAIL_ENTRIES,
 ): string[] {
   if (!existsSync(observationsPath)) {
     return [];
@@ -44,7 +44,7 @@ export function tailObservationsSince(
   observationsPath: string,
   sinceLineCount: number,
   maxEntries = MAX_TAIL_ENTRIES,
-  preprocess = true
+  preprocess = true,
 ): TailSinceResult {
   if (!existsSync(observationsPath)) {
     return { lines: [], totalLineCount: 0, rawLineCount: 0 };
@@ -103,9 +103,14 @@ export function buildAnalyzerUserPrompt(
   observationsPath: string,
   instinctsDir: string,
   project: ProjectEntry,
-  options: AnalyzerUserPromptOptions = {}
+  options: AnalyzerUserPromptOptions = {},
 ): string {
-  const { agentsMdProject = null, agentsMdGlobal = null, installedSkills = [], observationLines } = options;
+  const {
+    agentsMdProject = null,
+    agentsMdGlobal = null,
+    installedSkills = [],
+    observationLines,
+  } = options;
 
   const tailedLines = observationLines ?? tailObservations(observationsPath);
   const observationBlock =
@@ -167,7 +172,7 @@ export function buildAnalyzerUserPrompt(
     "4. Apply feedback analysis using the active_instincts field in each observation.",
     "5. Do not delete any instinct files - only create or update.",
     "",
-    "Note: Passive confidence decay has already been applied to existing instincts before this analysis."
+    "Note: Passive confidence decay has already been applied to existing instincts before this analysis.",
   );
 
   return parts.join("\n");

@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { mkdirSync, mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -56,7 +62,9 @@ describe("analysis-event-log", () => {
 
     it("writes a single event as one JSONL line", () => {
       const event = makeEvent({
-        created: [{ id: "use-result-type", title: "Use Result type", scope: "project" }],
+        created: [
+          { id: "use-result-type", title: "Use Result type", scope: "project" },
+        ],
       });
       appendAnalysisEvent(event, baseDir);
 
@@ -76,7 +84,14 @@ describe("analysis-event-log", () => {
       });
       const event2 = makeEvent({
         timestamp: "2026-03-27T16:00:00Z",
-        updated: [{ id: "instinct-b", title: "B", scope: "global", confidence_delta: 0.05 }],
+        updated: [
+          {
+            id: "instinct-b",
+            title: "B",
+            scope: "global",
+            confidence_delta: 0.05,
+          },
+        ],
       });
 
       appendAnalysisEvent(event1, baseDir);
@@ -110,7 +125,9 @@ describe("analysis-event-log", () => {
         created: [{ id: "a", title: "A", scope: "project" }],
       });
       const event2 = makeEvent({
-        updated: [{ id: "b", title: "B", scope: "global", confidence_delta: 0.1 }],
+        updated: [
+          { id: "b", title: "B", scope: "global", confidence_delta: 0.1 },
+        ],
       });
 
       appendAnalysisEvent(event1, baseDir);
@@ -129,7 +146,7 @@ describe("analysis-event-log", () => {
     it("returns empty array on second consume (idempotent)", () => {
       appendAnalysisEvent(
         makeEvent({ created: [{ id: "a", title: "A", scope: "project" }] }),
-        baseDir
+        baseDir,
       );
 
       const first = consumeAnalysisEvents("proj-1", baseDir);
@@ -145,12 +162,25 @@ describe("analysis-event-log", () => {
       const orphanedEvent = makeEvent({
         created: [{ id: "orphan", title: "Orphan", scope: "project" }],
       });
-      writeFileSync(consumedPath, JSON.stringify(orphanedEvent) + "\n", "utf-8");
+      writeFileSync(
+        consumedPath,
+        JSON.stringify(orphanedEvent) + "\n",
+        "utf-8",
+      );
 
       // Also write a new event to the main file
       appendAnalysisEvent(
-        makeEvent({ updated: [{ id: "new", title: "New", scope: "global", confidence_delta: 0.05 }] }),
-        baseDir
+        makeEvent({
+          updated: [
+            {
+              id: "new",
+              title: "New",
+              scope: "global",
+              confidence_delta: 0.05,
+            },
+          ],
+        }),
+        baseDir,
       );
 
       const events = consumeAnalysisEvents("proj-1", baseDir);
@@ -168,8 +198,10 @@ describe("analysis-event-log", () => {
       const consumedPath = getConsumedPath("proj-1", baseDir);
       writeFileSync(
         consumedPath,
-        JSON.stringify(makeEvent({ deleted: [{ id: "x", title: "X", scope: "project" }] })) + "\n",
-        "utf-8"
+        JSON.stringify(
+          makeEvent({ deleted: [{ id: "x", title: "X", scope: "project" }] }),
+        ) + "\n",
+        "utf-8",
       );
 
       const events = consumeAnalysisEvents("proj-1", baseDir);
@@ -185,7 +217,7 @@ describe("analysis-event-log", () => {
       writeFileSync(
         eventsPath,
         `not-json\n${JSON.stringify(validEvent)}\n{broken\n`,
-        "utf-8"
+        "utf-8",
       );
 
       const events = consumeAnalysisEvents("proj-1", baseDir);

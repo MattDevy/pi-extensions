@@ -19,8 +19,15 @@ import {
   decayExpiredInstincts,
   handleInstinctGraduate,
 } from "./instinct-graduate.js";
-import type { GraduationCandidate, DomainCluster, TtlResult } from "./graduation.js";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  GraduationCandidate,
+  DomainCluster,
+  TtlResult,
+} from "./graduation.js";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -72,7 +79,7 @@ function setupProject(projectId = "proj123"): void {
       created_at: "2026-01-01T00:00:00.000Z",
       last_seen: "2026-03-27T00:00:00.000Z",
     },
-    baseDir
+    baseDir,
   );
 }
 
@@ -95,25 +102,48 @@ describe("buildGraduationPrompt", () => {
     const candidates: GraduationCandidate[] = [
       { instinct: makeInstinct(), target: "agents-md", reason: "Mature" },
     ];
-    const prompt = buildGraduationPrompt(candidates, [], [], { toCull: [], toDecay: [] });
+    const prompt = buildGraduationPrompt(candidates, [], [], {
+      toCull: [],
+      toDecay: [],
+    });
     expect(prompt).toContain("AGENTS.md Graduation Candidates");
     expect(prompt).toContain("test-instinct");
   });
 
   it("includes skill cluster info when present", () => {
     const clusters: DomainCluster[] = [
-      { domain: "git", instincts: [makeInstinct({ id: "a" }), makeInstinct({ id: "b" }), makeInstinct({ id: "c" })] },
+      {
+        domain: "git",
+        instincts: [
+          makeInstinct({ id: "a" }),
+          makeInstinct({ id: "b" }),
+          makeInstinct({ id: "c" }),
+        ],
+      },
     ];
-    const prompt = buildGraduationPrompt([], clusters, [], { toCull: [], toDecay: [] });
+    const prompt = buildGraduationPrompt([], clusters, [], {
+      toCull: [],
+      toDecay: [],
+    });
     expect(prompt).toContain("Skill Scaffold Candidates");
     expect(prompt).toContain("git");
   });
 
   it("includes command cluster info when present", () => {
     const clusters: DomainCluster[] = [
-      { domain: "deploy", instincts: [makeInstinct({ id: "d1" }), makeInstinct({ id: "d2" }), makeInstinct({ id: "d3" })] },
+      {
+        domain: "deploy",
+        instincts: [
+          makeInstinct({ id: "d1" }),
+          makeInstinct({ id: "d2" }),
+          makeInstinct({ id: "d3" }),
+        ],
+      },
     ];
-    const prompt = buildGraduationPrompt([], [], clusters, { toCull: [], toDecay: [] });
+    const prompt = buildGraduationPrompt([], [], clusters, {
+      toCull: [],
+      toDecay: [],
+    });
     expect(prompt).toContain("Command Scaffold Candidates");
     expect(prompt).toContain("deploy");
   });
@@ -130,7 +160,10 @@ describe("buildGraduationPrompt", () => {
   });
 
   it("includes next steps", () => {
-    const prompt = buildGraduationPrompt([], [], [], { toCull: [], toDecay: [] });
+    const prompt = buildGraduationPrompt([], [], [], {
+      toCull: [],
+      toDecay: [],
+    });
     expect(prompt).toContain("Next Steps");
   });
 });
@@ -295,7 +328,7 @@ describe("handleInstinctGraduate", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("No instincts"),
-      "info"
+      "info",
     );
   });
 
@@ -310,7 +343,7 @@ describe("handleInstinctGraduate", () => {
         confirmed_count: 0,
         created_at: new Date().toISOString(),
       }),
-      dir
+      dir,
     );
 
     const notify = vi.fn();
@@ -321,7 +354,7 @@ describe("handleInstinctGraduate", () => {
 
     expect(notify).toHaveBeenCalledWith(
       expect.stringContaining("No instincts are ready"),
-      "info"
+      "info",
     );
   });
 
@@ -335,7 +368,7 @@ describe("handleInstinctGraduate", () => {
         confirmed_count: 5,
         created_at: "2026-01-01T00:00:00.000Z",
       }),
-      dir
+      dir,
     );
 
     const sendUserMessage = vi.fn();
@@ -345,7 +378,10 @@ describe("handleInstinctGraduate", () => {
     await handleInstinctGraduate("", ctx, pi, "proj123", baseDir, null);
 
     expect(sendUserMessage).toHaveBeenCalledTimes(1);
-    const [prompt, options] = sendUserMessage.mock.calls[0] as [string, { deliverAs: string }];
+    const [prompt, options] = sendUserMessage.mock.calls[0] as [
+      string,
+      { deliverAs: string },
+    ];
     expect(prompt).toContain("mature-one");
     expect(options).toEqual({ deliverAs: "followUp" });
   });

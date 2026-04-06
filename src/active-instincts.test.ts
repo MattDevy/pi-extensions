@@ -22,7 +22,10 @@ describe("active-instincts", () => {
   it("replaces previous state on set", () => {
     setCurrentActiveInstincts(["old-instinct"]);
     setCurrentActiveInstincts(["new-instinct-1", "new-instinct-2"]);
-    expect(getCurrentActiveInstincts()).toEqual(["new-instinct-1", "new-instinct-2"]);
+    expect(getCurrentActiveInstincts()).toEqual([
+      "new-instinct-1",
+      "new-instinct-2",
+    ]);
   });
 
   it("clears active instincts to empty array", () => {

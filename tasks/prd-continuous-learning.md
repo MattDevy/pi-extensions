@@ -27,6 +27,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the project scaffolded as a pi-package with correct manifest, TypeScript config, and dependencies so that development can begin.
 
 **Acceptance Criteria:**
+
 - [ ] `package.json` exists with `name: "pi-continuous-learning"`, `keywords: ["pi-package"]`, and `pi.extensions: ["src/index.ts"]`
 - [ ] `peerDependencies` include `@mariozechner/pi-coding-agent`, `@mariozechner/pi-ai`, `@mariozechner/pi-tui`, `@sinclair/typebox`
 - [ ] `tsconfig.json` has `strict: true`
@@ -43,6 +44,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want all shared TypeScript interfaces defined in `types.ts` so that modules have consistent data contracts.
 
 **Acceptance Criteria:**
+
 - [ ] `Observation` interface defined with fields: `timestamp`, `event`, `tool`, `input`, `output`, `session`, `project_id`, `project_name`, `is_error`, `active_instincts`
 - [ ] `event` field is a union type: `"tool_start" | "tool_complete" | "user_prompt" | "agent_end"`
 - [ ] `Instinct` interface defined with all frontmatter fields: `id`, `trigger`, `confidence`, `domain`, `source`, `scope`, `project_id`, `project_name`, `created_at`, `updated_at`, `observation_count`, `confirmed_count`, `contradicted_count`, `inactive_count`, `title`, `action`, `evidence`
@@ -57,6 +59,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want a configuration module that loads user settings from `~/.pi/continuous-learning/config.json` with sensible defaults so that all modules share consistent configuration.
 
 **Acceptance Criteria:**
+
 - [ ] `loadConfig()` reads from `~/.pi/continuous-learning/config.json`
 - [ ] When config file is absent, returns a complete default config object
 - [ ] When config file has partial overrides, merges them with defaults (overrides win)
@@ -72,6 +75,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want project detection via git remote URL hashing so that observations and instincts are scoped to the correct project.
 
 **Acceptance Criteria:**
+
 - [ ] `detectProject(pi, cwd)` returns a `ProjectEntry`
 - [ ] Uses `pi.exec("git", ["remote", "get-url", "origin"])` to get the remote URL
 - [ ] Project ID is the first 12 characters of SHA256 hash of the remote URL
@@ -87,6 +91,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the storage directory structure created on first use so that observation and instinct files have a place to live.
 
 **Acceptance Criteria:**
+
 - [ ] `ensureStorageLayout(projectId)` creates `~/.pi/continuous-learning/` root directory
 - [ ] Creates `projects/<projectId>/instincts/personal/` and `projects/<projectId>/instincts/inherited/`
 - [ ] Creates `instincts/personal/` and `instincts/inherited/` (global)
@@ -103,6 +108,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want to parse instinct markdown files (YAML frontmatter + body) into `Instinct` objects and serialize them back so that instincts can be read, created, and updated.
 
 **Acceptance Criteria:**
+
 - [ ] `parseInstinct(content)` extracts YAML frontmatter and markdown body into an `Instinct` object
 - [ ] `serializeInstinct(instinct)` produces valid YAML-frontmatter markdown matching the spec format
 - [ ] Round-trip: `serializeInstinct(parseInstinct(content))` preserves all data
@@ -119,6 +125,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want functions to load, save, list, and delete instinct files from disk so that the analyzer and injector can manage instincts.
 
 **Acceptance Criteria:**
+
 - [ ] `loadInstinct(filePath)` reads a `.md` file and returns an `Instinct` object
 - [ ] `saveInstinct(instinct, dir)` writes an instinct to `<dir>/<id>.md`
 - [ ] `listInstincts(dir)` returns all instincts from a directory
@@ -134,6 +141,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want confidence scoring functions that handle both discovery-based initial scoring and feedback-based adjustments so that instinct confidence reflects real outcomes.
 
 **Acceptance Criteria:**
+
 - [ ] `initialConfidence(observationCount)` returns: 0.3 for 1-2, 0.5 for 3-5, 0.7 for 6-10, 0.85 for 11+
 - [ ] `adjustConfidence(current, outcome)` applies: +0.05 for confirmed, -0.15 for contradicted, 0 for inactive
 - [ ] `applyPassiveDecay(confidence, lastUpdated)` applies -0.02 per week since last update
@@ -150,6 +158,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want tool_call and tool_result events captured as observations so that the analyzer can detect patterns in tool usage.
 
 **Acceptance Criteria:**
+
 - [ ] `tool_execution_start` handler records an observation with `event: "tool_start"`, tool name, and truncated input (max 5000 chars)
 - [ ] `tool_execution_end` handler records an observation with `event: "tool_complete"`, tool name, truncated output (max 5000 chars), and `is_error` flag
 - [ ] Observations include `timestamp` (ISO 8601 UTC), `session`, `project_id`, `project_name`
@@ -162,6 +171,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want user prompts and agent completions captured as observations so that the analyzer has full session context.
 
 **Acceptance Criteria:**
+
 - [ ] `agent_start` handler records an observation with `event: "user_prompt"` and the user's prompt text (from `event.prompt` via `before_agent_start`)
 - [ ] `agent_end` handler records an observation with `event: "agent_end"`
 - [ ] Unit tests verify both event types are captured with correct fields
@@ -173,6 +183,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the observer to skip its own analyzer's activity so that the system does not create infinite observation loops.
 
 **Acceptance Criteria:**
+
 - [ ] A module-level boolean flag `isAnalyzerRunning` gates observation recording
 - [ ] When `isAnalyzerRunning` is true, all observation handlers return without writing
 - [ ] Observations for file paths under `~/.pi/continuous-learning/` are also skipped (path-based filter)
@@ -185,6 +196,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want secrets scrubbed from observation data before it is written to disk so that API keys and passwords are never stored in plain text.
 
 **Acceptance Criteria:**
+
 - [ ] `scrubSecrets(text)` replaces matches of the regex pattern from the spec with `[REDACTED]`
 - [ ] Pattern matches: API keys, tokens, passwords, authorization headers, credentials
 - [ ] Scrubbing is applied to both `input` and `output` fields before writing
@@ -198,6 +210,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want each observation tagged with the IDs of instincts currently injected into the system prompt so that the analyzer can perform feedback analysis.
 
 **Acceptance Criteria:**
+
 - [ ] Observer reads `currentActiveInstincts` from shared module state (set by injector)
 - [ ] Every observation written during a turn where instincts were injected includes `active_instincts: string[]`
 - [ ] When no instincts are active, `active_instincts` is omitted or empty
@@ -210,6 +223,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want observations written as append-only JSONL with automatic archival when the file exceeds 10MB so that storage is managed.
 
 **Acceptance Criteria:**
+
 - [ ] `appendObservation(observation, projectId)` appends one JSON line to `projects/<projectId>/observations.jsonl`
 - [ ] Before writing, checks file size; if >= 10MB, moves file to `observations.archive/<timestamp>.jsonl`
 - [ ] Archived files older than 30 days are deleted (checked once per `session_start`)
@@ -224,6 +238,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer to spawn a Pi CLI subprocess with the correct flags so that analysis runs in an isolated process using the user's subscription credentials.
 
 **Acceptance Criteria:**
+
 - [ ] `spawnAnalyzer(systemPromptFile, userPrompt, cwd)` spawns `pi` with args: `--mode json`, `-p`, `--no-session`, `--model claude-haiku-4-5`, `--tools read,write`, `--no-extensions`, `--no-skills`, `--no-prompt-templates`, `--no-themes`, `--append-system-prompt <file>`
 - [ ] User prompt is passed as the final positional argument
 - [ ] Subprocess stdio: stdin ignored, stdout piped, stderr piped
@@ -237,6 +252,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer to parse JSON events from the subprocess stdout so that we can monitor analysis progress and detect success/failure.
 
 **Acceptance Criteria:**
+
 - [ ] Parses newline-delimited JSON from stdout
 - [ ] Tracks `tool_execution_end` events to detect what files were written
 - [ ] Detects `agent_end` as successful completion
@@ -251,6 +267,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer subprocess killed after 120 seconds and on session shutdown so that hung analyses cannot affect the system.
 
 **Acceptance Criteria:**
+
 - [ ] Subprocess is killed with SIGTERM after `timeout_seconds` (default 120)
 - [ ] On `session_shutdown`, any running subprocess is killed immediately
 - [ ] Re-entrancy guard: a boolean flag prevents concurrent analyses
@@ -264,6 +281,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer system prompt to contain instinct format specs, pattern detection rules, feedback analysis instructions, and confidence scoring guidelines so that Haiku produces correct instinct files.
 
 **Acceptance Criteria:**
+
 - [ ] System prompt is written to a temp file and passed via `--append-system-prompt`
 - [ ] Includes the exact instinct file format (YAML frontmatter + markdown structure)
 - [ ] Includes pattern detection heuristics: user corrections, error resolutions, repeated workflows, tool preferences
@@ -280,6 +298,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the user prompt to tell Haiku where to find observations and instincts and what project context applies so that the analyzer reads and writes the correct files.
 
 **Acceptance Criteria:**
+
 - [ ] User prompt includes the absolute path to `observations.jsonl`
 - [ ] User prompt includes the absolute path to the instincts directory
 - [ ] User prompt includes project context: `project_id`, `project_name`
@@ -293,6 +312,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer to run on a configurable interval during active sessions so that patterns are detected periodically without manual intervention.
 
 **Acceptance Criteria:**
+
 - [ ] `startAnalyzerTimer()` sets up a `setInterval` with `run_interval_minutes` from config (default 5 min)
 - [ ] Timer is started on `session_start`
 - [ ] Timer is cleared on `session_shutdown`
@@ -309,6 +329,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want instincts loaded, filtered by confidence threshold, sorted, and capped so that only the most relevant instincts are injected.
 
 **Acceptance Criteria:**
+
 - [ ] Loads project-scoped instincts (if in a project) and global instincts
 - [ ] Filters to `confidence >= min_confidence` (default 0.5, configurable)
 - [ ] Sorts by confidence descending
@@ -323,6 +344,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want filtered instincts appended to the system prompt on each `before_agent_start` event so that the agent benefits from learned behaviors.
 
 **Acceptance Criteria:**
+
 - [ ] Handler registered on `before_agent_start`
 - [ ] Returns `{ systemPrompt: event.systemPrompt + injectionBlock }` with the instincts formatted as specified: `## Learned Behaviors (Instincts)` header, bullet list with `[confidence] trigger: action`
 - [ ] When no instincts qualify, does not modify the system prompt
@@ -335,6 +357,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the injector to store the list of injected instinct IDs in shared module state so that the observer can tag observations for feedback analysis.
 
 **Acceptance Criteria:**
+
 - [ ] After injection, sets module-level `currentActiveInstincts: string[]` with the IDs of injected instincts
 - [ ] Resets to empty array on `agent_end` (so next prompt starts clean)
 - [ ] Observer (US-013) reads this state when writing observations
@@ -349,6 +372,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-status` to see all instincts grouped by domain with confidence scores and feedback stats so that I can understand what the system has learned.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-status", ...)`
 - [ ] Displays instincts grouped by domain
 - [ ] Each instinct shows: title, confidence score, trend arrow (up/down/stable based on recent confirmed vs contradicted), feedback ratio (`confirmed/contradicted/inactive`)
@@ -363,6 +387,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-export` to save instincts to a JSON file so that I can share or back them up.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-export", ...)`
 - [ ] Accepts optional args for scope (`project` or `global`) and domain filter
 - [ ] Writes a JSON file with an array of instinct objects to the current directory
@@ -377,6 +402,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-import <path>` to load instincts from a JSON file so that I can import shared instincts.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-import", ...)`
 - [ ] Reads the JSON file at the given path
 - [ ] Validates each instinct object (required fields, valid id format)
@@ -392,6 +418,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-promote [id]` to promote project instincts to global scope so that good patterns are reused across projects.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-promote", ...)`
 - [ ] With an ID argument: promotes that specific project instinct to global (copies to `instincts/personal/`, updates scope to `global`, removes `project_id`/`project_name`)
 - [ ] Without an ID: auto-promotes all qualifying instincts (confidence >= 0.8, seen in 2+ projects)
@@ -406,6 +433,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-evolve` to see suggestions for clustering related instincts into higher-order constructs so that instincts can be consolidated.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-evolve", ...)`
 - [ ] Clusters instincts by domain and trigger similarity
 - [ ] Suggests: related instincts that could merge, workflow instincts that could become commands, project instincts ready for global promotion
@@ -420,6 +448,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a user, I want to run `/instinct-projects` to see all known projects and their instinct counts so that I can understand what has been learned per project.
 
 **Acceptance Criteria:**
+
 - [ ] Registered via `pi.registerCommand("instinct-projects", ...)`
 - [ ] Reads `projects.json` registry
 - [ ] For each project, counts instinct files in `projects/<id>/instincts/personal/`
@@ -435,6 +464,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want the analyzer to only run during active hours and when the user is not idle so that system resources are not wasted.
 
 **Acceptance Criteria:**
+
 - [ ] Analyzer skips if current time is outside `active_hours_start` - `active_hours_end` (default 8:00 - 23:00)
 - [ ] Analyzer skips if last observation timestamp is older than `max_idle_seconds` (default 1800 = 30 min)
 - [ ] Both thresholds are configurable via config
@@ -447,6 +477,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want instinct confidence to decay passively over time so that stale instincts lose relevance.
 
 **Acceptance Criteria:**
+
 - [ ] On each analysis run, the analyzer applies -0.02 per week since `updated_at` for each instinct
 - [ ] Decay is applied before feedback adjustments
 - [ ] Instincts that drop below 0.1 are flagged for removal
@@ -460,6 +491,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want `index.ts` to wire together all modules - event handlers, commands, timers - so that the extension works end-to-end.
 
 **Acceptance Criteria:**
+
 - [ ] Default export function registers all event handlers: `session_start`, `session_shutdown`, `before_agent_start`, `agent_start`, `agent_end`, `tool_execution_start`, `tool_execution_end`
 - [ ] Registers all 6 slash commands
 - [ ] Starts analyzer timer on `session_start`, stops on `session_shutdown`
@@ -476,6 +508,7 @@ The system forms a closed feedback loop: instincts are injected into the system 
 **Description:** As a developer, I want all modules to handle errors gracefully with logging so that failures in the learning system never crash the main Pi session.
 
 **Acceptance Criteria:**
+
 - [ ] All event handlers wrap their body in try/catch
 - [ ] Errors are logged to `projects/<id>/analyzer.log` with timestamp and context
 - [ ] Observer errors do not propagate to Pi (silently log and continue)

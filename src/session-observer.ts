@@ -52,7 +52,7 @@ export function handleTurnStart(
   event: TurnStartEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     const observation: Observation = {
@@ -75,7 +75,7 @@ export function handleTurnEnd(
   event: TurnEndEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     const toolCount = event.toolResults?.length ?? 0;
@@ -114,7 +114,7 @@ export function handleUserBash(
   event: UserBashEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     const observation: Observation = {
@@ -138,7 +138,7 @@ export function handleSessionCompact(
   event: SessionCompactEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     const observation: Observation = {
@@ -161,11 +161,12 @@ export function handleModelSelect(
   event: ModelSelectEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     const modelName = event.model?.id ?? event.model?.name ?? "unknown";
-    const previousModelName = event.previousModel?.id ?? event.previousModel?.name;
+    const previousModelName =
+      event.previousModel?.id ?? event.previousModel?.name;
 
     const observation: Observation = {
       timestamp: new Date().toISOString(),

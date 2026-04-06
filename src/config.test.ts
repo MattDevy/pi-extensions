@@ -41,30 +41,46 @@ describe("loadConfig", () => {
       max_idle_seconds: 900,
     };
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(JSON.stringify(overrides) as unknown as ReturnType<typeof fs.readFileSync>);
+    mockedFs.readFileSync.mockReturnValue(
+      JSON.stringify(overrides) as unknown as ReturnType<
+        typeof fs.readFileSync
+      >,
+    );
 
     const config = loadConfig();
 
     // Provided overrides win; new volume-control fields fall back to defaults
     expect(config).toMatchObject(overrides);
-    expect(config.max_total_instincts_per_project).toBe(DEFAULT_CONFIG.max_total_instincts_per_project);
-    expect(config.max_total_instincts_global).toBe(DEFAULT_CONFIG.max_total_instincts_global);
-    expect(config.max_new_instincts_per_run).toBe(DEFAULT_CONFIG.max_new_instincts_per_run);
-    expect(config.flagged_cleanup_days).toBe(DEFAULT_CONFIG.flagged_cleanup_days);
+    expect(config.max_total_instincts_per_project).toBe(
+      DEFAULT_CONFIG.max_total_instincts_per_project,
+    );
+    expect(config.max_total_instincts_global).toBe(
+      DEFAULT_CONFIG.max_total_instincts_global,
+    );
+    expect(config.max_new_instincts_per_run).toBe(
+      DEFAULT_CONFIG.max_new_instincts_per_run,
+    );
+    expect(config.flagged_cleanup_days).toBe(
+      DEFAULT_CONFIG.flagged_cleanup_days,
+    );
     expect(config.instinct_ttl_days).toBe(DEFAULT_CONFIG.instinct_ttl_days);
   });
 
   it("merges partial overrides with defaults (overrides win)", () => {
     const partial = { run_interval_minutes: 15, model: "claude-opus-4-5" };
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>);
+    mockedFs.readFileSync.mockReturnValue(
+      JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>,
+    );
 
     const config = loadConfig();
 
     expect(config.run_interval_minutes).toBe(15);
     expect(config.model).toBe("claude-opus-4-5");
     // Remaining fields come from defaults
-    expect(config.min_observations_to_analyze).toBe(DEFAULT_CONFIG.min_observations_to_analyze);
+    expect(config.min_observations_to_analyze).toBe(
+      DEFAULT_CONFIG.min_observations_to_analyze,
+    );
     expect(config.min_confidence).toBe(DEFAULT_CONFIG.min_confidence);
     expect(config.max_instincts).toBe(DEFAULT_CONFIG.max_instincts);
     expect(config.timeout_seconds).toBe(DEFAULT_CONFIG.timeout_seconds);
@@ -72,9 +88,13 @@ describe("loadConfig", () => {
 
   it("logs a warning and returns defaults when JSON is invalid", () => {
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue("{ not valid json" as unknown as ReturnType<typeof fs.readFileSync>);
+    mockedFs.readFileSync.mockReturnValue(
+      "{ not valid json" as unknown as ReturnType<typeof fs.readFileSync>,
+    );
 
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
 
     const config = loadConfig();
 
@@ -106,19 +126,31 @@ describe("loadConfig", () => {
   });
 
   it("merges recurring prompt config overrides", () => {
-    const partial = { recurring_prompt_min_sessions: 5, recurring_prompt_score_boost: 5 };
+    const partial = {
+      recurring_prompt_min_sessions: 5,
+      recurring_prompt_score_boost: 5,
+    };
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>);
+    mockedFs.readFileSync.mockReturnValue(
+      JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>,
+    );
 
     const config = loadConfig();
 
     expect(config.recurring_prompt_min_sessions).toBe(5);
     expect(config.recurring_prompt_score_boost).toBe(5);
-    expect(config.run_interval_minutes).toBe(DEFAULT_CONFIG.run_interval_minutes);
+    expect(config.run_interval_minutes).toBe(
+      DEFAULT_CONFIG.run_interval_minutes,
+    );
   });
 
   it("exports CONFIG_PATH pointing to ~/.pi/continuous-learning/config.json", () => {
-    const expected = path.join(os.homedir(), ".pi", "continuous-learning", "config.json");
+    const expected = path.join(
+      os.homedir(),
+      ".pi",
+      "continuous-learning",
+      "config.json",
+    );
     expect(CONFIG_PATH).toBe(expected);
   });
 });

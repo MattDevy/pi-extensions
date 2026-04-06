@@ -40,7 +40,7 @@ export function handleBeforeAgentStart(
   event: BeforeAgentStartEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     if (shouldSkipObservation()) return;
@@ -59,7 +59,12 @@ export function handleBeforeAgentStart(
 
     appendObservation(observation, project.id, baseDir);
   } catch (err) {
-    logError(project.id, "prompt-observer:handleBeforeAgentStart", err, baseDir);
+    logError(
+      project.id,
+      "prompt-observer:handleBeforeAgentStart",
+      err,
+      baseDir,
+    );
   }
 }
 
@@ -71,7 +76,7 @@ export function handleAgentEnd(
   _event: AgentEndEvent,
   ctx: ExtensionContext,
   project: ProjectEntry,
-  baseDir?: string
+  baseDir?: string,
 ): void {
   try {
     if (shouldSkipObservation()) return;

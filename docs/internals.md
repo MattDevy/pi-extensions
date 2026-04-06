@@ -40,29 +40,29 @@ All data lives under `~/.pi/continuous-learning/`. The extension creates this st
 
 ### Key paths (from `storage.ts`)
 
-| Function | Returns |
-|---|---|
-| `getBaseDir()` | `~/.pi/continuous-learning/` |
-| `getProjectDir(id)` | `~/.pi/continuous-learning/projects/<id>/` |
-| `getObservationsPath(id)` | `.../<id>/observations.jsonl` |
-| `getArchiveDir(id)` | `.../<id>/observations.archive/` |
-| `getProjectInstinctsDir(id, "personal")` | `.../<id>/instincts/personal/` |
-| `getGlobalInstinctsDir("personal")` | `~/.pi/continuous-learning/instincts/personal/` |
-| `getProjectsRegistryPath()` | `~/.pi/continuous-learning/projects.json` |
+| Function                                 | Returns                                         |
+| ---------------------------------------- | ----------------------------------------------- |
+| `getBaseDir()`                           | `~/.pi/continuous-learning/`                    |
+| `getProjectDir(id)`                      | `~/.pi/continuous-learning/projects/<id>/`      |
+| `getObservationsPath(id)`                | `.../<id>/observations.jsonl`                   |
+| `getArchiveDir(id)`                      | `.../<id>/observations.archive/`                |
+| `getProjectInstinctsDir(id, "personal")` | `.../<id>/instincts/personal/`                  |
+| `getGlobalInstinctsDir("personal")`      | `~/.pi/continuous-learning/instincts/personal/` |
+| `getProjectsRegistryPath()`              | `~/.pi/continuous-learning/projects.json`       |
 
 ### Files written
 
-| File | Written by | Format | When |
-|---|---|---|---|
-| `config.json` | User (manual) | JSON | User creates/edits manually |
-| `projects.json` | `ensureStorageLayout()` | JSON | Every `session_start` |
-| `project.json` | `ensureStorageLayout()` / analyzer | JSON | First time a project is seen; updated with `last_analyzed_at`, `last_observation_line_count`, `agents_md_project_hash`, and `agents_md_global_hash` by analyzer |
-| `observations.jsonl` | `appendObservation()` | JSONL (one JSON object per line) | Every tool call, prompt, and agent end |
-| `*.jsonl` in archive | `appendObservation()` | JSONL | When `observations.jsonl` hits 10 MB |
-| `<id>.md` in instincts dirs | Standalone analyzer (via `instinct_write` tool) | YAML frontmatter + Markdown | Every analysis run |
-| `analyze.lock` | Standalone analyzer | JSON (`{pid, started_at}`) | While analyzer is running |
-| `analysis-events.jsonl` | Standalone analyzer | JSONL (one summary per run) | After each project analysis with changes |
-| `analysis-events.consumed` | Extension (transient) | JSONL | Briefly during atomic consume; deleted after read |
+| File                        | Written by                                      | Format                           | When                                                                                                                                                            |
+| --------------------------- | ----------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config.json`               | User (manual)                                   | JSON                             | User creates/edits manually                                                                                                                                     |
+| `projects.json`             | `ensureStorageLayout()`                         | JSON                             | Every `session_start`                                                                                                                                           |
+| `project.json`              | `ensureStorageLayout()` / analyzer              | JSON                             | First time a project is seen; updated with `last_analyzed_at`, `last_observation_line_count`, `agents_md_project_hash`, and `agents_md_global_hash` by analyzer |
+| `observations.jsonl`        | `appendObservation()`                           | JSONL (one JSON object per line) | Every tool call, prompt, and agent end                                                                                                                          |
+| `*.jsonl` in archive        | `appendObservation()`                           | JSONL                            | When `observations.jsonl` hits 10 MB                                                                                                                            |
+| `<id>.md` in instincts dirs | Standalone analyzer (via `instinct_write` tool) | YAML frontmatter + Markdown      | Every analysis run                                                                                                                                              |
+| `analyze.lock`              | Standalone analyzer                             | JSON (`{pid, started_at}`)       | While analyzer is running                                                                                                                                       |
+| `analysis-events.jsonl`     | Standalone analyzer                             | JSONL (one summary per run)      | After each project analysis with changes                                                                                                                        |
+| `analysis-events.consumed`  | Extension (transient)                           | JSONL                            | Briefly during atomic consume; deleted after read                                                                                                               |
 
 ---
 
@@ -230,6 +230,7 @@ active-instincts.ts  -- store injected IDs in module-level state for observer to
 ### 4. Analyzer Prompts
 
 **System prompt** (`prompts/analyzer-system-single-shot.ts`): Contains pattern detection heuristics, feedback analysis instructions, confidence scoring rules, scope decision guide, conservativeness rules, and quality tier guidance. The quality tier section instructs the model to distinguish between:
+
 - **Tier 1 - Project Conventions**: Record as project-scoped instincts
 - **Tier 2 - Workflow Patterns**: Record as global-scoped instincts
 - **Tier 3 - Generic Agent Behavior**: Skip - these belong in AGENTS.md, not instincts
@@ -246,17 +247,17 @@ All instinct writes go through `validateInstinct()` in `instinct-validator.ts` b
 
 ### Validation Rules (rejection)
 
-| Rule | Details |
-|---|---|
-| Non-empty fields | `action` and `trigger` must not be `undefined`, `null`, `"undefined"`, `"null"`, `"none"`, or empty |
-| Minimum length | Both fields must be at least 10 characters (after trimming) |
-| Type check | Both fields must be strings |
-| Known domain | `domain`, if provided, must be in the known set (see `KNOWN_DOMAINS` in `instinct-validator.ts`). Use `"other"` as an escape hatch for patterns that don't fit. |
+| Rule             | Details                                                                                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Non-empty fields | `action` and `trigger` must not be `undefined`, `null`, `"undefined"`, `"null"`, `"none"`, or empty                                                             |
+| Minimum length   | Both fields must be at least 10 characters (after trimming)                                                                                                     |
+| Type check       | Both fields must be strings                                                                                                                                     |
+| Known domain     | `domain`, if provided, must be in the known set (see `KNOWN_DOMAINS` in `instinct-validator.ts`). Use `"other"` as an escape hatch for patterns that don't fit. |
 
 ### Validation Rules (warnings)
 
-| Rule | Details |
-|---|---|
+| Rule           | Details                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Verb heuristic | `action` should start with an imperative verb from `KNOWN_VERBS`. A warning is returned but the instinct is not rejected. |
 
 ### Semantic Deduplication
@@ -264,6 +265,7 @@ All instinct writes go through `validateInstinct()` in `instinct-validator.ts` b
 Before a new instinct is persisted (via `instinct_write` tool or the analyzer), a Jaccard similarity check runs against all existing instincts.
 
 **Algorithm** (`findSimilarInstinct()` in `instinct-validator.ts`):
+
 1. Tokenize `trigger + action` for the candidate and each existing instinct (lowercase, strip stop words, deduplicate)
 2. Compute Jaccard similarity: `|intersection| / |union|`
 3. If any existing instinct scores >= 0.6, the write is blocked - the caller is told to update the existing instinct instead
@@ -274,12 +276,13 @@ The `skipId` parameter allows the similarity check to ignore the instinct being 
 
 ### Contradiction Detection
 
-While deduplication catches near-identical instincts, contradiction detection (`instinct-contradiction.ts`) catches instincts with similar triggers but *semantically opposing* actions. For example:
+While deduplication catches near-identical instincts, contradiction detection (`instinct-contradiction.ts`) catches instincts with similar triggers but _semantically opposing_ actions. For example:
 
 - "When designing APIs" -> "Prefer interfaces for dependency injection"
 - "When designing APIs" -> "Avoid interfaces, prefer concrete types"
 
 **Algorithm** (`findContradictions()` in `instinct-contradiction.ts`):
+
 1. Filter out already-flagged instincts
 2. Pre-compute trigger tokens for all active instincts
 3. For each unique pair, check trigger similarity (Jaccard >= 0.4 threshold)
@@ -288,6 +291,7 @@ While deduplication catches near-identical instincts, contradiction detection (`
    - **Negation pattern matching**: Detects "do not X" / "don't X" in one action where X appears affirmatively in the other.
 
 **Resolution** (`cleanupContradictions()` in `instinct-cleanup.ts`):
+
 - The lower-confidence instinct is flagged with `flagged_for_removal: true`
 - When both have equal confidence, both are flagged for user review
 - Flagged instincts remain visible in `/instinct-status` until the flagged cleanup window expires
@@ -330,7 +334,6 @@ inactive_count: 12
 evidence:
   - "Observed grep-then-edit pattern in 7 tool sequences"
 ---
-
 Search for the relevant symbol or string with grep before opening a file for editing.
 Confirm the match with read, then apply the edit.
 ```
@@ -348,11 +351,11 @@ Pure functions in `confidence.ts`. No I/O.
 ### Initial confidence (new instincts)
 
 | Observations | Confidence |
-|---|---|
-| 1-2 | 0.30 |
-| 3-5 | 0.50 |
-| 6-10 | 0.70 |
-| 11+ | 0.85 |
+| ------------ | ---------- |
+| 1-2          | 0.30       |
+| 3-5          | 0.50       |
+| 6-10         | 0.70       |
+| 11+          | 0.85       |
 
 ### Feedback adjustments (existing instincts)
 
@@ -360,13 +363,13 @@ Confirmations use **diminishing returns** to prevent high-volume, easy-to-confir
 from reaching maximum confidence prematurely. The delta is based on `confirmed_count` at
 the time of the confirmation:
 
-| Outcome | Condition | Delta |
-|---|---|---|
-| Confirmed | confirmed_count 0-3 (1st-3rd confirmation) | +0.05 |
-| Confirmed | confirmed_count 4-6 (4th-6th confirmation) | +0.03 |
-| Confirmed | confirmed_count 7+ (7th+ confirmation) | +0.01 |
-| Contradicted | - | -0.15 |
-| Inactive | - | 0 |
+| Outcome      | Condition                                  | Delta |
+| ------------ | ------------------------------------------ | ----- |
+| Confirmed    | confirmed_count 0-3 (1st-3rd confirmation) | +0.05 |
+| Confirmed    | confirmed_count 4-6 (4th-6th confirmation) | +0.03 |
+| Confirmed    | confirmed_count 7+ (7th+ confirmation)     | +0.01 |
+| Contradicted | -                                          | -0.15 |
+| Inactive     | -                                          | 0     |
 
 **Per-session deduplication**: An instinct may only be confirmed once per unique session_id.
 The `last_confirmed_session` field on each instinct tracks the session that last provided a
@@ -498,12 +501,12 @@ A warning is logged when budget enforcement triggers.
 
 `observation-signal.ts` scores each batch before analysis runs:
 
-| Signal event | Points |
-|---|---|
-| Error observation (`is_error: true`) | +2 |
-| `user_prompt` immediately after an error (correction) | +3 |
-| Any other `user_prompt` | +1 |
-| Model change (`model_select`) | +1 |
+| Signal event                                                        | Points                                    |
+| ------------------------------------------------------------------- | ----------------------------------------- |
+| Error observation (`is_error: true`)                                | +2                                        |
+| `user_prompt` immediately after an error (correction)               | +3                                        |
+| Any other `user_prompt`                                             | +1                                        |
+| Model change (`model_select`)                                       | +1                                        |
 | Active instinct confirmation (clean session, no errors/corrections) | +1 per distinct instinct ID, capped at +3 |
 
 If the total score is below `LOW_SIGNAL_THRESHOLD` (3), analysis is skipped entirely with a log entry of `"low-signal batch"`. This avoids burning tokens on batches containing only routine successful tool calls.
@@ -514,16 +517,16 @@ If the total score is below `LOW_SIGNAL_THRESHOLD` (3), analysis is skipped enti
 
 All registered in `index.ts` via `pi.registerCommand()`.
 
-| Command | Handler | What it does |
-|---|---|---|
-| `/instinct-status` | `instinct-status.ts` | List all instincts grouped by domain with confidence, feedback counts, trend arrows |
-| `/instinct-export` | `instinct-export.ts` | Export instincts to a JSON file (filterable by scope/domain) |
-| `/instinct-import <path>` | `instinct-import.ts` | Import instincts from a JSON file |
-| `/instinct-promote [id]` | `instinct-promote.ts` | Promote project instincts to global scope (auto-promote if no ID given) |
-| `/instinct-evolve` | `instinct-evolve.ts` | LLM-powered analysis: suggests merges, duplicates, promotions, cleanup |
-| `/instinct-graduate` | `instinct-graduate.ts` | Graduate mature instincts to AGENTS.md, skills, or commands |
-| `/instinct-projects` | `instinct-projects.ts` | List known projects with instinct counts |
-| `/instinct-dream` | `instinct-dream.ts` | Holistic consolidation review: merges, dedup, contradictions, promotions |
+| Command                   | Handler                | What it does                                                                        |
+| ------------------------- | ---------------------- | ----------------------------------------------------------------------------------- |
+| `/instinct-status`        | `instinct-status.ts`   | List all instincts grouped by domain with confidence, feedback counts, trend arrows |
+| `/instinct-export`        | `instinct-export.ts`   | Export instincts to a JSON file (filterable by scope/domain)                        |
+| `/instinct-import <path>` | `instinct-import.ts`   | Import instincts from a JSON file                                                   |
+| `/instinct-promote [id]`  | `instinct-promote.ts`  | Promote project instincts to global scope (auto-promote if no ID given)             |
+| `/instinct-evolve`        | `instinct-evolve.ts`   | LLM-powered analysis: suggests merges, duplicates, promotions, cleanup              |
+| `/instinct-graduate`      | `instinct-graduate.ts` | Graduate mature instincts to AGENTS.md, skills, or commands                         |
+| `/instinct-projects`      | `instinct-projects.ts` | List known projects with instinct counts                                            |
+| `/instinct-dream`         | `instinct-dream.ts`    | Holistic consolidation review: merges, dedup, contradictions, promotions            |
 
 ---
 
@@ -540,6 +543,7 @@ Periodic holistic review of the entire instinct corpus, independent of new obser
 ### Dual-gate trigger (automatic mode)
 
 Both conditions must be met before an automatic consolidation runs:
+
 - At least `consolidation_interval_days` (default: 7) since last consolidation
 - At least `consolidation_min_sessions` (default: 10) new sessions since last consolidation
 
@@ -548,6 +552,7 @@ Set `dreaming_enabled: false` in config to disable automatic consolidation entir
 ### Consolidation meta
 
 Per-project state stored in `projects/<id>/consolidation.json`:
+
 ```json
 {
   "last_consolidation_at": "2026-03-20T10:00:00Z",
@@ -572,13 +577,13 @@ Session count is derived from distinct `session` values in the project's `observ
 
 ### Modules
 
-| Module | Responsibility |
-|---|---|
-| `consolidation.ts` | Gate logic (pure), session counting, meta persistence |
-| `prompts/consolidate-system.ts` | System prompt for automated consolidation |
-| `prompts/consolidate-user.ts` | User prompt builder (instincts + AGENTS.md, no observations) |
-| `prompts/dream-prompt.ts` | Interactive prompt for `/instinct-dream` command |
-| `instinct-dream.ts` | `/instinct-dream` command handler |
+| Module                          | Responsibility                                               |
+| ------------------------------- | ------------------------------------------------------------ |
+| `consolidation.ts`              | Gate logic (pure), session counting, meta persistence        |
+| `prompts/consolidate-system.ts` | System prompt for automated consolidation                    |
+| `prompts/consolidate-user.ts`   | User prompt builder (instincts + AGENTS.md, no observations) |
+| `prompts/dream-prompt.ts`       | Interactive prompt for `/instinct-dream` command             |
+| `instinct-dream.ts`             | `/instinct-dream` command handler                            |
 
 ### Rate limits
 
@@ -590,13 +595,13 @@ Consolidation allows `2x` the normal `max_new_instincts_per_run` creation rate l
 
 Registered in `index.ts` via `registerAllTools()` from `instinct-tools.ts`.
 
-| Tool | Purpose |
-|---|---|
-| `instinct_list` | List instincts with optional scope/domain filters |
-| `instinct_read` | Read a specific instinct by ID |
-| `instinct_write` | Create or update an instinct |
-| `instinct_delete` | Remove an instinct by ID |
-| `instinct_merge` | Merge multiple instincts into one, removing originals |
+| Tool              | Purpose                                               |
+| ----------------- | ----------------------------------------------------- |
+| `instinct_list`   | List instincts with optional scope/domain filters     |
+| `instinct_read`   | Read a specific instinct by ID                        |
+| `instinct_write`  | Create or update an instinct                          |
+| `instinct_delete` | Remove an instinct by ID                              |
+| `instinct_merge`  | Merge multiple instincts into one, removing originals |
 
 These tools are also reused by the standalone analyzer script (passed as `customTools` to `createAgentSession`).
 
@@ -619,37 +624,38 @@ Observation -> Instinct (days) -> AGENTS.md / Skill / Command (1-2 weeks)
 
 ### Modules
 
-| Module | Responsibility |
-|---|---|
-| `graduation.ts` | Pure functions: maturity checks, candidate scanning, domain clustering, TTL enforcement, `markGraduated()` |
+| Module                 | Responsibility                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `graduation.ts`        | Pure functions: maturity checks, candidate scanning, domain clustering, TTL enforcement, `markGraduated()`                                                           |
 | `instinct-graduate.ts` | `/instinct-graduate` command handler, action helpers (`graduateToAgentsMd`, `graduateToSkill`, `graduateToCommand`, `cullExpiredInstincts`, `decayExpiredInstincts`) |
-| `skill-scaffold.ts` | Generates `SKILL.md` content from a `DomainCluster` (3+ related instincts) |
-| `command-scaffold.ts` | Generates command scaffold content from a `DomainCluster` |
-| `agents-md.ts` | Reads and writes AGENTS.md files (`appendToAgentsMd`, `generateAgentsMdDiff`) |
+| `skill-scaffold.ts`    | Generates `SKILL.md` content from a `DomainCluster` (3+ related instincts)                                                                                           |
+| `command-scaffold.ts`  | Generates command scaffold content from a `DomainCluster`                                                                                                            |
+| `agents-md.ts`         | Reads and writes AGENTS.md files (`appendToAgentsMd`, `generateAgentsMdDiff`)                                                                                        |
 
 ### Maturity Criteria (constants in `config.ts`)
 
-| Constant | Value | Purpose |
-|---|---|---|
-| `GRADUATION_MIN_AGE_DAYS` | 7 | Minimum age before eligible |
-| `GRADUATION_MIN_CONFIDENCE` | 0.75 | Minimum confidence score |
-| `GRADUATION_MIN_CONFIRMED` | 3 | Minimum confirmed_count |
-| `GRADUATION_MAX_CONTRADICTED` | 1 | Maximum contradicted_count |
-| `GRADUATION_SKILL_CLUSTER_SIZE` | 3 | Min instincts for skill scaffold |
-| `GRADUATION_COMMAND_CLUSTER_SIZE` | 3 | Min instincts for command scaffold |
-| `GRADUATION_TTL_MAX_DAYS` | 28 | Max age before TTL enforcement |
-| `GRADUATION_TTL_CULL_CONFIDENCE` | 0.3 | Below this, TTL-expired instincts are deleted |
+| Constant                          | Value | Purpose                                       |
+| --------------------------------- | ----- | --------------------------------------------- |
+| `GRADUATION_MIN_AGE_DAYS`         | 7     | Minimum age before eligible                   |
+| `GRADUATION_MIN_CONFIDENCE`       | 0.75  | Minimum confidence score                      |
+| `GRADUATION_MIN_CONFIRMED`        | 3     | Minimum confirmed_count                       |
+| `GRADUATION_MAX_CONTRADICTED`     | 1     | Maximum contradicted_count                    |
+| `GRADUATION_SKILL_CLUSTER_SIZE`   | 3     | Min instincts for skill scaffold              |
+| `GRADUATION_COMMAND_CLUSTER_SIZE` | 3     | Min instincts for command scaffold            |
+| `GRADUATION_TTL_MAX_DAYS`         | 28    | Max age before TTL enforcement                |
+| `GRADUATION_TTL_CULL_CONFIDENCE`  | 0.3   | Below this, TTL-expired instincts are deleted |
 
 ### Graduation Tracking
 
 Graduated instincts have two additional fields in their YAML frontmatter:
 
 ```yaml
-graduated_to: agents-md   # or "skill" or "command"
+graduated_to: agents-md # or "skill" or "command"
 graduated_at: "2026-03-27T12:00:00.000Z"
 ```
 
 These fields are:
+
 - Parsed/serialized by `instinct-parser.ts`
 - Checked by `graduation.ts` to skip already-graduated instincts
 - Checked by `enforceTtl()` to skip graduated instincts from TTL culling
@@ -681,8 +687,23 @@ Each project has an `analysis-events.jsonl` file under its project directory. Ea
   "timestamp": "2026-03-27T15:00:00Z",
   "project_id": "a1b2c3d4e5f6",
   "project_name": "my-app",
-  "created": [{"id": "use-result-type", "title": "Use Result type", "scope": "project", "trigger": "...", "action": "..."}],
-  "updated": [{"id": "read-before-edit", "title": "Read Before Edit", "scope": "global", "confidence_delta": 0.05}],
+  "created": [
+    {
+      "id": "use-result-type",
+      "title": "Use Result type",
+      "scope": "project",
+      "trigger": "...",
+      "action": "..."
+    }
+  ],
+  "updated": [
+    {
+      "id": "read-before-edit",
+      "title": "Read Before Edit",
+      "scope": "global",
+      "confidence_delta": 0.05
+    }
+  ],
   "deleted": []
 }
 ```
@@ -701,6 +722,7 @@ Multiple analyzer runs may write events before a Pi session reads them. The cons
    d. Deletes `.consumed`
 
 This is safe because:
+
 - If the analyzer has the file open during rename, writes follow the inode (go to `.consumed`), so the extension gets that data too
 - New analyzer writes after the rename create a fresh `analysis-events.jsonl`
 - If the extension crashes between rename and delete, the orphaned `.consumed` is recovered on the next consume call

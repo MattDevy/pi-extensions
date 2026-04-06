@@ -61,7 +61,7 @@ function extractActionWords(action: string): Set<string> {
     action
       .toLowerCase()
       .split(/[^a-z']+/)
-      .filter((w) => w.length > 0)
+      .filter((w) => w.length > 0),
   );
 }
 
@@ -117,7 +117,10 @@ export interface ContradictionMatch {
  *
  * @returns A reason string if opposing, null otherwise.
  */
-export function hasOpposingAction(actionA: string, actionB: string): string | null {
+export function hasOpposingAction(
+  actionA: string,
+  actionB: string,
+): string | null {
   if (!actionA || !actionB) return null;
   if (actionA === actionB) return null;
 
@@ -159,7 +162,7 @@ export function hasOpposingAction(actionA: string, actionB: string): string | nu
  */
 export function findContradictions(
   instincts: readonly Instinct[],
-  triggerThreshold = DEFAULT_TRIGGER_THRESHOLD
+  triggerThreshold = DEFAULT_TRIGGER_THRESHOLD,
 ): ContradictionMatch[] {
   const active = instincts.filter((i) => !i.flagged_for_removal);
   if (active.length < 2) return [];

@@ -10,10 +10,21 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { unlinkSync } from "node:fs";
 import { writeFileSync, mkdirSync } from "node:fs";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 import type { Instinct } from "./types.js";
-import { getBaseDir, getProjectInstinctsDir, getGlobalInstinctsDir } from "./storage.js";
-import { loadProjectInstincts, loadGlobalInstincts, saveInstinct } from "./instinct-store.js";
+import {
+  getBaseDir,
+  getProjectInstinctsDir,
+  getGlobalInstinctsDir,
+} from "./storage.js";
+import {
+  loadProjectInstincts,
+  loadGlobalInstincts,
+  saveInstinct,
+} from "./instinct-store.js";
 import { readAgentsMd, appendToAgentsMd } from "./agents-md.js";
 import {
   findAgentsMdCandidates,
@@ -22,7 +33,11 @@ import {
   enforceTtl,
   markGraduated,
 } from "./graduation.js";
-import type { GraduationCandidate, DomainCluster, TtlResult } from "./graduation.js";
+import type {
+  GraduationCandidate,
+  DomainCluster,
+  TtlResult,
+} from "./graduation.js";
 import { generateSkillScaffold } from "./skill-scaffold.js";
 import type { SkillScaffold } from "./skill-scaffold.js";
 import { generateCommandScaffold } from "./command-scaffold.js";
@@ -54,7 +69,7 @@ function formatAgentsMdCandidates(candidates: GraduationCandidate[]): string {
       `- **${inst.id}** - "${inst.title}" (${inst.confidence.toFixed(2)} confidence, ${inst.confirmed_count} confirmations)`,
       `  Trigger: ${inst.trigger}`,
       `  ${candidate.reason}`,
-      ""
+      "",
     );
   }
 
@@ -75,7 +90,7 @@ function formatSkillClusters(clusters: DomainCluster[]): string {
     lines.push(
       `- **${cluster.domain}** domain (${cluster.instincts.length} instincts):`,
       ...cluster.instincts.map((i) => `  - ${i.id}: "${i.title}"`),
-      ""
+      "",
     );
   }
 
@@ -97,7 +112,7 @@ function formatCommandClusters(clusters: DomainCluster[]): string {
     lines.push(
       `- **/${cluster.domain}** command (${cluster.instincts.length} instincts):`,
       ...cluster.instincts.map((i) => `  - ${i.id}: "${i.title}"`),
-      ""
+      "",
     );
   }
 
@@ -112,10 +127,12 @@ function formatTtlResults(ttl: TtlResult): string {
   if (ttl.toCull.length > 0) {
     lines.push(
       `${ttl.toCull.length} instinct${ttl.toCull.length !== 1 ? "s" : ""} exceeded TTL with low confidence (will be deleted):`,
-      ""
+      "",
     );
     for (const inst of ttl.toCull) {
-      lines.push(`- ${inst.id}: "${inst.title}" (${inst.confidence.toFixed(2)})`);
+      lines.push(
+        `- ${inst.id}: "${inst.title}" (${inst.confidence.toFixed(2)})`,
+      );
     }
     lines.push("");
   }
@@ -123,10 +140,12 @@ function formatTtlResults(ttl: TtlResult): string {
   if (ttl.toDecay.length > 0) {
     lines.push(
       `${ttl.toDecay.length} instinct${ttl.toDecay.length !== 1 ? "s" : ""} exceeded TTL but still have moderate confidence (will be aggressively decayed):`,
-      ""
+      "",
     );
     for (const inst of ttl.toDecay) {
-      lines.push(`- ${inst.id}: "${inst.title}" (${inst.confidence.toFixed(2)})`);
+      lines.push(
+        `- ${inst.id}: "${inst.title}" (${inst.confidence.toFixed(2)})`,
+      );
     }
     lines.push("");
   }
@@ -141,7 +160,7 @@ export function buildGraduationPrompt(
   agentsMdCandidates: GraduationCandidate[],
   skillClusters: DomainCluster[],
   commandClusters: DomainCluster[],
-  ttl: TtlResult
+  ttl: TtlResult,
 ): string {
   const sections = [
     "I've analyzed your instincts for graduation readiness. Here's what I found:",
@@ -185,7 +204,7 @@ function getInstinctDir(instinct: Instinct, baseDir: string): string {
 export function graduateToAgentsMd(
   instincts: Instinct[],
   agentsMdPath: string,
-  baseDir: string
+  baseDir: string,
 ): Instinct[] {
   if (instincts.length === 0) return [];
 
@@ -208,7 +227,7 @@ export function graduateToAgentsMd(
 export function graduateToSkill(
   cluster: DomainCluster,
   outputDir: string,
-  baseDir: string
+  baseDir: string,
 ): SkillScaffold {
   const scaffold = generateSkillScaffold(cluster);
 
@@ -230,12 +249,16 @@ export function graduateToSkill(
 export function graduateToCommand(
   cluster: DomainCluster,
   outputDir: string,
-  baseDir: string
+  baseDir: string,
 ): CommandScaffold {
   const scaffold = generateCommandScaffold(cluster);
 
   mkdirSync(outputDir, { recursive: true });
-  writeFileSync(join(outputDir, `${scaffold.name}-command.md`), scaffold.content, "utf-8");
+  writeFileSync(
+    join(outputDir, `${scaffold.name}-command.md`),
+    scaffold.content,
+    "utf-8",
+  );
 
   for (const instinct of cluster.instincts) {
     const updated = markGraduated(instinct, "command");
@@ -251,7 +274,7 @@ export function graduateToCommand(
  */
 export function cullExpiredInstincts(
   instincts: Instinct[],
-  baseDir: string
+  baseDir: string,
 ): number {
   let deleted = 0;
   for (const instinct of instincts) {
@@ -272,7 +295,7 @@ export function cullExpiredInstincts(
  */
 export function decayExpiredInstincts(
   instincts: Instinct[],
-  baseDir: string
+  baseDir: string,
 ): number {
   let decayed = 0;
   for (const instinct of instincts) {
@@ -303,7 +326,7 @@ export async function handleInstinctGraduate(
   pi: ExtensionAPI,
   projectId?: string | null,
   baseDir?: string,
-  projectRoot?: string | null
+  projectRoot?: string | null,
 ): Promise<void> {
   const effectiveBase = baseDir ?? getBaseDir();
 
@@ -317,7 +340,7 @@ export async function handleInstinctGraduate(
   if (allInstincts.length === 0) {
     ctx.ui.notify(
       "No instincts to analyze. Keep using pi to accumulate instincts first.",
-      "info"
+      "info",
     );
     return;
   }
@@ -326,7 +349,7 @@ export async function handleInstinctGraduate(
   const agentsMdProject =
     projectRoot != null ? readAgentsMd(join(projectRoot, "AGENTS.md")) : null;
   const agentsMdGlobal = readAgentsMd(
-    join(homedir(), ".pi", "agent", "AGENTS.md")
+    join(homedir(), ".pi", "agent", "AGENTS.md"),
   );
   const combinedAgentsMd = [agentsMdProject, agentsMdGlobal]
     .filter(Boolean)
@@ -335,13 +358,13 @@ export async function handleInstinctGraduate(
   // Find candidates
   const agentsMdCandidates = findAgentsMdCandidates(
     allInstincts,
-    combinedAgentsMd.length > 0 ? combinedAgentsMd : null
+    combinedAgentsMd.length > 0 ? combinedAgentsMd : null,
   );
 
   // Find clusters for skills and commands
   // Only consider non-graduated, non-flagged instincts
   const activeInstincts = allInstincts.filter(
-    (i) => i.graduated_to === undefined && !i.flagged_for_removal
+    (i) => i.graduated_to === undefined && !i.flagged_for_removal,
   );
   const skillClusters = findSkillCandidates(activeInstincts);
   const commandClusters = findCommandCandidates(activeInstincts);
@@ -361,7 +384,7 @@ export async function handleInstinctGraduate(
     ctx.ui.notify(
       "No instincts are ready for graduation and no TTL violations found. " +
         "Instincts need >= 7 days age, >= 0.75 confidence, and >= 3 confirmations.",
-      "info"
+      "info",
     );
     return;
   }
@@ -370,7 +393,7 @@ export async function handleInstinctGraduate(
     agentsMdCandidates,
     skillClusters,
     commandClusters,
-    ttl
+    ttl,
   );
 
   pi.sendUserMessage(prompt, { deliverAs: "followUp" });

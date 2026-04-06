@@ -6,7 +6,10 @@
  */
 
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import type { BeforeAgentStartEvent, AgentEndEvent } from "./prompt-observer.js";
+import type {
+  BeforeAgentStartEvent,
+  AgentEndEvent,
+} from "./prompt-observer.js";
 import type { Config, Instinct } from "./types.js";
 
 /** Subset of BeforeAgentStartEventResult used by this module. */
@@ -34,7 +37,10 @@ export const INSTINCTS_HEADER = "## Learned Behaviors (Instincts)";
  * Builds the injection block string from a list of instincts.
  * Returns null when the list is empty (no block needed).
  */
-export function buildInjectionBlock(instincts: Instinct[], maxChars?: number): string | null {
+export function buildInjectionBlock(
+  instincts: Instinct[],
+  maxChars?: number,
+): string | null {
   if (instincts.length === 0) return null;
 
   const headerLen = `\n\n${INSTINCTS_HEADER}\n`.length;
@@ -75,7 +81,7 @@ export function buildInjectionBlock(instincts: Instinct[], maxChars?: number): s
  */
 export function injectInstincts(
   systemPrompt: string,
-  instincts: Instinct[]
+  instincts: Instinct[],
 ): string | null {
   const block = buildInjectionBlock(instincts);
   if (block === null) return null;
@@ -97,10 +103,15 @@ export function handleBeforeAgentStartInjection(
   _ctx: ExtensionContext,
   config: Config,
   projectId?: string | null,
-  baseDir?: string
+  baseDir?: string,
 ): InjectionResult | void {
   const relevantDomains = inferDomains(event.prompt);
-  const instincts = loadAndFilterFromConfig(config, projectId, baseDir, relevantDomains);
+  const instincts = loadAndFilterFromConfig(
+    config,
+    projectId,
+    baseDir,
+    relevantDomains,
+  );
 
   const block = buildInjectionBlock(instincts, config.max_injection_chars);
   if (block === null) {
@@ -122,7 +133,7 @@ export function handleBeforeAgentStartInjection(
  */
 export function handleAgentEndClearInstincts(
   _event: AgentEndEvent,
-  _ctx: ExtensionContext
+  _ctx: ExtensionContext,
 ): void {
   clearActiveInstincts();
 }

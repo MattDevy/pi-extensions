@@ -63,7 +63,9 @@ describe("parseChanges", () => {
   });
 
   it("throws if changes is not an array", () => {
-    expect(() => parseChanges(JSON.stringify({ changes: "bad" }))).toThrow(/changes.*array/i);
+    expect(() => parseChanges(JSON.stringify({ changes: "bad" }))).toThrow(
+      /changes.*array/i,
+    );
   });
 
   it("strips ```json fences before parsing", () => {
@@ -257,7 +259,11 @@ describe("buildInstinctFromChange", () => {
         last_confirmed_session: "session-abc", // same session - should be blocked
       },
     };
-    const result = buildInstinctFromChange(change, instinctWithSession, "proj-1");
+    const result = buildInstinctFromChange(
+      change,
+      instinctWithSession,
+      "proj-1",
+    );
     // confirmed_count reverted; confidence unchanged at 0.8
     expect(result?.confirmed_count).toBe(2);
     expect(result?.confidence).toBeCloseTo(0.8);
@@ -287,7 +293,11 @@ describe("buildInstinctFromChange", () => {
         last_confirmed_session: "session-xyz", // different session - should be allowed
       },
     };
-    const result = buildInstinctFromChange(change, instinctWithSession, "proj-1");
+    const result = buildInstinctFromChange(
+      change,
+      instinctWithSession,
+      "proj-1",
+    );
     expect(result?.confirmed_count).toBe(3);
     expect(result?.confidence).toBeCloseTo(0.85); // 0.8 + 0.05 (tier-1, count was 2)
     expect(result?.last_confirmed_session).toBe("session-xyz");
@@ -398,7 +408,10 @@ describe("formatInstinctsForPrompt", () => {
   });
 
   it("separates multiple instincts with ---", () => {
-    const result = formatInstinctsForPrompt([existingInstinct, existingInstinct]);
+    const result = formatInstinctsForPrompt([
+      existingInstinct,
+      existingInstinct,
+    ]);
     expect(result).toContain("---");
   });
 });

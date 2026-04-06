@@ -52,7 +52,8 @@ const FULL_INSTINCT: Instinct = {
   id: "use-read-tool",
   title: "Use Read Tool for File Inspection",
   trigger: "when examining file contents",
-  action: "Prefer using the Read tool over Bash cat commands when inspecting file contents.",
+  action:
+    "Prefer using the Read tool over Bash cat commands when inspecting file contents.",
   confidence: 0.7,
   domain: "tooling",
   source: "personal",
@@ -84,7 +85,7 @@ describe("parseInstinct", () => {
     expect(instinct.title).toBe("Use Read Tool for File Inspection");
     expect(instinct.trigger).toBe("when examining file contents");
     expect(instinct.action).toBe(
-      "Prefer using the Read tool over Bash cat commands when inspecting file contents."
+      "Prefer using the Read tool over Bash cat commands when inspecting file contents.",
     );
     expect(instinct.confidence).toBe(0.7);
     expect(instinct.domain).toBe("tooling");
@@ -129,18 +130,29 @@ describe("parseInstinct", () => {
   });
 
   it("throws on invalid kebab-case id", () => {
-    const content = FULL_CONTENT.replace("id: use-read-tool", "id: Use_Read_Tool");
+    const content = FULL_CONTENT.replace(
+      "id: use-read-tool",
+      "id: Use_Read_Tool",
+    );
     expect(() => parseInstinct(content)).toThrow(/Invalid instinct ID/);
   });
 
   it("throws on id with spaces", () => {
-    const content = FULL_CONTENT.replace("id: use-read-tool", "id: use read tool");
+    const content = FULL_CONTENT.replace(
+      "id: use-read-tool",
+      "id: use read tool",
+    );
     expect(() => parseInstinct(content)).toThrow(/Invalid instinct ID/);
   });
 
   it("throws on missing required field", () => {
-    const content = FULL_CONTENT.replace("title: Use Read Tool for File Inspection\n", "");
-    expect(() => parseInstinct(content)).toThrow(/missing required field "title"/);
+    const content = FULL_CONTENT.replace(
+      "title: Use Read Tool for File Inspection\n",
+      "",
+    );
+    expect(() => parseInstinct(content)).toThrow(
+      /missing required field "title"/,
+    );
   });
 
   it("throws when frontmatter delimiters are absent", () => {
@@ -178,7 +190,8 @@ describe("serializeInstinct", () => {
       id: "prefer-immutability",
       title: "Prefer Immutable Patterns",
       trigger: "when updating objects or arrays",
-      action: "Create new objects and arrays instead of mutating existing ones.",
+      action:
+        "Create new objects and arrays instead of mutating existing ones.",
       confidence: 0.5,
       domain: "code-style",
       source: "personal",

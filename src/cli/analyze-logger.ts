@@ -89,7 +89,11 @@ export class AnalyzeLogger {
     this.write("warn", message, data);
   }
 
-  error(message: string, error?: unknown, data?: Record<string, unknown>): void {
+  error(
+    message: string,
+    error?: unknown,
+    data?: Record<string, unknown>,
+  ): void {
     const errorData: Record<string, unknown> = { ...data };
     if (error instanceof Error) {
       errorData.error_message = error.message;
@@ -120,7 +124,12 @@ export class AnalyzeLogger {
   }
 
   /** Log the start of a project analysis */
-  projectStart(projectId: string, projectName: string, newObservations: number, totalObservations: number): void {
+  projectStart(
+    projectId: string,
+    projectName: string,
+    newObservations: number,
+    totalObservations: number,
+  ): void {
     this.info(`Processing ${projectName}`, {
       event: "project_start",
       project_id: projectId,
@@ -136,9 +145,9 @@ export class AnalyzeLogger {
     const costFormatted = stats.cost_usd.toFixed(4);
     this.info(
       `Completed ${stats.project_name} in ${durationSec}s - ` +
-      `tokens: ${stats.tokens_total}, cost: $${costFormatted}, ` +
-      `instincts: +${stats.instincts_created} ~${stats.instincts_updated} -${stats.instincts_deleted}`,
-      { event: "project_complete", ...stats }
+        `tokens: ${stats.tokens_total}, cost: $${costFormatted}, ` +
+        `instincts: +${stats.instincts_created} ~${stats.instincts_updated} -${stats.instincts_deleted}`,
+      { event: "project_complete", ...stats },
     );
   }
 
@@ -157,11 +166,11 @@ export class AnalyzeLogger {
     const costFormatted = summary.total_cost_usd.toFixed(4);
     this.info(
       `Run complete in ${durationSec}s - ` +
-      `${summary.projects_processed}/${summary.projects_total} projects processed, ` +
-      `${summary.projects_skipped} skipped, ${summary.projects_errored} errored - ` +
-      `tokens: ${summary.total_tokens}, cost: $${costFormatted}, ` +
-      `instincts: +${summary.total_instincts_created} ~${summary.total_instincts_updated} -${summary.total_instincts_deleted}`,
-      { event: "run_complete", ...summary }
+        `${summary.projects_processed}/${summary.projects_total} projects processed, ` +
+        `${summary.projects_skipped} skipped, ${summary.projects_errored} errored - ` +
+        `tokens: ${summary.total_tokens}, cost: $${costFormatted}, ` +
+        `instincts: +${summary.total_instincts_created} ~${summary.total_instincts_updated} -${summary.total_instincts_deleted}`,
+      { event: "run_complete", ...summary },
     );
   }
 
@@ -177,7 +186,11 @@ export class AnalyzeLogger {
     }
   }
 
-  private write(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+  private write(
+    level: LogLevel,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,

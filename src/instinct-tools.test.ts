@@ -9,7 +9,10 @@ import { tmpdir } from "node:os";
 import type { Instinct } from "./types.js";
 import { saveInstinct } from "./instinct-store.js";
 import { getProjectInstinctsDir, getGlobalInstinctsDir } from "./storage.js";
-import { createInstinctDeleteTool, createInstinctMergeTool } from "./instinct-tools.js";
+import {
+  createInstinctDeleteTool,
+  createInstinctMergeTool,
+} from "./instinct-tools.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,7 +33,11 @@ beforeEach(() => {
   mkdirSync(globalInstinctsDir, { recursive: true });
 });
 
-function makeInstinct(id: string, scope: "project" | "global", overrides: Partial<Instinct> = {}): Instinct {
+function makeInstinct(
+  id: string,
+  scope: "project" | "global",
+  overrides: Partial<Instinct> = {},
+): Instinct {
   return {
     id,
     title: `Title for ${id}`,
@@ -40,7 +47,9 @@ function makeInstinct(id: string, scope: "project" | "global", overrides: Partia
     domain: "testing",
     source: "personal",
     scope,
-    ...(scope === "project" ? { project_id: PROJECT_ID, project_name: PROJECT_NAME } : {}),
+    ...(scope === "project"
+      ? { project_id: PROJECT_ID, project_name: PROJECT_NAME }
+      : {}),
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     observation_count: 3,
@@ -67,18 +76,42 @@ function globalFileExists(id: string): boolean {
   return existsSync(join(globalInstinctsDir, `${id}.md`));
 }
 
-async function callDelete(params: { id: string; scope?: "project" | "global" }) {
+async function callDelete(params: {
+  id: string;
+  scope?: "project" | "global";
+}) {
   const tool = createInstinctDeleteTool(PROJECT_ID, baseDir);
-  return tool.execute("call-id", params as never, undefined, undefined, undefined);
+  return tool.execute(
+    "call-id",
+    params as never,
+    undefined,
+    undefined,
+    undefined,
+  );
 }
 
 async function callMerge(params: {
-  merged: { id: string; title: string; trigger: string; action: string; confidence: number; domain: string; scope: "project" | "global"; evidence?: string[] };
+  merged: {
+    id: string;
+    title: string;
+    trigger: string;
+    action: string;
+    confidence: number;
+    domain: string;
+    scope: "project" | "global";
+    evidence?: string[];
+  };
   delete_ids: string[];
   delete_scoped_ids?: { id: string; scope: "project" | "global" }[];
 }) {
   const tool = createInstinctMergeTool(PROJECT_ID, PROJECT_NAME, baseDir);
-  return tool.execute("call-id", params as never, undefined, undefined, undefined);
+  return tool.execute(
+    "call-id",
+    params as never,
+    undefined,
+    undefined,
+    undefined,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +146,9 @@ describe("createInstinctDeleteTool - without scope", () => {
   });
 
   it("throws when instinct not found in either scope", async () => {
-    await expect(callDelete({ id: "nonexistent" })).rejects.toThrow(/not found/);
+    await expect(callDelete({ id: "nonexistent" })).rejects.toThrow(
+      /not found/,
+    );
   });
 });
 
@@ -126,7 +161,10 @@ describe("createInstinctDeleteTool - with scope", () => {
     seedProject("read-before-edit");
     seedGlobal("read-before-edit");
 
-    const result = await callDelete({ id: "read-before-edit", scope: "project" });
+    const result = await callDelete({
+      id: "read-before-edit",
+      scope: "project",
+    });
 
     expect(projectFileExists("read-before-edit")).toBe(false);
     expect(globalFileExists("read-before-edit")).toBe(true);
@@ -137,7 +175,10 @@ describe("createInstinctDeleteTool - with scope", () => {
     seedProject("read-before-edit");
     seedGlobal("read-before-edit");
 
-    const result = await callDelete({ id: "read-before-edit", scope: "global" });
+    const result = await callDelete({
+      id: "read-before-edit",
+      scope: "global",
+    });
 
     expect(globalFileExists("read-before-edit")).toBe(false);
     expect(projectFileExists("read-before-edit")).toBe(true);
@@ -147,18 +188,18 @@ describe("createInstinctDeleteTool - with scope", () => {
   it("throws when scope is 'project' but only global exists", async () => {
     seedGlobal("global-only");
 
-    await expect(callDelete({ id: "global-only", scope: "project" })).rejects.toThrow(
-      /not found.*project/i
-    );
+    await expect(
+      callDelete({ id: "global-only", scope: "project" }),
+    ).rejects.toThrow(/not found.*project/i);
     expect(globalFileExists("global-only")).toBe(true);
   });
 
   it("throws when scope is 'global' but only project exists", async () => {
     seedProject("project-only");
 
-    await expect(callDelete({ id: "project-only", scope: "global" })).rejects.toThrow(
-      /not found.*global/i
-    );
+    await expect(
+      callDelete({ id: "project-only", scope: "global" }),
+    ).rejects.toThrow(/not found.*global/i);
     expect(projectFileExists("project-only")).toBe(true);
   });
 
@@ -167,7 +208,13 @@ describe("createInstinctDeleteTool - with scope", () => {
     const tool = createInstinctDeleteTool(null, baseDir);
 
     await expect(
-      tool.execute("call-id", { id: "some-instinct", scope: "project" } as never, undefined, undefined, undefined)
+      tool.execute(
+        "call-id",
+        { id: "some-instinct", scope: "project" } as never,
+        undefined,
+        undefined,
+        undefined,
+      ),
     ).rejects.toThrow(/no project/i);
   });
 });
@@ -199,7 +246,9 @@ describe("createInstinctMergeTool - delete_ids", () => {
     expect(globalFileExists("merged-instinct")).toBe(true);
     expect(globalFileExists("source-a")).toBe(false);
     expect(globalFileExists("source-b")).toBe(false);
-    expect(result.details.deleted).toEqual(expect.arrayContaining(["source-a", "source-b"]));
+    expect(result.details.deleted).toEqual(
+      expect.arrayContaining(["source-a", "source-b"]),
+    );
   });
 
   it("skips deletion when delete_id matches merged.id (same-scope guard)", async () => {
@@ -251,7 +300,11 @@ describe("createInstinctMergeTool - delete_scoped_ids", () => {
     seedProject("some-instinct");
     seedGlobal("some-instinct");
 
-    const mergedProject = { ...mergedGlobal, id: "some-instinct", scope: "project" as const };
+    const mergedProject = {
+      ...mergedGlobal,
+      id: "some-instinct",
+      scope: "project" as const,
+    };
 
     await callMerge({
       merged: mergedProject,
@@ -287,7 +340,7 @@ describe("createInstinctMergeTool - delete_scoped_ids", () => {
         merged: { ...mergedGlobal, id: "result" },
         delete_ids: [],
         delete_scoped_ids: [{ id: "global-only", scope: "project" }],
-      })
+      }),
     ).rejects.toThrow(/not found.*project/i);
   });
 

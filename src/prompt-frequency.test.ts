@@ -167,7 +167,12 @@ describe("updateFrequencyTablesFromLines", () => {
       line({ event: "user_prompt", input: "PR it" }),
       line({ event: "user_prompt", input: "ship it" }),
     ];
-    const { project, global } = updateFrequencyTablesFromLines(lines, {}, {}, NOW);
+    const { project, global } = updateFrequencyTablesFromLines(
+      lines,
+      {},
+      {},
+      NOW,
+    );
     expect(Object.keys(project)).toHaveLength(2);
     expect(Object.keys(global)).toHaveLength(2);
   });

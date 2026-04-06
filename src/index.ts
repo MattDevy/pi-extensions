@@ -6,7 +6,10 @@
  * runs via a separate standalone script (src/cli/analyze.ts).
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 import { loadSkills } from "@mariozechner/pi-coding-agent";
 
 import { loadConfig } from "./config.js";
@@ -26,14 +29,38 @@ import {
   handleBeforeAgentStartInjection,
   handleAgentEndClearInstincts,
 } from "./instinct-injector.js";
-import { handleInstinctStatus, COMMAND_NAME as STATUS_CMD } from "./instinct-status.js";
-import { handleInstinctExport, COMMAND_NAME as EXPORT_CMD } from "./instinct-export.js";
-import { handleInstinctImport, COMMAND_NAME as IMPORT_CMD } from "./instinct-import.js";
-import { handleInstinctPromote, COMMAND_NAME as PROMOTE_CMD } from "./instinct-promote.js";
-import { handleInstinctEvolve, COMMAND_NAME as EVOLVE_CMD } from "./instinct-evolve.js";
-import { handleInstinctProjects, COMMAND_NAME as PROJECTS_CMD } from "./instinct-projects.js";
-import { handleInstinctGraduate, COMMAND_NAME as GRADUATE_CMD } from "./instinct-graduate.js";
-import { handleInstinctDream, COMMAND_NAME as DREAM_CMD } from "./instinct-dream.js";
+import {
+  handleInstinctStatus,
+  COMMAND_NAME as STATUS_CMD,
+} from "./instinct-status.js";
+import {
+  handleInstinctExport,
+  COMMAND_NAME as EXPORT_CMD,
+} from "./instinct-export.js";
+import {
+  handleInstinctImport,
+  COMMAND_NAME as IMPORT_CMD,
+} from "./instinct-import.js";
+import {
+  handleInstinctPromote,
+  COMMAND_NAME as PROMOTE_CMD,
+} from "./instinct-promote.js";
+import {
+  handleInstinctEvolve,
+  COMMAND_NAME as EVOLVE_CMD,
+} from "./instinct-evolve.js";
+import {
+  handleInstinctProjects,
+  COMMAND_NAME as PROJECTS_CMD,
+} from "./instinct-projects.js";
+import {
+  handleInstinctGraduate,
+  COMMAND_NAME as GRADUATE_CMD,
+} from "./instinct-graduate.js";
+import {
+  handleInstinctDream,
+  COMMAND_NAME as DREAM_CMD,
+} from "./instinct-dream.js";
 import { registerAllTools } from "./instinct-tools.js";
 import { logError } from "./error-logger.js";
 import { checkAnalysisNotifications } from "./analysis-notification.js";
@@ -53,7 +80,10 @@ export default function (pi: ExtensionAPI): void {
 
       try {
         const result = loadSkills({ cwd: ctx.cwd });
-        installedSkills = result.skills.map((s) => ({ name: s.name, description: s.description }));
+        installedSkills = result.skills.map((s) => ({
+          name: s.name,
+          description: s.description,
+        }));
       } catch {
         installedSkills = [];
       }
@@ -73,7 +103,10 @@ export default function (pi: ExtensionAPI): void {
       if (!project || !config) return;
       handleBeforeAgentStart(event, ctx, project);
       checkAnalysisNotifications(ctx, project.id);
-      return handleBeforeAgentStartInjection(event, ctx, config, project.id) ?? undefined;
+      return (
+        handleBeforeAgentStartInjection(event, ctx, config, project.id) ??
+        undefined
+      );
     } catch (err) {
       logError(project?.id ?? null, "before_agent_start", err);
     }
@@ -188,7 +221,7 @@ export default function (pi: ExtensionAPI): void {
         project?.id,
         undefined,
         project?.root ?? null,
-        installedSkills
+        installedSkills,
       ),
   });
 
@@ -207,12 +240,13 @@ export default function (pi: ExtensionAPI): void {
         pi,
         project?.id,
         undefined,
-        project?.root ?? null
+        project?.root ?? null,
       ),
   });
 
   pi.registerCommand(DREAM_CMD, {
-    description: "Holistic consolidation review of all instincts (merge, deduplicate, resolve contradictions)",
+    description:
+      "Holistic consolidation review of all instincts (merge, deduplicate, resolve contradictions)",
     handler: (args: string, ctx: ExtensionCommandContext) =>
       handleInstinctDream(
         args,
@@ -221,7 +255,7 @@ export default function (pi: ExtensionAPI): void {
         project?.id,
         undefined,
         project?.root ?? null,
-        installedSkills
+        installedSkills,
       ),
   });
 }

@@ -1,8 +1,19 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { clearActiveInstincts, setCurrentActiveInstincts } from "./active-instincts.js";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
+import {
+  clearActiveInstincts,
+  setCurrentActiveInstincts,
+} from "./active-instincts.js";
 import { ensureStorageLayout } from "./storage.js";
 import {
   handleAgentEnd,
@@ -21,19 +32,30 @@ function makeCtx(sessionId = "test-session-014") {
     sessionManager: {
       getSessionId: () => sessionId,
     },
-    getContextUsage: () => ({ tokens: 1000, contextWindow: 200000, percent: 0.5 }),
+    getContextUsage: () => ({
+      tokens: 1000,
+      contextWindow: 200000,
+      percent: 0.5,
+    }),
   } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
 }
 
 function makePromptEvent(prompt: string): BeforeAgentStartEvent {
-  return { type: "before_agent_start", prompt, systemPrompt: "You are a helpful assistant." };
+  return {
+    type: "before_agent_start",
+    prompt,
+    systemPrompt: "You are a helpful assistant.",
+  };
 }
 
 function makeAgentEndEvent(): AgentEndEvent {
   return { type: "agent_end" };
 }
 
-function readObservations(projectId: string, baseDir: string): Record<string, unknown>[] {
+function readObservations(
+  projectId: string,
+  baseDir: string,
+): Record<string, unknown>[] {
   const filePath = join(baseDir, "projects", projectId, "observations.jsonl");
   const raw = readFileSync(filePath, "utf-8").trim();
   return raw
@@ -114,7 +136,9 @@ describe("handleBeforeAgentStart", () => {
   it("applies secret scrubbing to prompt text", () => {
     const ctx = makeCtx();
     // Use a bearer token pattern that the scrubber recognizes
-    const event = makePromptEvent("Call the API with Authorization: Bearer mysupersecrettoken123");
+    const event = makePromptEvent(
+      "Call the API with Authorization: Bearer mysupersecrettoken123",
+    );
 
     handleBeforeAgentStart(event, ctx, PROJECT, tmpDir);
 
@@ -144,7 +168,6 @@ describe("handleBeforeAgentStart", () => {
     const last = lastObs(PROJECT.id, tmpDir);
     expect(last["active_instincts"]).toBeUndefined();
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -188,5 +211,4 @@ describe("handleAgentEnd", () => {
     const last = lastObs(PROJECT.id, tmpDir);
     expect(last["active_instincts"]).toEqual(["instinct-z"]);
   });
-
 });

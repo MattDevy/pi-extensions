@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { logError, logWarning, logInfo, getLogPath } from "./error-logger.js";
 
 function makeTmpDir(): string {
-  const dir = join(tmpdir(), `pi-cl-error-logger-test-${Date.now()}-${Math.random()}`);
+  const dir = join(
+    tmpdir(),
+    `pi-cl-error-logger-test-${Date.now()}-${Math.random()}`,
+  );
   mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -83,7 +86,12 @@ describe("logError", () => {
 
   it("falls back to console.warn when log write fails", () => {
     // Use a path that cannot be written to (root-owned dir)
-    logError("proj4", "ctx", new Error("write fail"), "/no-such-root-dir-that-exists");
+    logError(
+      "proj4",
+      "ctx",
+      new Error("write fail"),
+      "/no-such-root-dir-that-exists",
+    );
 
     expect(warnSpy).toHaveBeenCalledOnce();
   });
@@ -125,7 +133,9 @@ describe("logWarning", () => {
 
   it("does not throw on any condition", () => {
     expect(() => logWarning(null, "ctx", "msg")).not.toThrow();
-    expect(() => logWarning("proj2", "ctx", "msg", "/nonexistent/root/path")).not.toThrow();
+    expect(() =>
+      logWarning("proj2", "ctx", "msg", "/nonexistent/root/path"),
+    ).not.toThrow();
   });
 });
 
@@ -173,6 +183,8 @@ describe("logInfo", () => {
   });
 
   it("does not throw on write failure", () => {
-    expect(() => logInfo("proj2", "ctx", "msg", "/nonexistent/root/path")).not.toThrow();
+    expect(() =>
+      logInfo("proj2", "ctx", "msg", "/nonexistent/root/path"),
+    ).not.toThrow();
   });
 });

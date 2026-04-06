@@ -199,9 +199,18 @@ describe("cleanupZeroConfirmedInstincts", () => {
   });
 
   it("only deletes zero-confirmed-and-old when mixed", () => {
-    const oldZero = makeInstinct({ confirmed_count: 0, created_at: daysAgo(30) });
-    const youngZero = makeInstinct({ confirmed_count: 0, created_at: daysAgo(5) });
-    const oldConfirmed = makeInstinct({ confirmed_count: 2, created_at: daysAgo(60) });
+    const oldZero = makeInstinct({
+      confirmed_count: 0,
+      created_at: daysAgo(30),
+    });
+    const youngZero = makeInstinct({
+      confirmed_count: 0,
+      created_at: daysAgo(5),
+    });
+    const oldConfirmed = makeInstinct({
+      confirmed_count: 2,
+      created_at: daysAgo(60),
+    });
     saveInstinct(oldZero, tmpDir);
     saveInstinct(youngZero, tmpDir);
     saveInstinct(oldConfirmed, tmpDir);
@@ -268,7 +277,7 @@ describe("enforceInstinctCap", () => {
 
   it("retains highest-confidence instincts", () => {
     const instincts = [0.3, 0.5, 0.7, 0.9].map((c) =>
-      makeInstinct({ confidence: c })
+      makeInstinct({ confidence: c }),
     );
     for (const inst of instincts) saveInstinct(inst, tmpDir);
 
@@ -310,12 +319,18 @@ describe("cleanupContradictions", () => {
 
   it("returns 0 when no contradictions exist", () => {
     saveInstinct(
-      makeInstinct({ trigger: "When writing Python code", action: "Use type hints for parameters" }),
-      tmpDir
+      makeInstinct({
+        trigger: "When writing Python code",
+        action: "Use type hints for parameters",
+      }),
+      tmpDir,
     );
     saveInstinct(
-      makeInstinct({ trigger: "When deploying to production", action: "Run smoke tests first" }),
-      tmpDir
+      makeInstinct({
+        trigger: "When deploying to production",
+        action: "Run smoke tests first",
+      }),
+      tmpDir,
     );
     expect(cleanupContradictions(tmpDir)).toBe(0);
     expect(listInstincts(tmpDir)).toHaveLength(2);
@@ -401,7 +416,13 @@ describe("runCleanupPass", () => {
   beforeEach(() => {
     baseDir = mkdtempSync(join(tmpdir(), "cleanup-pass-"));
     projectId = "proj-test-001";
-    projectPersonalDir = join(baseDir, "projects", projectId, "instincts", "personal");
+    projectPersonalDir = join(
+      baseDir,
+      "projects",
+      projectId,
+      "instincts",
+      "personal",
+    );
     globalPersonalDir = join(baseDir, "instincts", "personal");
     mkdirSync(projectPersonalDir, { recursive: true });
     mkdirSync(globalPersonalDir, { recursive: true });
@@ -414,11 +435,20 @@ describe("runCleanupPass", () => {
 
   it("returns zero result when both dirs are empty", () => {
     const result = runCleanupPass(projectId, config, baseDir);
-    expect(result).toEqual({ flaggedDeleted: 0, zeroConfirmedDeleted: 0, contradictionsFlagged: 0, capDeleted: 0, total: 0 });
+    expect(result).toEqual({
+      flaggedDeleted: 0,
+      zeroConfirmedDeleted: 0,
+      contradictionsFlagged: 0,
+      capDeleted: 0,
+      total: 0,
+    });
   });
 
   it("cleans up flagged instincts in project dir", () => {
-    const stale = makeInstinct({ flagged_for_removal: true, updated_at: daysAgo(10) });
+    const stale = makeInstinct({
+      flagged_for_removal: true,
+      updated_at: daysAgo(10),
+    });
     saveInstinct(stale, projectPersonalDir);
 
     const result = runCleanupPass(projectId, config, baseDir);
@@ -428,7 +458,10 @@ describe("runCleanupPass", () => {
   });
 
   it("cleans up flagged instincts in global dir", () => {
-    const stale = makeInstinct({ flagged_for_removal: true, updated_at: daysAgo(10) });
+    const stale = makeInstinct({
+      flagged_for_removal: true,
+      updated_at: daysAgo(10),
+    });
     saveInstinct(stale, globalPersonalDir);
 
     const result = runCleanupPass(null, config, baseDir);
@@ -449,8 +482,14 @@ describe("runCleanupPass", () => {
   });
 
   it("cleans up zero-confirmed TTL instincts in both dirs", () => {
-    const projOldZero = makeInstinct({ confirmed_count: 0, created_at: daysAgo(30) });
-    const globalOldZero = makeInstinct({ confirmed_count: 0, created_at: daysAgo(30) });
+    const projOldZero = makeInstinct({
+      confirmed_count: 0,
+      created_at: daysAgo(30),
+    });
+    const globalOldZero = makeInstinct({
+      confirmed_count: 0,
+      created_at: daysAgo(30),
+    });
     saveInstinct(projOldZero, projectPersonalDir);
     saveInstinct(globalOldZero, globalPersonalDir);
 
@@ -463,7 +502,10 @@ describe("runCleanupPass", () => {
     const maxPer = 2;
     const cfg = makeConfig({ max_total_instincts_per_project: maxPer });
     for (let i = 0; i < 4; i++) {
-      saveInstinct(makeInstinct({ confidence: 0.3 + i * 0.1 }), projectPersonalDir);
+      saveInstinct(
+        makeInstinct({ confidence: 0.3 + i * 0.1 }),
+        projectPersonalDir,
+      );
     }
 
     const result = runCleanupPass(projectId, cfg, baseDir);
@@ -486,12 +528,12 @@ describe("runCleanupPass", () => {
     // project: 1 flagged stale
     saveInstinct(
       makeInstinct({ flagged_for_removal: true, updated_at: daysAgo(10) }),
-      projectPersonalDir
+      projectPersonalDir,
     );
     // global: 1 zero-confirmed old
     saveInstinct(
       makeInstinct({ confirmed_count: 0, created_at: daysAgo(30) }),
-      globalPersonalDir
+      globalPersonalDir,
     );
 
     const result = runCleanupPass(projectId, config, baseDir);
@@ -506,12 +548,12 @@ describe("runCleanupPass", () => {
     // Flagged, 5 days old: should be deleted (threshold = 3)
     saveInstinct(
       makeInstinct({ flagged_for_removal: true, updated_at: daysAgo(5) }),
-      projectPersonalDir
+      projectPersonalDir,
     );
     // Zero-confirmed, 15 days old: should be deleted (threshold = 10)
     saveInstinct(
       makeInstinct({ confirmed_count: 0, created_at: daysAgo(15) }),
-      globalPersonalDir
+      globalPersonalDir,
     );
 
     const result = runCleanupPass(projectId, cfg, baseDir);
@@ -527,7 +569,7 @@ describe("runCleanupPass", () => {
         action: "Prefer interfaces for dependency injection",
         confidence: 0.8,
       }),
-      projectPersonalDir
+      projectPersonalDir,
     );
     saveInstinct(
       makeInstinct({
@@ -535,7 +577,7 @@ describe("runCleanupPass", () => {
         action: "Avoid interfaces, prefer concrete types",
         confidence: 0.5,
       }),
-      projectPersonalDir
+      projectPersonalDir,
     );
 
     const result = runCleanupPass(projectId, config, baseDir);

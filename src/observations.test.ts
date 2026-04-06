@@ -55,16 +55,34 @@ describe("appendObservation", () => {
     const obs = makeObservation();
     appendObservation(obs, TEST_PROJECT_ID, tempDir);
 
-    const obsPath = join(tempDir, "projects", TEST_PROJECT_ID, "observations.jsonl");
+    const obsPath = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.jsonl",
+    );
     const content = readFileSync(obsPath, "utf-8");
     expect(content.trim()).toBe(JSON.stringify(obs));
   });
 
   it("each observation is on its own line", () => {
-    appendObservation(makeObservation({ tool: "read" }), TEST_PROJECT_ID, tempDir);
-    appendObservation(makeObservation({ tool: "write" }), TEST_PROJECT_ID, tempDir);
+    appendObservation(
+      makeObservation({ tool: "read" }),
+      TEST_PROJECT_ID,
+      tempDir,
+    );
+    appendObservation(
+      makeObservation({ tool: "write" }),
+      TEST_PROJECT_ID,
+      tempDir,
+    );
 
-    const obsPath = join(tempDir, "projects", TEST_PROJECT_ID, "observations.jsonl");
+    const obsPath = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.jsonl",
+    );
     const lines = readFileSync(obsPath, "utf-8").trim().split("\n");
     expect(lines).toHaveLength(2);
     expect(JSON.parse(lines[0]!).tool).toBe("read");
@@ -72,8 +90,18 @@ describe("appendObservation", () => {
   });
 
   it("archives the file when size reaches 10MB and then writes new observation", () => {
-    const obsPath = join(tempDir, "projects", TEST_PROJECT_ID, "observations.jsonl");
-    const archiveDir = join(tempDir, "projects", TEST_PROJECT_ID, "observations.archive");
+    const obsPath = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.jsonl",
+    );
+    const archiveDir = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.archive",
+    );
 
     // Seed file at exactly the threshold
     writeFileSync(obsPath, "x".repeat(MAX_FILE_SIZE_BYTES), "utf-8");
@@ -86,24 +114,40 @@ describe("appendObservation", () => {
     expect(newContent).toBe(JSON.stringify(obs));
 
     // One archive file should exist
-    const archiveFiles = readdirSync(archiveDir).filter((f) => f.endsWith(".jsonl"));
+    const archiveFiles = readdirSync(archiveDir).filter((f) =>
+      f.endsWith(".jsonl"),
+    );
     expect(archiveFiles).toHaveLength(1);
   });
 
   it("does not archive when file is below threshold", () => {
-    const archiveDir = join(tempDir, "projects", TEST_PROJECT_ID, "observations.archive");
+    const archiveDir = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.archive",
+    );
 
     appendObservation(makeObservation(), TEST_PROJECT_ID, tempDir);
 
-    const archiveFiles = readdirSync(archiveDir).filter((f) => f.endsWith(".jsonl"));
+    const archiveFiles = readdirSync(archiveDir).filter((f) =>
+      f.endsWith(".jsonl"),
+    );
     expect(archiveFiles).toHaveLength(0);
   });
 
   it("works when observations.jsonl does not yet exist", () => {
     const obs = makeObservation();
-    expect(() => appendObservation(obs, TEST_PROJECT_ID, tempDir)).not.toThrow();
+    expect(() =>
+      appendObservation(obs, TEST_PROJECT_ID, tempDir),
+    ).not.toThrow();
 
-    const obsPath = join(tempDir, "projects", TEST_PROJECT_ID, "observations.jsonl");
+    const obsPath = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.jsonl",
+    );
     const content = readFileSync(obsPath, "utf-8");
     expect(content).toContain(JSON.stringify(obs));
   });
@@ -111,7 +155,12 @@ describe("appendObservation", () => {
 
 describe("cleanOldArchives", () => {
   it("deletes archive files older than 30 days", () => {
-    const archiveDir = join(tempDir, "projects", TEST_PROJECT_ID, "observations.archive");
+    const archiveDir = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.archive",
+    );
     const oldFile = join(archiveDir, "old-archive.jsonl");
     writeFileSync(oldFile, "data", "utf-8");
 
@@ -121,12 +170,19 @@ describe("cleanOldArchives", () => {
 
     cleanOldArchives(TEST_PROJECT_ID, tempDir);
 
-    const remaining = readdirSync(archiveDir).filter((f) => f.endsWith(".jsonl"));
+    const remaining = readdirSync(archiveDir).filter((f) =>
+      f.endsWith(".jsonl"),
+    );
     expect(remaining).toHaveLength(0);
   });
 
   it("keeps archive files newer than 30 days", () => {
-    const archiveDir = join(tempDir, "projects", TEST_PROJECT_ID, "observations.archive");
+    const archiveDir = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.archive",
+    );
     const recentFile = join(archiveDir, "recent-archive.jsonl");
     writeFileSync(recentFile, "data", "utf-8");
 
@@ -136,12 +192,19 @@ describe("cleanOldArchives", () => {
 
     cleanOldArchives(TEST_PROJECT_ID, tempDir);
 
-    const remaining = readdirSync(archiveDir).filter((f) => f.endsWith(".jsonl"));
+    const remaining = readdirSync(archiveDir).filter((f) =>
+      f.endsWith(".jsonl"),
+    );
     expect(remaining).toHaveLength(1);
   });
 
   it("deletes old archives but keeps recent ones", () => {
-    const archiveDir = join(tempDir, "projects", TEST_PROJECT_ID, "observations.archive");
+    const archiveDir = join(
+      tempDir,
+      "projects",
+      TEST_PROJECT_ID,
+      "observations.archive",
+    );
 
     const oldFile = join(archiveDir, "old.jsonl");
     writeFileSync(oldFile, "old", "utf-8");
@@ -155,7 +218,9 @@ describe("cleanOldArchives", () => {
 
     cleanOldArchives(TEST_PROJECT_ID, tempDir);
 
-    const remaining = readdirSync(archiveDir).filter((f) => f.endsWith(".jsonl"));
+    const remaining = readdirSync(archiveDir).filter((f) =>
+      f.endsWith(".jsonl"),
+    );
     expect(remaining).toHaveLength(1);
     expect(remaining[0]).toBe("recent.jsonl");
   });

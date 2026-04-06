@@ -36,7 +36,9 @@ export function preprocessObservation(obs: Observation): Observation | null {
  * Preprocess an array of raw observations.
  * Drops nulls and returns only the meaningful events.
  */
-export function preprocessObservations(observations: Observation[]): Observation[] {
+export function preprocessObservations(
+  observations: Observation[],
+): Observation[] {
   const result: Observation[] = [];
   for (const obs of observations) {
     const processed = preprocessObservation(obs);

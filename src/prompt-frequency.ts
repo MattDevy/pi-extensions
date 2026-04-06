@@ -18,7 +18,11 @@ import { getBaseDir, getProjectDir } from "./storage.js";
 const TRAILING_PUNCT = /[.,!?;:]+$/;
 
 export function normalizePrompt(text: string): string {
-  return text.toLowerCase().trim().replace(/\s+/g, " ").replace(TRAILING_PUNCT, "");
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(TRAILING_PUNCT, "");
 }
 
 export function hashPrompt(normalized: string): string {
@@ -31,7 +35,7 @@ export function hashPrompt(normalized: string): string {
 
 export function getProjectFrequencyPath(
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): string {
   return join(getProjectDir(projectId, baseDir), "prompt-frequency.json");
 }
@@ -46,7 +50,7 @@ export function getGlobalFrequencyPath(baseDir = getBaseDir()): string {
 
 export function loadProjectFrequencyTable(
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): PromptFrequencyTable {
   const p = getProjectFrequencyPath(projectId, baseDir);
   if (!existsSync(p)) return {};
@@ -60,7 +64,7 @@ export function loadProjectFrequencyTable(
 export function saveProjectFrequencyTable(
   table: PromptFrequencyTable,
   projectId: string,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): void {
   const p = getProjectFrequencyPath(projectId, baseDir);
   mkdirSync(dirname(p), { recursive: true });
@@ -68,7 +72,7 @@ export function saveProjectFrequencyTable(
 }
 
 export function loadGlobalFrequencyTable(
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): GlobalPromptFrequencyTable {
   const p = getGlobalFrequencyPath(baseDir);
   if (!existsSync(p)) return {};
@@ -81,7 +85,7 @@ export function loadGlobalFrequencyTable(
 
 export function saveGlobalFrequencyTable(
   table: GlobalPromptFrequencyTable,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): void {
   const p = getGlobalFrequencyPath(baseDir);
   mkdirSync(dirname(p), { recursive: true });
@@ -96,7 +100,7 @@ export function updateFrequencyTable(
   table: PromptFrequencyTable,
   text: string,
   sessionId: string,
-  now = new Date()
+  now = new Date(),
 ): PromptFrequencyTable {
   const normalized = normalizePrompt(text);
   if (!normalized) return table;
@@ -129,7 +133,7 @@ export function updateGlobalFrequencyTable(
   text: string,
   sessionId: string,
   projectId: string,
-  now = new Date()
+  now = new Date(),
 ): GlobalPromptFrequencyTable {
   const normalized = normalizePrompt(text);
   if (!normalized) return table;
@@ -167,8 +171,11 @@ export function updateFrequencyTablesFromLines(
   lines: readonly string[],
   projectTable: PromptFrequencyTable,
   globalTable: GlobalPromptFrequencyTable,
-  now = new Date()
-): { readonly project: PromptFrequencyTable; readonly global: GlobalPromptFrequencyTable } {
+  now = new Date(),
+): {
+  readonly project: PromptFrequencyTable;
+  readonly global: GlobalPromptFrequencyTable;
+} {
   let project = projectTable;
   let global = globalTable;
 
@@ -189,7 +196,13 @@ export function updateFrequencyTablesFromLines(
     const projectId = obs.project_id ?? "unknown";
 
     project = updateFrequencyTable(project, obs.input, sessionId, now);
-    global = updateGlobalFrequencyTable(global, obs.input, sessionId, projectId, now);
+    global = updateGlobalFrequencyTable(
+      global,
+      obs.input,
+      sessionId,
+      projectId,
+      now,
+    );
   }
 
   return { project, global };

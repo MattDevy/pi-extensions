@@ -101,7 +101,7 @@ export function applyDecayInDir(dir: string): number {
  */
 export function runDecayPass(
   projectId?: string | null,
-  baseDir = getBaseDir()
+  baseDir = getBaseDir(),
 ): number {
   let total = 0;
 

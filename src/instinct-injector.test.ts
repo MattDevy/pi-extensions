@@ -16,7 +16,10 @@ import {
 } from "./active-instincts.js";
 import type { Instinct, Config } from "./types.js";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import type { BeforeAgentStartEvent, AgentEndEvent } from "./prompt-observer.js";
+import type {
+  BeforeAgentStartEvent,
+  AgentEndEvent,
+} from "./prompt-observer.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,8 +102,18 @@ describe("buildInjectionBlock", () => {
 
   it("renders multiple instincts as separate bullets", () => {
     const instincts = [
-      makeInstinct({ id: "a", trigger: "trigger A", action: "action A", confidence: 0.8 }),
-      makeInstinct({ id: "b", trigger: "trigger B", action: "action B", confidence: 0.6 }),
+      makeInstinct({
+        id: "a",
+        trigger: "trigger A",
+        action: "action A",
+        confidence: 0.8,
+      }),
+      makeInstinct({
+        id: "b",
+        trigger: "trigger B",
+        action: "action B",
+        confidence: 0.6,
+      }),
     ];
     const block = buildInjectionBlock(instincts);
     expect(block).toContain("- [0.80] trigger A: action A");
@@ -123,7 +136,10 @@ describe("injectInstincts", () => {
   });
 
   it("appends injection block to existing system prompt", () => {
-    const inst = makeInstinct({ trigger: "when editing", action: "be careful" });
+    const inst = makeInstinct({
+      trigger: "when editing",
+      action: "be careful",
+    });
     const result = injectInstincts("You are a helpful assistant.", [inst]);
     expect(result).not.toBeNull();
     expect(result).toContain("You are a helpful assistant.");
@@ -156,7 +172,7 @@ describe("handleBeforeAgentStartInjection", () => {
       MOCK_CTX,
       BASE_CONFIG,
       null,
-      "/tmp/nonexistent-dir-pi-cl-test"
+      "/tmp/nonexistent-dir-pi-cl-test",
     );
     expect(result).toBeUndefined();
   });
@@ -172,11 +188,13 @@ describe("handleBeforeAgentStartInjection", () => {
       MOCK_CTX,
       BASE_CONFIG,
       null,
-      "/tmp/nonexistent-dir-pi-cl-test"
+      "/tmp/nonexistent-dir-pi-cl-test",
     );
     // Either undefined or object without systemPrompt
     if (result !== undefined) {
-      expect((result as { systemPrompt?: string }).systemPrompt).toBeUndefined();
+      expect(
+        (result as { systemPrompt?: string }).systemPrompt,
+      ).toBeUndefined();
     }
   });
 
@@ -188,7 +206,10 @@ describe("handleBeforeAgentStartInjection", () => {
     // We need to mock at module level - use vi.mock instead
     // Test via injectInstincts directly (the handler delegates to it)
     const instincts = [
-      makeInstinct({ trigger: "use immutable objects", action: "never mutate state" }),
+      makeInstinct({
+        trigger: "use immutable objects",
+        action: "never mutate state",
+      }),
     ];
     const systemPrompt = "You are helpful.";
     const result = injectInstincts(systemPrompt, instincts);
