@@ -1,6 +1,6 @@
 # pi-continuous-learning
 
-> A [Pi](https://github.com/nicholasgasior/pi-coding-agent) extension that watches your coding sessions and distills patterns into reusable **instincts** — atomic learned behaviours with confidence scoring, project scoping, and closed-loop feedback validation.
+> A [Pi](https://github.com/nicholasgasior/pi-coding-agent) extension that watches your coding sessions and distils patterns into reusable **instincts** — atomic learned behaviours with confidence scoring, project scoping, and closed-loop feedback validation.
 
 [![CI](https://github.com/MattDevy/pi-continuous-learning/workflows/CI/badge.svg)](https://github.com/MattDevy/pi-continuous-learning/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/pi-continuous-learning)](https://www.npmjs.com/package/pi-continuous-learning)
@@ -14,13 +14,23 @@ Inspired by [everything-claude-code/continuous-learning-v2](https://github.com/n
 
 ---
 
-## How it works
+## What it does
 
-![Flow diagram](docs/images/flow.svg)
+Pi is smart — but it starts every session with no memory of what worked yesterday. `pi-continuous-learning` fixes that.
 
-**The key idea:** the extension watches what you do, learns patterns, injects relevant instincts into future sessions, then validates whether those instincts actually helped — adjusting confidence based on real outcomes rather than observation count alone.
+The extension silently observes your sessions, identifies recurring patterns, and writes them as **instincts**: small, scoped rules stored on your machine. Before each agent turn, relevant instincts are injected into the system prompt so Pi already knows your conventions, preferred tools, and workflows — without you repeating yourself.
 
-The analyzer runs as a **separate background process** so it never causes lag or interference inside your Pi session.
+What makes this different from a static AGENTS.md file: **instincts are earned through evidence**. Confidence rises when an instinct proves useful, falls when it contradicts your actual behaviour, and decays passively when it goes stale. Instincts that consistently hold up graduate into permanent AGENTS.md guidelines or skills. Ones that don't get pruned automatically.
+
+```text
+Session events → Observations → Analyzer → Instincts
+                                              ↓
+                              Injected into system prompt
+                                              ↓
+                              Outcome tracked → confidence updated
+                                              ↓
+                              Graduate to AGENTS.md / Skill / Command
+```
 
 ---
 
@@ -42,25 +52,131 @@ This installs the extension globally and makes the `pi-cl-analyze` CLI available
 
 ---
 
-## Usage
+## How it works
 
-Once installed, the extension runs automatically — no configuration required. To analyse observations and create instincts, set up the [background analyzer](#background-analyzer).
+![Flow diagram](docs/images/flow.svg)
 
-### Slash commands
+### 1. Observation
+
+Every hook event in your session — tool calls, prompts, errors, corrections, model switches — is appended to a per-project `observations.jsonl` file. Before writing, secrets (API keys, bearer tokens, AWS credentials) are automatically scrubbed. Low-signal events are dropped entirely, cutting context by ~80%.
+
+### 2. Analysis
+
+The background analyzer (`pi-cl-analyze`) processes new observations using Haiku. It applies three tiers of quality filtering:
+
+| Tier | What it captures | How it's stored |
+|---|---|---|
+| 1 — Project conventions | Patterns specific to a codebase (e.g. "use `Result<T,E>` for errors") | Project-scoped instinct |
+| 2 — Workflow patterns | Universal multi-step workflows | Global instinct |
+| 3 — Generic agent behaviour | Read-before-edit, clarify-first | **Skipped** |
+
+Generic "good agent hygiene" is deliberately filtered out — instincts should capture *your* patterns, not re-teach Pi things it already knows.
+
+### 3. Injection
+
+Before each agent turn, the injector loads instincts relevant to the current prompt (domain-matched, confidence >= 0.5), sorts by confidence, and appends them to the system prompt within a ~1,000 token budget:
+
+```
+## Learned Behaviours (Instincts)
+- [0.75] when modifying code files: Always search with grep to find relevant context before editing
+- [0.68] when debugging errors: Read stack traces to understand root cause before suggesting fixes
+```
+
+### 4. Feedback loop
+
+Each injected instinct is tracked against the turn's outcome. Successful turns quietly boost confidence; errors and corrections reduce it. This closed loop means instincts are validated by real results, not just frequency.
+
+---
+
+## Features
+
+### Dreaming: holistic instinct consolidation
+
+Run `/instinct-dream` to trigger a full LLM-powered review of your entire instinct corpus. Unlike the incremental analyzer, dreaming looks across *all* your instincts at once to:
+
+- **Merge** semantically similar instincts into a single stronger one
+- **Resolve contradictions** — instincts with similar triggers but opposing actions are detected and either merged into a nuanced version or the weaker one is removed
+- **Remove stale instincts** — zero confirmations, high inactive counts, or patterns already covered by AGENTS.md
+- **Promote project instincts** to global scope when they've proven universal (confidence >= 0.7, 3+ confirmations)
+- **Detect skill shadows** — remove instincts made redundant by installed skills
+- **Clean up low-quality entries** — vague triggers, confidence < 0.2, removal-flagged
+
+Dreaming is the right tool when your instinct list feels bloated, contradictory, or out of date. It can also run automatically: if `dreaming_enabled` is true and at least 7 days have passed since the last consolidation with 10+ new sessions, a dream pass is triggered at the start of the next analyzer run.
+
+```json
+{
+  "dreaming_enabled": true,
+  "consolidation_interval_days": 7,
+  "consolidation_min_sessions": 10
+}
+```
+
+### Instinct graduation
+
+Instincts are designed to be temporary. Once one has proven itself (age >= 7 days, confidence >= 0.75, confirmed >= 3×, contradicted <= 1×), `/instinct-graduate` promotes it into permanent knowledge:
+
+| Target | When | What happens |
+|---|---|---|
+| AGENTS.md | Single mature instinct | Appended as a permanent guideline |
+| Skill | 3+ related instincts, same domain | Scaffolded into a `SKILL.md` |
+| Command | 3+ workflow instincts | Scaffolded into a slash command spec |
+
+After 28 days, ungraduated instincts face TTL enforcement: low-confidence ones are deleted, higher-confidence ones are halved and flagged for removal.
+
+### Confidence scoring
+
+Confidence comes from two sources that work together:
+
+**Discovery** (initial, from observation count):
+
+| Observations | Confidence |
+|---|---|
+| 1–2 | 0.30 — tentative |
+| 3–5 | 0.50 — moderate |
+| 6–10 | 0.70 — strong |
+| 11+ | 0.85 — very strong |
+
+**Feedback** (ongoing, from real outcomes):
+
+| Event | Change |
+|---|---|
+| Confirmed (behaviour aligned) | +0.05 (diminishing after 3–6 confirmations) |
+| Contradicted (behaviour went against) | −0.15 |
+| Inactive (instinct irrelevant) | no change |
+| Passive decay | −0.05 per week |
+
+Range: 0.1 min, 0.9 max. Below 0.1 = flagged for removal. Diminishing returns on confirmation prevent trivially-easy-to-confirm instincts from hitting the ceiling unfairly.
+
+### Recurring prompt detection
+
+The analyzer tracks prompts that appear across three or more sessions. When a recurring prompt is detected, its observation batch gets a signal boost, making it a higher priority for pattern extraction. If you keep asking Pi the same kind of question, the system notices — and learns to handle it better proactively.
+
+### Contradiction detection
+
+Before creating or updating instincts, a deterministic (no LLM cost) contradiction check runs across all existing instincts. It looks for similar triggers with opposing actions using verb pairs (`avoid`/`use`, `never`/`always`, `skip`/`ensure`) and negation patterns. Conflicts surface automatically — either in the `/instinct-dream` consolidation pass or during the analyzer's cleanup phase.
+
+### Semantic deduplication
+
+Every write is checked against existing instincts using Jaccard similarity. If any existing instinct scores >= 0.6 similarity, the write is blocked and the LLM is instructed to update the existing one instead. This keeps the corpus clean without human effort.
+
+---
+
+## Slash commands
 
 | Command | Description |
 |---|---|
-| `/instinct-status` | Show all instincts grouped by domain with confidence scores and feedback stats |
-| `/instinct-evolve` | LLM-powered analysis: suggests merges, promotions, and cleanup |
-| `/instinct-export` | Export instincts to JSON (filterable by scope/domain) |
+| `/instinct-status` | Show all instincts grouped by domain with confidence scores, trend arrows (↑↓→), and feedback ratios |
+| `/instinct-dream` | Holistic consolidation: merge duplicates, resolve contradictions, remove stale entries |
+| `/instinct-evolve` | Incremental LLM-powered analysis: suggests merges, promotions, and cleanup |
+| `/instinct-graduate` | Promote mature instincts to AGENTS.md, skills, or commands |
+| `/instinct-promote [id]` | Manually promote a project instinct to global scope |
+| `/instinct-export [--scope project\|global] [--domain typescript]` | Export instincts to JSON |
 | `/instinct-import <path>` | Import instincts from a JSON file |
-| `/instinct-promote [id]` | Promote project instincts to global scope |
-| `/instinct-graduate` | Graduate mature instincts to AGENTS.md, skills, or commands |
-| `/instinct-projects` | List all known projects and their instinct counts |
+| `/instinct-projects` | List all tracked projects and their instinct counts |
 
 ### LLM tools
 
-The extension registers tools the LLM can call directly during conversation:
+The LLM can call these directly during conversation — no slash command needed:
 
 | Tool | Description |
 |---|---|
@@ -70,13 +186,13 @@ The extension registers tools the LLM can call directly during conversation:
 | `instinct_delete` | Remove an instinct by ID |
 | `instinct_merge` | Merge multiple instincts into one |
 
-You can ask Pi things like _"show me my instincts"_, _"merge these two instincts"_, or _"delete low-confidence instincts"_ and it will use these tools.
+Ask Pi things like _"show me my instincts"_, _"merge these two"_, or _"delete anything with low confidence"_ and it will use these tools directly.
 
 ---
 
 ## Background analyzer
 
-The analyzer is a standalone CLI that processes all your projects in a single pass and creates/updates instincts using Haiku. It runs outside of Pi sessions for efficiency.
+The analyzer is a standalone CLI that processes all your projects in a single pass and creates/updates instincts using Haiku. It runs outside of Pi sessions so it never causes lag or interference.
 
 ### Running manually
 
@@ -84,21 +200,25 @@ The analyzer is a standalone CLI that processes all your projects in a single pa
 pi-cl-analyze
 ```
 
-The script:
+**What it does per run:**
 
-1. Iterates all projects in `~/.pi/continuous-learning/projects.json`
-2. Skips projects with no new observations since the last run
-3. Skips projects with fewer than 20 observations (configurable)
-4. For eligible projects: runs confidence decay, then uses Haiku to analyse patterns and write instinct files
-5. Records a cursor so only new observations are processed on subsequent runs
+1. Acquires a lockfile — only one instance can run at a time
+2. Iterates all projects in `~/.pi/continuous-learning/projects.json`
+3. Skips projects with no new observations since the last cursor
+4. Skips projects with fewer than 20 observations (configurable)
+5. Applies passive confidence decay to all instincts
+6. Runs cleanup (expired/contradicted instincts)
+7. Scores observation batches by signal strength — low-signal batches are skipped to save cost
+8. Calls Haiku to analyse patterns and write instinct files
+9. Saves a cursor so only new observations are processed next time
 
 **Safety features:**
 
 | Feature | Detail |
 |---|---|
-| Lockfile guard | Only one instance runs at a time — subsequent invocations exit immediately |
+| Lockfile guard | Only one instance runs at a time; subsequent invocations exit immediately |
 | Global timeout | Process exits after 5 minutes regardless of progress |
-| Stale lock detection | Auto-cleaned after 10 minutes or if the owning process is no longer alive |
+| Stale lock detection | Auto-cleaned after 10 minutes or if the owning process is gone |
 
 ### Logging
 
@@ -115,7 +235,7 @@ cat ~/.pi/continuous-learning/analyzer.log | jq 'select(.event == "run_complete"
 cat ~/.pi/continuous-learning/analyzer.log | jq 'select(.event == "project_complete") | {project: .project_name, duration_s: (.duration_ms/1000), cost: .cost_usd}'
 ```
 
-The log auto-rotates at 10 MB. When the log file is not writable, output falls back to stderr.
+The log auto-rotates at 10 MB.
 
 ### Scheduling (macOS)
 
@@ -218,74 +338,7 @@ inactive_count: 12
 Always search with grep to find relevant context before editing files.
 ```
 
----
-
-## Confidence scoring
-
-Confidence comes from two sources:
-
-**Discovery** (initial, based on observation count):
-
-| Observations | Confidence |
-|---|---|
-| 1–2 | 0.30 — tentative |
-| 3–5 | 0.50 — moderate |
-| 6–10 | 0.70 — strong |
-| 11+ | 0.85 — very strong |
-
-**Feedback** (ongoing, based on real outcomes):
-
-| Event | Change |
-|---|---|
-| Confirmed (behaviour aligned) | +0.05 |
-| Contradicted (behaviour went against) | −0.15 |
-| Inactive (instinct irrelevant) | no change |
-| Passive decay | −0.02 per week without observations |
-
-Range: 0.1 min, 0.9 max. Below 0.1 = flagged for removal.
-
----
-
-## Instinct quality control
-
-Every write is validated and deduplicated before saving.
-
-**Content rules:** `action` and `trigger` must be non-empty, >= 10 characters, and from a known domain (`git`, `testing`, `debugging`, `workflow`, `typescript`, `javascript`, `python`, `go`, `css`, `design`, `security`, `performance`, `documentation`, `react`, `node`, `database`, `api`, `devops`, `architecture`, `other`).
-
-**Semantic deduplication:** a Jaccard similarity check runs against all existing instincts. If any existing instinct scores >= 0.6, the write is blocked and the LLM is told to update the existing one instead.
-
-**Analyzer quality tiers:**
-
-| Tier | Pattern type | Action |
-|---|---|---|
-| 1 — Project conventions | e.g. "use `Result<T,E>` for errors in this codebase" | Record as project-scoped instinct |
-| 2 — Workflow patterns | Universal multi-step workflows | Record as global-scoped instinct |
-| 3 — Generic agent behaviour | Read-before-edit, clarify-before-implement | **Skip entirely** |
-
----
-
-## Instinct graduation
-
-Instincts are designed to be short-lived — they should graduate into permanent knowledge within a few weeks:
-
-```text
-Observation → Instinct (days) → AGENTS.md / Skill / Command (1–2 weeks)
-```
-
-**Graduation targets:**
-
-| Target | When | What happens |
-|---|---|---|
-| AGENTS.md | Single mature instinct | Appended as a guideline to your project or global AGENTS.md |
-| Skill | 3+ related instincts in the same domain | Scaffolded into a `SKILL.md` file |
-| Command | 3+ workflow instincts in the same domain | Scaffolded into a slash command specification |
-
-**Maturity criteria:** age >= 7 days, confidence >= 0.75, confirmed >= 3 times, contradicted <= 1 time, not a duplicate of existing AGENTS.md content.
-
-**TTL enforcement** (after 28 days without graduation):
-
-- Confidence < 0.3 → deleted
-- Confidence >= 0.3 → confidence halved and flagged for removal
+They're plain text — you can read, edit, or delete them directly. The extension will pick up changes on the next injection cycle.
 
 ---
 
@@ -304,7 +357,13 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
   "timeout_seconds": 120,
   "active_hours_start": 8,
   "active_hours_end": 23,
-  "max_idle_seconds": 1800
+  "max_idle_seconds": 1800,
+  "dreaming_enabled": true,
+  "consolidation_interval_days": 7,
+  "consolidation_min_sessions": 10,
+  "max_total_instincts_per_project": 100,
+  "max_total_instincts_global": 200,
+  "max_new_instincts_per_run": 10
 }
 ```
 
@@ -314,12 +373,18 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
 | `min_observations_to_analyze` | 20 | Minimum observations before analysis triggers |
 | `min_confidence` | 0.5 | Instincts below this are not injected into prompts |
 | `max_instincts` | 20 | Maximum instincts injected per turn |
-| `max_injection_chars` | 4000 | Character budget for the injection block (~1000 tokens) |
+| `max_injection_chars` | 4000 | Character budget for the injection block (~1,000 tokens) |
 | `model` | `claude-haiku-4-5` | Model for the background analyzer |
 | `timeout_seconds` | 120 | Per-project LLM session timeout |
 | `active_hours_start` | 8 | Hour (0–23) at which the active observation window starts |
 | `active_hours_end` | 23 | Hour (0–23) at which the active observation window ends |
 | `max_idle_seconds` | 1800 | Seconds of inactivity before a session is considered idle |
+| `dreaming_enabled` | `true` | Allow automatic consolidation passes |
+| `consolidation_interval_days` | 7 | Minimum days between automatic dream passes |
+| `consolidation_min_sessions` | 10 | Minimum new sessions before automatic dream triggers |
+| `max_total_instincts_per_project` | 100 | Hard cap; oldest low-confidence instincts are pruned first |
+| `max_total_instincts_global` | 200 | Hard cap for global instincts |
+| `max_new_instincts_per_run` | 10 | Rate limit on instinct creation per analyzer run |
 | `log_path` | `~/.pi/continuous-learning/analyzer.log` | Analyzer log file path |
 
 ---
@@ -333,6 +398,7 @@ All data stays local on your machine:
   config.json                   # Optional overrides
   projects.json                 # Project registry
   analyze.lock                  # Present only while analyzer runs
+  analyzer.log                  # Structured JSON event log
   instincts/personal/           # Global instincts
   projects/<hash>/
     project.json                # Project metadata + analysis cursor
@@ -341,12 +407,15 @@ All data stays local on your machine:
     instincts/personal/         # Project-scoped instincts
 ```
 
+---
+
 ## Privacy & security
 
-- All data stays on your machine — no external telemetry
-- Secrets (API keys, tokens, passwords) are scrubbed from observations before writing to disk
-- Only instincts (patterns) can be exported — never raw observations
-- The analyzer uses your existing Pi LLM credentials — no additional keys needed
+- **All local** — no external telemetry, no cloud sync
+- **Secret scrubbing** — API keys, bearer tokens, AWS credentials, and passwords are redacted from observations before writing to disk
+- **Export-only for observations** — only instinct patterns can be exported, never raw session data
+- **Path traversal prevention** — instinct IDs are validated to prevent `../` attacks
+- **No additional credentials** — the analyzer uses your existing Pi LLM credentials
 
 ---
 
@@ -356,7 +425,7 @@ All data stays local on your machine:
 pi install npm:pi-continuous-learning
 ```
 
-Your observations, instincts, and configuration in `~/.pi/continuous-learning/` are preserved across updates. If you have a launchd schedule set up, no changes needed.
+Your observations, instincts, and configuration in `~/.pi/continuous-learning/` are preserved across updates. If you have a launchd schedule set up, no changes are needed.
 
 ---
 
