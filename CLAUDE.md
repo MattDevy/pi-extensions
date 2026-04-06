@@ -5,20 +5,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm test                          # run all tests
-npm test -- src/foo.test.ts       # run a single test file
-npm test -- -t "pattern"          # run tests matching a name pattern
-npm run typecheck                 # type-check without emitting
-npm run lint                      # ESLint on src/
+npm test                          # run all package tests (workspaces)
+npm test -w packages/pi-continuous-learning -- src/foo.test.ts  # single file
+npm test -w packages/pi-continuous-learning -- -t "pattern"     # by name pattern
+npm run typecheck                 # type-check all packages
+npm run lint                      # ESLint on all packages
 npm run check                     # tests + lint + typecheck (mirrors CI)
 npm run lint:mega                 # run MegaLinter locally (requires Docker)
 npm run lint:mega:fix             # run MegaLinter and auto-fix formatting
-npm run build                     # compile to dist/
+npm run build                     # compile all packages to dist/
 ```
 
 ## Architecture
 
-This is a [Pi](https://github.com/nicholasgasior/pi-coding-agent) extension. The entry point (`src/index.ts`) exports a default function that receives `ExtensionAPI` and registers hooks and commands.
+This is an npm workspaces monorepo. The `pi-continuous-learning` package lives under `packages/pi-continuous-learning/`. Its entry point (`packages/pi-continuous-learning/src/index.ts`) exports a default function that receives `ExtensionAPI` and registers hooks and commands.
 
 ### Data flow
 
@@ -38,14 +38,16 @@ The analyzer runs as a **separate background process** (cron/launchd), never ins
 
 ### Key modules
 
+All source lives under `packages/pi-continuous-learning/src/`:
+
 - **Observers** (`tool-observer.ts`, `session-observer.ts`, `prompt-observer.ts`) — capture session events and write `observations.jsonl`
 - **Instinct store** (`instinct-store.ts`, `instinct-parser.ts`, `instinct-loader.ts`) — CRUD for markdown instinct files (YAML frontmatter + body)
 - **Injector** (`instinct-injector.ts`, `active-instincts.ts`) — selects high-confidence instincts and injects them into the system prompt before each agent start
 - **Confidence** (`confidence.ts`, `instinct-decay.ts`) — scoring and TTL-based decay
-- **CLI analyzer** (`src/cli/analyze.ts`) — standalone background process with lockfile guard, 5-minute global timeout, structured JSON logging
+- **CLI analyzer** (`cli/analyze.ts`) — standalone background process with lockfile guard, 5-minute global timeout, structured JSON logging
 - **Commands** (`src/commands/`) — slash commands registered with Pi
 - **Tools** (`instinct-tools.ts`) — LLM-callable tools for instinct CRUD
-- **Prompts** (`src/prompts/`) — system and user prompts for the LLM analyzer, consolidation, and evolution passes
+- **Prompts** (`prompts/`) — system and user prompts for the LLM analyzer, consolidation, and evolution passes
 
 ### Storage layout
 

@@ -19,14 +19,30 @@ jobs:
           node-version: lts/*
           registry-url: https://registry.npmjs.org
 
+      - name: Resolve package path from release tag
+        id: pkg
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          PKG_NAME="${TAG%-v*}"
+          PKG_PATH="packages/${PKG_NAME}"
+          if [ ! -d "${PKG_PATH}" ]; then
+            echo "Error: package directory '${PKG_PATH}' not found for tag '${TAG}'"
+            exit 1
+          fi
+          echo "path=${PKG_PATH}" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build
+        working-directory: ${{ steps.pkg.outputs.path }}
         run: npm run build --if-present
 
       - name: Run checks
+        working-directory: ${{ steps.pkg.outputs.path }}
         run: npm run check
 
       - name: Publish
+        working-directory: ${{ steps.pkg.outputs.path }}
         run: npm publish

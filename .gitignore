@@ -1,6 +1,8 @@
 tmp
 node_modules/
-dist/
+packages/*/dist/
+packages/*/node_modules/
+packages/*/tsconfig*.tsbuildinfo
 
 # ralphi
 .ralphi/*

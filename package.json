@@ -1,68 +1,29 @@
 {
-  "name": "pi-continuous-learning",
-  "version": "0.11.0",
-  "description": "A Pi extension that observes coding sessions and distills patterns into reusable instincts.",
+  "name": "pi-extensions",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "license": "MIT",
-  "author": "Matt Devy",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/MattDevy/pi-continuous-learning.git"
-  },
-  "homepage": "https://github.com/MattDevy/pi-continuous-learning#readme",
-  "bugs": {
-    "url": "https://github.com/MattDevy/pi-continuous-learning/issues"
-  },
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "pi-coding-agent",
-    "continuous-learning",
-    "instincts"
+  "workspaces": [
+    "packages/*"
   ],
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "dist",
-    "src",
-    "!src/**/*.test.ts",
-    "README.md",
-    "LICENSE"
-  ],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "pi": {
-    "extensions": [
-      "dist/index.js"
-    ]
-  },
-  "bin": {
-    "pi-cl-analyze": "dist/cli/analyze.js"
-  },
   "scripts": {
-    "clean": "rm -rf dist",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "lint": "eslint src/",
-    "check": "vitest run && eslint src/ && tsc --noEmit",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint packages/",
+    "check": "npm run check --workspaces --if-present",
     "lint:mega": "npx mega-linter-runner --flavor javascript --release v9",
-    "lint:mega:fix": "npx mega-linter-runner --flavor javascript --release v9 --fix",
-    "prepublishOnly": "npm run build && npm run check"
-  },
-  "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "^0.62.0",
-    "@mariozechner/pi-ai": "^0.62.0",
-    "@mariozechner/pi-tui": "^0.62.0",
-    "@sinclair/typebox": "^0.34.0"
+    "lint:mega:fix": "npx mega-linter-runner --flavor javascript --release v9 --fix"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@eslint/js": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "globals": "^16.0.0",
+    "typescript": "^5.7.0"
   }
 }

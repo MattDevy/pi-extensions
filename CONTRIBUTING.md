@@ -13,9 +13,9 @@ Node.js >= 18 required.
 ## Workflow
 
 ```bash
-npm test                        # run all tests
-npm test -- src/foo.test.ts     # run a single file
-npm test -- -t "pattern"        # run tests matching a name
+npm test                                                        # run all tests
+npm test -w packages/pi-continuous-learning -- src/foo.test.ts  # run a single file
+npm test -w packages/pi-continuous-learning -- -t "pattern"     # run tests matching a name
 npm run typecheck               # type-check without emitting
 npm run lint                    # ESLint
 npm run check                   # tests + lint + typecheck (mirrors CI)

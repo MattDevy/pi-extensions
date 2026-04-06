@@ -16,7 +16,7 @@ ENABLE_LINTERS:
   - YAML_PRETTIER
   - YAML_YAMLLINT
 
-FILTER_REGEX_EXCLUDE: (.*CHANGELOG.md|\.gitignore|\.meta-linter\.yml)
+FILTER_REGEX_EXCLUDE: (.*CHANGELOG\.md|\.gitignore|\.mega-linter\.yml)
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 SARIF_REPORTER: false

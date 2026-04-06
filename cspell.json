@@ -30,6 +30,7 @@
     "toplevel",
     "typebox",
     "vitest",
+    "workspaces",
     "yamllint"
   ]
 }
