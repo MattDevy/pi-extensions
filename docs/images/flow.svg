@@ -113,7 +113,7 @@
 
 <!-- Haiku → instinct files -->
 <line x1="544" y1="182" x2="544" y2="258" stroke="#9b9b9b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
-<text class="ts" x="538" y="225" text-anchor="end">creates / updates</text>
+<text class="ts" x="550" y="225" text-anchor="start">creates / updates</text>
 
 <!-- observations → analyzer (scheduled, dashed) -->
 <path d="M110 200 L110 380 Q110 400 130 400 L430 400 Q450 400 450 380 L450 312" fill="none" stroke="#c8c6be" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
