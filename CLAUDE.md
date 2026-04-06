@@ -5,15 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm test                          # run all tests
-npm test -- src/foo.test.ts       # run a single test file
-npm test -- -t "pattern"          # run tests matching a name pattern
-npm run typecheck                 # type-check without emitting
-npm run lint                      # ESLint on src/
+npm test                          # run all package tests (workspaces)
+npm test -w packages/pi-continuous-learning -- src/foo.test.ts  # single file
+npm test -w packages/pi-continuous-learning -- -t "pattern"     # by name pattern
+npm run typecheck                 # type-check all packages
+npm run lint                      # ESLint on all packages
 npm run check                     # tests + lint + typecheck (mirrors CI)
 npm run lint:mega                 # run MegaLinter locally (requires Docker)
 npm run lint:mega:fix             # run MegaLinter and auto-fix formatting
-npm run build                     # compile to dist/
+npm run build                     # compile all packages to dist/
 ```
 
 ## Architecture

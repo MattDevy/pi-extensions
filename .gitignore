@@ -1,6 +1,7 @@
 tmp
 node_modules/
-dist/
+packages/*/dist/
+packages/*/node_modules/
 
 # ralphi
 .ralphi/*

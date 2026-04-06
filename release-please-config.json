@@ -6,9 +6,12 @@
   "plugins": [
     {
       "type": "sentence-case"
+    },
+    {
+      "type": "node-workspace"
     }
   ],
   "packages": {
-    ".": {}
+    "packages/pi-continuous-learning": {}
   }
 }

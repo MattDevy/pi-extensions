@@ -33,7 +33,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run tests
-        run: npm test
+        run: npm test --workspaces --if-present
 
   pr-title:
     name: PR Title
