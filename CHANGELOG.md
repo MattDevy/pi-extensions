@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.10.1...pi-continuous-learning-v0.11.0) (2026-04-06)
+
+
+### Features
+
+* Normalize relative dates in evidence strings ([#57](https://github.com/MattDevy/pi-continuous-learning/issues/57)) ([273880d](https://github.com/MattDevy/pi-continuous-learning/commit/273880d836f16c077f30da141542e11be35291c5))
+
 ## [0.10.1](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.10.0...pi-continuous-learning-v0.10.1) (2026-04-06)
 
 
