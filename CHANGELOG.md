@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.9.0...pi-continuous-learning-v0.10.0) (2026-04-06)
+
+
+### Features
+
+* Active instinct confirmation signal from clean sessions ([#41](https://github.com/MattDevy/pi-continuous-learning/issues/41)) ([#46](https://github.com/MattDevy/pi-continuous-learning/issues/46)) ([0f5ddb2](https://github.com/MattDevy/pi-continuous-learning/commit/0f5ddb2eb4f803d968dd6637c9cb0eebb45ea215))
+* Cross-session recurring prompt detection ([#43](https://github.com/MattDevy/pi-continuous-learning/issues/43)) ([7c89520](https://github.com/MattDevy/pi-continuous-learning/commit/7c895201d3ffbbe09271396606149f55b7c5bd96))
+* Model switch pattern detection ([#42](https://github.com/MattDevy/pi-continuous-learning/issues/42)) ([#45](https://github.com/MattDevy/pi-continuous-learning/issues/45)) ([a20e711](https://github.com/MattDevy/pi-continuous-learning/commit/a20e711a3209b77eb7bdc30f3b7f70499c02571f))
+
 ## [0.9.0](https://github.com/MattDevy/pi-continuous-learning/compare/pi-continuous-learning-v0.8.0...pi-continuous-learning-v0.9.0) (2026-03-27)
 
 

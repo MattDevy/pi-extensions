@@ -1,6 +1,6 @@
 {
   "name": "pi-continuous-learning",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "A Pi extension that observes coding sessions and distills patterns into reusable instincts.",
   "type": "module",
   "license": "MIT",
