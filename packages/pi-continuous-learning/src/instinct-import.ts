@@ -93,7 +93,14 @@ export interface LoadResult {
  */
 export function loadImportFile(filePath: string): LoadResult {
   const content = readFileSync(filePath, "utf-8");
-  const parsed: unknown = JSON.parse(content);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    throw new Error(
+      `Import file contains invalid JSON: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   if (!Array.isArray(parsed)) {
     throw new Error(

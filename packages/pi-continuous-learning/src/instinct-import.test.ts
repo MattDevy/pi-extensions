@@ -170,7 +170,7 @@ describe("loadImportFile", () => {
     const filePath = join(tmpDir, "bad.json");
     writeFileSync(filePath, "not json at all", "utf-8");
 
-    expect(() => loadImportFile(filePath)).toThrow();
+    expect(() => loadImportFile(filePath)).toThrow("Import file contains invalid JSON");
   });
 
   it("returns empty valid and invalid arrays for empty array file", () => {
