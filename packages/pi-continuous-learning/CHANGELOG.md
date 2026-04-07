@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.13.0...pi-continuous-learning-v0.13.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* Wrap JSON.parse in loadImportFile with descriptive error ([#73](https://github.com/MattDevy/pi-extensions/issues/73)) ([4e4f915](https://github.com/MattDevy/pi-extensions/commit/4e4f915cf4a466f7ca635963d3ce80e297ce114c))
+
 ## [0.13.0](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.12.1...pi-continuous-learning-v0.13.0) (2026-04-06)
 
 
