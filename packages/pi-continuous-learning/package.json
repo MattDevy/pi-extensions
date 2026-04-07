@@ -19,7 +19,16 @@
     "pi-extension",
     "pi-coding-agent",
     "continuous-learning",
-    "instincts"
+    "instincts",
+    "ai",
+    "llm",
+    "ai-agent",
+    "coding-assistant",
+    "developer-tools",
+    "memory",
+    "prompt-engineering",
+    "anthropic",
+    "claude"
   ],
   "engines": {
     "node": ">=18"
