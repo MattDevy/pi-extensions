@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.13.1...pi-continuous-learning-v0.13.2) (2026-04-09)
+
+
+### Bug Fixes
+
+* Add prepack guard to fail fast when dist is missing ([#77](https://github.com/MattDevy/pi-extensions/issues/77)) ([0c13e33](https://github.com/MattDevy/pi-extensions/commit/0c13e3341e9920af8d4d847e97299ad573efe5a1))
+
 ## [0.13.1](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.13.0...pi-continuous-learning-v0.13.1) (2026-04-07)
 
 
