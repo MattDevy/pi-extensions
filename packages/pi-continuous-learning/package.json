@@ -57,7 +57,8 @@
     "test": "vitest run",
     "lint": "eslint src/",
     "check": "vitest run && eslint src/ && tsc --noEmit",
-    "prepublishOnly": "npm run build && npm run check"
+    "prepublishOnly": "npm run build && npm run check",
+    "prepack": "test -d dist || { echo 'Error: dist/ missing. Run npm run build first.' && exit 1; }"
   },
   "peerDependencies": {
     "@mariozechner/pi-coding-agent": "^0.62.0",
