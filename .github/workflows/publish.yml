@@ -54,6 +54,14 @@ jobs:
         working-directory: ${{ steps.pkg.outputs.path }}
         run: npm run check
 
+      - name: Verify dist exists
+        working-directory: ${{ steps.pkg.outputs.path }}
+        run: |
+          if [ ! -d dist ]; then
+            echo "Error: dist/ directory missing after build step"
+            exit 1
+          fi
+
       - name: Publish
         working-directory: ${{ steps.pkg.outputs.path }}
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --ignore-scripts
