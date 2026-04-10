@@ -1,0 +1,71 @@
+{
+  "name": "pi-simplify",
+  "version": "0.1.0",
+  "description": "A Pi extension that reviews recently changed code for clarity, consistency, and maintainability.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Matt Devy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MattDevy/pi-extensions.git",
+    "directory": "packages/pi-simplify"
+  },
+  "homepage": "https://github.com/MattDevy/pi-extensions/tree/main/packages/pi-simplify#readme",
+  "bugs": {
+    "url": "https://github.com/MattDevy/pi-extensions/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-coding-agent",
+    "code-review",
+    "simplify",
+    "refactor",
+    "ai",
+    "llm",
+    "ai-agent",
+    "coding-assistant",
+    "developer-tools"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "pi": {
+    "extensions": [
+      "dist/index.js"
+    ]
+  },
+  "scripts": {
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "check": "vitest run && eslint src/ && tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run check",
+    "prepack": "test -d dist || { echo 'Error: dist/ missing. Run npm run build first.' && exit 1; }"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.62.0",
+    "@mariozechner/pi-ai": "^0.62.0",
+    "@mariozechner/pi-tui": "^0.62.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
