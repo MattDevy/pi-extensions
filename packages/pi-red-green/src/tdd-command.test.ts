@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from "vites
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { handleTddCommand, type StateRef } from "./tdd-command.js";
 import { createInitialState, createIdleState } from "./state-machine.js";
 import type { TddState, TddConfig } from "./types.js";
@@ -68,7 +68,7 @@ describe("handleTddCommand", () => {
     );
   });
 
-  it("activates TDD with a task description", async () => {
+  it("activates TDD with a task description (no pi)", async () => {
     const ctx = makeMockCtx();
     const ref = makeStateRef(createIdleState("s1", "p1"));
     await handleTddCommand("Add user auth", ctx, ref);
@@ -78,6 +78,19 @@ describe("handleTddCommand", () => {
       expect.stringContaining("TDD activated"),
       "info",
     );
+  });
+
+  it("activates TDD and sends user message when pi is provided", async () => {
+    const ctx = makeMockCtx();
+    const ref = makeStateRef(createIdleState("s1", "p1"));
+    const mockPi = { sendUserMessage: vi.fn() } as unknown as ExtensionAPI;
+    await handleTddCommand("Add user auth", ctx, ref, mockPi);
+    expect(ref.current?.phase).toBe("red");
+    expect(vi.mocked(mockPi.sendUserMessage)).toHaveBeenCalledWith(
+      expect.stringContaining("Add user auth"),
+      { deliverAs: "followUp" },
+    );
+    expect(vi.mocked(ctx.ui.notify)).not.toHaveBeenCalled();
   });
 
   it("deactivates TDD with 'off'", async () => {

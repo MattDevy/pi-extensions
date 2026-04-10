@@ -156,7 +156,7 @@ export default function (pi: ExtensionAPI): void {
   pi.registerCommand(TDD_CMD, {
     description: "Start, stop, or show TDD mode",
     handler: (args: string, ctx: ExtensionCommandContext) =>
-      handleTddCommand(args, ctx, stateRef),
+      handleTddCommand(args, ctx, stateRef, pi),
   });
 
   pi.registerCommand(TDD_STATUS_CMD, {

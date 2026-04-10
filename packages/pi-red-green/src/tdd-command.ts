@@ -1,4 +1,7 @@
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@mariozechner/pi-coding-agent";
 import { createInitialState, createIdleState } from "./state-machine.js";
 import { saveState, clearState, appendCycleRecord } from "./storage.js";
 import { updateStatusBar, clearStatusBar, formatStatusText } from "./status-bar.js";
@@ -16,6 +19,7 @@ export async function handleTddCommand(
   args: string,
   ctx: ExtensionCommandContext,
   stateRef: StateRef,
+  pi?: ExtensionAPI,
 ): Promise<void> {
   const trimmed = args.trim();
 
@@ -27,7 +31,7 @@ export async function handleTddCommand(
     return deactivate(ctx, stateRef);
   }
 
-  return activate(trimmed, ctx, stateRef);
+  return activate(trimmed, ctx, stateRef, pi);
 }
 
 function showStatus(ctx: ExtensionCommandContext, stateRef: StateRef): void {
@@ -43,10 +47,10 @@ function activate(
   task: string,
   ctx: ExtensionCommandContext,
   stateRef: StateRef,
+  pi?: ExtensionAPI,
 ): void {
   const currentState = stateRef.get();
 
-  // If already active, record the previous cycle before starting new
   if (currentState && currentState.phase !== "idle") {
     recordCycle(currentState);
   }
@@ -57,7 +61,18 @@ function activate(
   stateRef.set(newState);
   saveState(newState);
   updateStatusBar(ctx, newState);
-  ctx.ui.notify(`TDD activated: ${task}\nPhase: RED -- Send a message to begin. The agent will be guided to write tests first.`, "info");
+
+  if (pi) {
+    pi.sendUserMessage(
+      `Implement the following using TDD (red-green-refactor): ${task}`,
+      { deliverAs: "followUp" },
+    );
+  } else {
+    ctx.ui.notify(
+      `TDD activated: ${task}\nPhase: RED -- Send a message to begin.`,
+      "info",
+    );
+  }
 }
 
 function deactivate(ctx: ExtensionCommandContext, stateRef: StateRef): void {
