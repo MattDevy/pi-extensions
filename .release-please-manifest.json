@@ -1,3 +1,4 @@
 {
-  "packages/pi-continuous-learning": "0.13.2"
+  "packages/pi-continuous-learning": "0.13.2",
+  "packages/pi-red-green": "0.1.0"
 }

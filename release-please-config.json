@@ -12,6 +12,7 @@
     }
   ],
   "packages": {
-    "packages/pi-continuous-learning": {}
+    "packages/pi-continuous-learning": {},
+    "packages/pi-red-green": {}
   }
 }
