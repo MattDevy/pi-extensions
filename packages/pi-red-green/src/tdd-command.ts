@@ -57,7 +57,7 @@ function activate(
   stateRef.set(newState);
   saveState(newState);
   updateStatusBar(ctx, newState);
-  ctx.ui.notify(`TDD activated: ${task}\nPhase: RED -- Write failing tests first.`, "info");
+  ctx.ui.notify(`TDD activated: ${task}\nPhase: RED -- Send a message to begin. The agent will be guided to write tests first.`, "info");
 }
 
 function deactivate(ctx: ExtensionCommandContext, stateRef: StateRef): void {
