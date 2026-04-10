@@ -62,3 +62,7 @@ All runtime data lives under `~/.pi/continuous-learning/`:
 - Strict mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` — array access returns `T | undefined`, optional properties cannot be assigned `undefined` explicitly
 - Prefix intentionally unused parameters with `_` (ESLint ignores `^_`)
 - `console.warn` and `console.error` are allowed; `console.log`/`console.info` are not
+
+### README conventions
+
+- Installation instructions in package READMEs must use `pi install npm:<package-name>`, not `npm install`. These are Pi extensions installed via the Pi CLI.

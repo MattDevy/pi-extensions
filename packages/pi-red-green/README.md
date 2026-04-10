@@ -5,15 +5,7 @@ TDD enforcement for [Pi coding agent](https://github.com/nicepkg/pi) sessions. F
 ## Installation
 
 ```bash
-npm install pi-red-green
-```
-
-Add to your Pi config:
-
-```json
-{
-  "extensions": ["pi-red-green"]
-}
+pi install npm:pi-red-green
 ```
 
 ## Usage

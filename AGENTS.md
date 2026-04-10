@@ -11,6 +11,9 @@ packages/
     docs/                   # Package documentation (internals.md, specification.md)
     AGENTS.md               # Package-level conventions, directory structure, testing
     CHANGELOG.md            # Release history (managed by release-please)
+  pi-red-green/             # Pi extension: TDD enforcement (red-green-refactor)
+    src/                    # TypeScript source + tests (*.test.ts alongside source)
+    CHANGELOG.md            # Release history (managed by release-please)
 ```
 
 ## Commands (run from repo root)
@@ -39,6 +42,10 @@ When working inside `packages/pi-continuous-learning`, refer to `packages/pi-con
 - Full directory structure with file descriptions
 - Testing approach
 - Documentation update guidelines
+
+## README conventions
+
+- Installation instructions in package READMEs must use `pi install npm:<package-name>`, not `npm install`. These are Pi extensions installed via the Pi CLI.
 
 ## Adding a new package
 
