@@ -1,6 +1,6 @@
 {
   "name": "pi-compass",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Pi extension that generates structured codebase maps and interactive code tours for agent onboarding.",
   "type": "module",
   "license": "MIT",
