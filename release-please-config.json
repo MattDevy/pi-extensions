@@ -15,6 +15,7 @@
     "packages/pi-continuous-learning": {},
     "packages/pi-red-green": {},
     "packages/pi-compass": {},
-    "packages/pi-simplify": {}
+    "packages/pi-simplify": {},
+    "packages/pi-code-review": {}
   }
 }

@@ -20,6 +20,9 @@ packages/
   pi-simplify/              # Pi extension: code simplification (/simplify command)
     src/                    # TypeScript source + tests (*.test.ts alongside source)
     CHANGELOG.md            # Release history (managed by release-please)
+  pi-code-review/           # Pi extension: automated language-aware code review
+    src/                    # TypeScript source + tests (*.test.ts alongside source)
+    CHANGELOG.md            # Release history (managed by release-please)
 ```
 
 ## Commands (run from repo root)
