@@ -10,6 +10,7 @@ A monorepo of [Pi](https://github.com/nicholasgasior/pi-coding-agent) extensions
 | Package | Description | npm |
 |---|---|---|
 | [pi-continuous-learning](packages/pi-continuous-learning) | Observes coding sessions and distils patterns into reusable instincts with confidence scoring and closed-loop feedback | [![npm](https://img.shields.io/npm/v/pi-continuous-learning)](https://www.npmjs.com/package/pi-continuous-learning) |
+| [pi-red-green](packages/pi-red-green) | TDD enforcement for agent sessions: RED-GREEN-REFACTOR state machine with phase-specific prompt injection and test run detection | [![npm](https://img.shields.io/npm/v/pi-red-green)](https://www.npmjs.com/package/pi-red-green) |
 
 ## Development
 

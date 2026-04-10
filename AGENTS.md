@@ -55,4 +55,6 @@ When working inside `packages/pi-continuous-learning`, refer to `packages/pi-con
 4. Add `{ "path": "packages/<name>" }` to root `tsconfig.json` references
 5. Add `"packages/<name>": {}` to `release-please-config.json`
 6. Add `"packages/<name>": "0.1.0"` to `.release-please-manifest.json`
-7. No changes needed to `eslint.config.js`, `.mega-linter.yml`, `ci.yml`, or `publish.yml`
+7. Add the package to the **Packages** table in the root `README.md`
+8. Add the package to the **Repository structure** section in this file (`AGENTS.md`)
+9. No changes needed to `eslint.config.js`, `.mega-linter.yml`, `ci.yml`, or `publish.yml`

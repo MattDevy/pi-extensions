@@ -66,3 +66,4 @@ All runtime data lives under `~/.pi/continuous-learning/`:
 ### README conventions
 
 - Installation instructions in package READMEs must use `pi install npm:<package-name>`, not `npm install`. These are Pi extensions installed via the Pi CLI.
+- When adding a new package, add it to the **Packages** table in the root `README.md` and the **Repository structure** in `AGENTS.md`.
