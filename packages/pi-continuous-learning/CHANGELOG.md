@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.13.2...pi-continuous-learning-v0.14.0) (2026-04-27)
+
+
+### Features
+
+* **pi-continuous-learning:** Configure analyzer provider ([#100](https://github.com/MattDevy/pi-extensions/issues/100)) ([034d32b](https://github.com/MattDevy/pi-extensions/commit/034d32b7a9ddc17a784f9b276f4dced89aa0c7dd))
+
 ## [0.13.2](https://github.com/MattDevy/pi-extensions/compare/pi-continuous-learning-v0.13.1...pi-continuous-learning-v0.13.2) (2026-04-09)
 
 
