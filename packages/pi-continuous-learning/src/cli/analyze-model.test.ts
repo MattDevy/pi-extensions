@@ -65,4 +65,18 @@ describe("resolveAnalyzerModel", () => {
     ).rejects.toThrow("Unknown analyzer model: openai-codex/not-a-real-model");
     expect(authStorage.getApiKey).not.toHaveBeenCalled();
   });
+
+  it("throws a provider-specific error for unknown provider strings", async () => {
+    const authStorage = {
+      getApiKey: vi.fn().mockResolvedValue("token"),
+    };
+
+    await expect(
+      resolveAnalyzerModel(
+        config({ provider: "not-a-real-provider", model: "claude-haiku-4-5" }),
+        authStorage,
+      ),
+    ).rejects.toThrow("Unknown analyzer provider: not-a-real-provider");
+    expect(authStorage.getApiKey).not.toHaveBeenCalled();
+  });
 });

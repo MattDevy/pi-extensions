@@ -29,7 +29,7 @@ export async function resolveAnalyzerModel(
   const modelId = config.model;
 
   if (!isKnownProvider(providerId)) {
-    throw new Error(`Unknown analyzer model: ${providerId}/${modelId}`);
+    throw new Error(`Unknown analyzer provider: ${providerId}`);
   }
 
   // getModel returns undefined for unknown model IDs but its overload signature
