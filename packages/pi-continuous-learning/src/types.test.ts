@@ -152,6 +152,7 @@ describe("types exports", () => {
       max_instincts: 20,
       max_injection_chars: 4000,
       model: "claude-haiku-4-5",
+      provider: "anthropic",
       timeout_seconds: 120,
       active_hours_start: 8,
       active_hours_end: 23,
@@ -172,6 +173,7 @@ describe("types exports", () => {
     };
     expect(config.run_interval_minutes).toBe(5);
     expect(config.model).toBe("claude-haiku-4-5");
+    expect(config.provider).toBe("anthropic");
     expect(config.active_hours_start).toBe(8);
     expect(config.max_idle_seconds).toBe(1800);
     expect(config.max_total_instincts_per_project).toBe(30);

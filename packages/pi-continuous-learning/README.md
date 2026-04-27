@@ -48,7 +48,7 @@ This installs the extension globally and makes the `pi-cl-analyze` CLI available
 |---|---|
 | [Pi](https://github.com/nicholasgasior/pi-coding-agent) | >= 0.62.0 |
 | Node.js | >= 18 |
-| LLM provider | configured in Pi (analyzer defaults to Haiku) |
+| LLM provider | configured in Pi (analyzer defaults to Anthropic Haiku; provider/model are configurable) |
 
 ---
 
@@ -62,7 +62,7 @@ Every hook event in your session — tool calls, prompts, errors, corrections, m
 
 ### 2. Analysis
 
-The background analyzer (`pi-cl-analyze`) processes new observations using Haiku. It applies three tiers of quality filtering:
+The background analyzer (`pi-cl-analyze`) processes new observations using the configured provider/model (Anthropic Haiku by default). It applies three tiers of quality filtering:
 
 | Tier | What it captures | How it's stored |
 |---|---|---|
@@ -216,7 +216,7 @@ Ask Pi things like _"show me my instincts"_, _"merge these two"_, or _"remember 
 
 ## Background analyzer
 
-The analyzer is a standalone CLI that processes all your projects in a single pass and creates/updates instincts using Haiku. It runs outside of Pi sessions so it never causes lag or interference.
+The analyzer is a standalone CLI that processes all your projects in a single pass and creates/updates instincts using the configured provider/model. It runs outside of Pi sessions so it never causes lag or interference.
 
 ### Running manually
 
@@ -233,7 +233,7 @@ pi-cl-analyze
 5. Applies passive confidence decay to all instincts
 6. Runs cleanup (expired/contradicted instincts)
 7. Scores observation batches by signal strength — low-signal batches are skipped to save cost
-8. Calls Haiku to analyse patterns and write instinct files
+8. Calls the configured model to analyse patterns and write instinct files
 9. Saves a cursor so only new observations are processed next time
 
 **Safety features:**
@@ -378,6 +378,7 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
   "max_instincts": 20,
   "max_injection_chars": 4000,
   "model": "claude-haiku-4-5",
+  "provider": "anthropic",
   "timeout_seconds": 120,
   "active_hours_start": 8,
   "active_hours_end": 23,
@@ -402,6 +403,7 @@ All defaults work out of the box. Override at `~/.pi/continuous-learning/config.
 | `max_instincts` | 20 | Maximum instincts injected per turn |
 | `max_injection_chars` | 4000 | Character budget for the injection block (~1,000 tokens) |
 | `model` | `claude-haiku-4-5` | Model for the background analyzer |
+| `provider` | `anthropic` | Pi provider for the background analyzer model |
 | `timeout_seconds` | 120 | Per-project LLM session timeout |
 | `active_hours_start` | 8 | Hour (0–23) at which the active observation window starts |
 | `active_hours_end` | 23 | Hour (0–23) at which the active observation window ends |

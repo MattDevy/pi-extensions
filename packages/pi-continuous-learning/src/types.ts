@@ -130,6 +130,7 @@ export interface Config {
   max_instincts: number;
   max_injection_chars: number;
   model: string;
+  provider: string;
   timeout_seconds: number;
   active_hours_start: number; // 0-23
   active_hours_end: number; // 0-23

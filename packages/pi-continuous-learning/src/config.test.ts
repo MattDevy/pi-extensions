@@ -35,6 +35,7 @@ describe("loadConfig", () => {
       max_instincts: 30,
       max_injection_chars: 6000,
       model: "claude-opus-4-5",
+      provider: "anthropic",
       timeout_seconds: 240,
       active_hours_start: 9,
       active_hours_end: 18,
@@ -67,7 +68,11 @@ describe("loadConfig", () => {
   });
 
   it("merges partial overrides with defaults (overrides win)", () => {
-    const partial = { run_interval_minutes: 15, model: "claude-opus-4-5" };
+    const partial = {
+      run_interval_minutes: 15,
+      provider: "openai-codex",
+      model: "gpt-5.4-mini",
+    };
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.readFileSync.mockReturnValue(
       JSON.stringify(partial) as unknown as ReturnType<typeof fs.readFileSync>,
@@ -76,7 +81,8 @@ describe("loadConfig", () => {
     const config = loadConfig();
 
     expect(config.run_interval_minutes).toBe(15);
-    expect(config.model).toBe("claude-opus-4-5");
+    expect(config.model).toBe("gpt-5.4-mini");
+    expect(config.provider).toBe("openai-codex");
     // Remaining fields come from defaults
     expect(config.min_observations_to_analyze).toBe(
       DEFAULT_CONFIG.min_observations_to_analyze,
@@ -109,6 +115,7 @@ describe("loadConfig", () => {
     expect(DEFAULT_CONFIG.min_confidence).toBe(0.5);
     expect(DEFAULT_CONFIG.max_instincts).toBe(20);
     expect(DEFAULT_CONFIG.model).toBe("claude-haiku-4-5");
+    expect(DEFAULT_CONFIG.provider).toBe("anthropic");
     expect(DEFAULT_CONFIG.timeout_seconds).toBe(120);
   });
 

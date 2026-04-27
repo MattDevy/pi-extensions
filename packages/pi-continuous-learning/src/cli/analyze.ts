@@ -9,7 +9,6 @@ import {
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
-import { getModel } from "@mariozechner/pi-ai";
 
 import { loadConfig, DEFAULT_CONFIG } from "../config.js";
 import type { InstalledSkill, ProjectEntry } from "../types.js";
@@ -74,6 +73,7 @@ import {
   type ProjectRunStats,
   type RunSummary,
 } from "./analyze-logger.js";
+import { resolveAnalyzerModel } from "./analyze-model.js";
 
 // ---------------------------------------------------------------------------
 // Lockfile guard - ensures only one instance runs at a time
@@ -230,6 +230,7 @@ async function analyzeProject(
   config: ReturnType<typeof loadConfig>,
   baseDir: string,
   logger: AnalyzeLogger,
+  authStorage: AuthStorage,
 ): Promise<AnalyzeResult> {
   const meta = loadProjectMeta(project.id, baseDir);
 
@@ -400,18 +401,10 @@ async function analyzeProject(
     },
   );
 
-  const authStorage = AuthStorage.create();
-  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<
-    typeof getModel
-  >[1];
-  const model = getModel("anthropic", modelId);
-  const apiKey = await authStorage.getApiKey("anthropic");
-
-  if (!apiKey) {
-    throw new Error(
-      "No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.",
-    );
-  }
+  const { apiKey, model, modelId } = await resolveAnalyzerModel(
+    config,
+    authStorage,
+  );
 
   const context = {
     systemPrompt: buildSingleShotSystemPrompt(),
@@ -595,6 +588,7 @@ async function consolidateProject(
   baseDir: string,
   logger: AnalyzeLogger,
   force: boolean,
+  authStorage: AuthStorage,
 ): Promise<AnalyzeResult> {
   const obsPath = getObservationsPath(project.id, baseDir);
   const sessionCount = countDistinctSessions(obsPath);
@@ -672,18 +666,10 @@ async function consolidateProject(
     projectId: project.id,
   });
 
-  const authStorage = AuthStorage.create();
-  const modelId = (config.model || DEFAULT_CONFIG.model) as Parameters<
-    typeof getModel
-  >[1];
-  const model = getModel("anthropic", modelId);
-  const apiKey = await authStorage.getApiKey("anthropic");
-
-  if (!apiKey) {
-    throw new Error(
-      "No Anthropic API key configured. Set via auth.json or ANTHROPIC_API_KEY.",
-    );
-  }
+  const { apiKey, model, modelId } = await resolveAnalyzerModel(
+    config,
+    authStorage,
+  );
 
   const context = {
     systemPrompt,
@@ -880,6 +866,7 @@ async function main(): Promise<void> {
     let skipped = 0;
     let errored = 0;
     const allProjectStats: ProjectRunStats[] = [];
+    const authStorage = AuthStorage.create();
 
     if (isConsolidateOnly) {
       // --consolidate: manual trigger, consolidation only, skip gates
@@ -891,6 +878,7 @@ async function main(): Promise<void> {
             baseDir,
             logger,
             true,
+            authStorage,
           );
           if (result.ran && result.stats) {
             processed++;
@@ -914,7 +902,7 @@ async function main(): Promise<void> {
       // Normal mode: analyze observations, then opportunistic consolidation
       for (const project of projects) {
         try {
-          const result = await analyzeProject(project, config, baseDir, logger);
+          const result = await analyzeProject(project, config, baseDir, logger, authStorage);
           if (result.ran && result.stats) {
             processed++;
             allProjectStats.push(result.stats);
@@ -944,6 +932,7 @@ async function main(): Promise<void> {
               baseDir,
               logger,
               false,
+              authStorage,
             );
             if (result.ran && result.stats) {
               processed++;

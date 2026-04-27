@@ -9,7 +9,7 @@ How pi-continuous-learning works under the hood. Covers the data flow, file layo
 The system has two separate runtimes:
 
 1. **Pi Extension** (runs inside Pi sessions): Observes events, records observations, injects instincts into prompts, registers LLM tools, and provides slash commands.
-2. **Standalone Analyzer** (`src/cli/analyze.ts`): Runs outside Pi via cron/launchd. Iterates all projects, analyzes observations using Haiku + the Pi SDK, and writes instinct files.
+2. **Standalone Analyzer** (`src/cli/analyze.ts`): Runs outside Pi via cron/launchd. Iterates all projects, analyzes observations using the configured provider/model via the Pi SDK, and writes instinct files.
 
 ---
 
@@ -79,6 +79,7 @@ Defined in `config.ts`. The extension reads `~/.pi/continuous-learning/config.js
   min_confidence: 0.5,                    // Instincts below this are not injected
   max_instincts: 20,                      // Cap on instincts injected per turn
   model: "claude-haiku-4-5",              // Model for the analyzer
+  provider: "anthropic",                  // Pi provider for the analyzer model
   timeout_seconds: 120,                   // Per-project timeout for analyzer LLM session
   active_hours_start: 8,                  // (legacy, unused by standalone analyzer)
   active_hours_end: 23,                   // (legacy, unused by standalone analyzer)
@@ -166,17 +167,16 @@ instinct-cleanup.ts -- auto-cleanup: delete flagged/TTL/over-cap instincts
 instinct-decay.ts  -- apply passive confidence decay (-0.05/week) after cleanup
   |
   v
-Create AgentSession (Pi SDK) with:
+Resolve analyzer provider/model from config:
+  - provider: anthropic (configurable)
   - model: claude-haiku-4-5 (configurable)
-  - customTools: instinct_list, instinct_read, instinct_write, instinct_delete
-  - systemPrompt: analyzer instructions (pattern detection, scoring rules, conservativeness)
-  - sessionManager: in-memory (no persistence)
+  - credentials: existing Pi auth for that provider
   |
   v
-session.prompt(userPrompt)  -- sends observations + project context to Haiku
+runSingleShot(context, model, apiKey)  -- sends observations + project context to the configured model
   |
   v
-Haiku analyzes patterns, calls instinct_write/instinct_read tools
+Model analyzes patterns and returns structured instinct changes
   |
   v
 session.dispose(), update last_analyzed_at in project.json

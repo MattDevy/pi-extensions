@@ -52,6 +52,7 @@ const BASE_CONFIG: Config = {
   max_instincts: 20,
   max_injection_chars: 4000,
   model: "claude-haiku-4-5",
+  provider: "anthropic",
   timeout_seconds: 120,
   active_hours_start: 8,
   active_hours_end: 23,

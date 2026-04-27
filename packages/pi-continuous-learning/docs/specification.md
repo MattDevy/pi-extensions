@@ -10,7 +10,7 @@ Inspired by [everything-claude-code/continuous-learning-v2](https://github.com/n
 
 1. **Observe** - capture tool calls, user prompts, and outcomes via Pi extension events
 2. **Record** - write observations to project-scoped JSONL files
-3. **Analyze** - run a background job every 5 minutes using Haiku to detect patterns
+3. **Analyze** - run a background job every 5 minutes using the configured analyzer provider/model to detect patterns
 4. **Learn** - create/update instinct files (YAML-frontmatter markdown) with confidence scoring
 5. **Apply** - inject relevant instincts into Pi's system prompt via `before_agent_start`
 6. **Validate** - closed-loop feedback: track whether injected instincts align with actual session behavior, adjusting confidence based on real outcomes rather than observation count alone
@@ -612,6 +612,7 @@ Stored at `~/.pi/continuous-learning/config.json`:
   },
   "analyzer": {
     "model": "claude-haiku-4-5",
+    "provider": "anthropic",
     "timeout_seconds": 120,
     "max_observations_per_analysis": 500,
     "max_turns": 10
@@ -623,7 +624,7 @@ Stored at `~/.pi/continuous-learning/config.json`:
 }
 ```
 
-Defaults are used when config file is absent. The extension reads config on `session_start` and caches it.
+Defaults are used when config file is absent. The extension reads config on `session_start` and caches it. The analyzer defaults to Anthropic Haiku, but `provider` and `model` can be overridden to any Pi-registered provider/model pair.
 
 ---
 
