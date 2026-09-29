@@ -75,7 +75,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^10.7.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.2"
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "0.28.1",
