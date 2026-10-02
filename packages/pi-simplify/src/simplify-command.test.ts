@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { handleSimplifyCommand, parseArgs, COMMAND_NAME } from "./simplify-command.js";
+import {
+  handleSimplifyCommand,
+  parseArgs,
+  resolveSimplifyRequest,
+  COMMAND_NAME,
+} from "./simplify-command.js";
 
 describe("COMMAND_NAME", () => {
   it("is 'simplify'", () => {
@@ -46,6 +51,33 @@ describe("parseArgs", () => {
       ref: "develop",
       staged: false,
     });
+  });
+});
+
+describe("resolveSimplifyRequest", () => {
+  const options = { files: [], ref: "HEAD", staged: false };
+
+  it("returns null when no changed files are found", async () => {
+    const pi = {
+      exec: vi.fn(() => Promise.resolve({ stdout: "", stderr: "", code: 0 })),
+    } as unknown as Parameters<typeof resolveSimplifyRequest>[0];
+
+    await expect(resolveSimplifyRequest(pi, "/project", options)).resolves.toBeNull();
+  });
+
+  it("returns changed files and the simplify prompt", async () => {
+    const pi = {
+      exec: vi.fn((_cmd: string, args: string[]) => Promise.resolve(
+        args.includes("--name-status")
+          ? { stdout: "A\tsrc/new.ts\n", stderr: "", code: 0 }
+          : { stdout: "", stderr: "", code: 1 },
+      )),
+    } as unknown as Parameters<typeof resolveSimplifyRequest>[0];
+
+    const request = await resolveSimplifyRequest(pi, "/project", options);
+
+    expect(request?.files).toEqual([{ path: "src/new.ts", status: "added" }]);
+    expect(request?.prompt).toContain("src/new.ts (added; entire file is in scope)");
   });
 });
 
