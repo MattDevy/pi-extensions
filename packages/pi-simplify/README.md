@@ -1,5 +1,7 @@
 # pi-simplify
 
+[![omp status](https://omppackages.com/badge/pi-simplify.svg)](https://omppackages.com/packages/pi-simplify)
+
 A [Pi](https://github.com/nicholasgasior/pi-coding-agent) extension that reviews recently changed code for clarity, consistency, and maintainability improvements.
 
 ## Installation
